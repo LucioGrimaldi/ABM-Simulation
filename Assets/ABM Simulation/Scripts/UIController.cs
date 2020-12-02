@@ -40,7 +40,7 @@ public class UIController : MonoBehaviour
     {
 
         //setMainMenu();
-        
+        string gatto = "miao";
     }
 
 
