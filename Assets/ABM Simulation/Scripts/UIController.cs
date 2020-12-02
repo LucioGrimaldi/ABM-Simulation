@@ -40,7 +40,7 @@ public class UIController : MonoBehaviour
     {
 
         //setMainMenu();
-        
+        int cane = 3;
     }
 
 
