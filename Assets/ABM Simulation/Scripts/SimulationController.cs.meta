@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 7ee04c2ce0874b74dba2e44aa0fd065f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - ChickenPrefab: {instanceID: 0}
+  - MessageBrokerPrefab: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
