@@ -16,6 +16,9 @@ public class SimulationController : MonoBehaviour
     private GameObject simSpace;
     private Vector3 simSpacePosition;
     private Quaternion simSpaceRotation;
+    public Button button_Play;
+    public Button button_Pause;
+    public Button button_xStop;
 
     // Variables
     private List<GameObject> agents = new List<GameObject>();
@@ -115,7 +118,7 @@ public class SimulationController : MonoBehaviour
     private void Start()
     {
         //GUI creation
-        GameObject.Find("PlayButton").GetComponent<Button>().onClick.AddListener(() => {
+        button_Play.onClick.AddListener(() => {
             if(simulationState == (int)simStateEnum.STOP)
             {
                 InstantiateAgents();
@@ -130,11 +133,11 @@ public class SimulationController : MonoBehaviour
             ThreadPool.QueueUserWorkItem(Play);
             simulationState = (int)simStateEnum.PLAY;
         });
-        GameObject.Find("PauseButton").GetComponent<Button>().onClick.AddListener(() => {
+        button_Pause.onClick.AddListener(() => {
             ThreadPool.QueueUserWorkItem(Pause);
             simulationState = (int)simStateEnum.PAUSE;
         });
-        GameObject.Find("StopButton").GetComponent<Button>().onClick.AddListener(() => {
+        button_xStop.onClick.AddListener(() => {
             ThreadPool.QueueUserWorkItem(Stop);
             simulationState = (int)simStateEnum.STOP;
             DestroyAgents();
