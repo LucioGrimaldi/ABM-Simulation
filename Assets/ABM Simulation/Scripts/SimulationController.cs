@@ -19,6 +19,9 @@ public class SimulationController : MonoBehaviour
     private GameObject simSpace;
     private Vector3 simSpacePosition;
     private Quaternion simSpaceRotation;
+    public Button button_Play;
+    public Button button_Pause;
+    public Button button_xStop;
 
     // Variables
     private List<GameObject> agents = new List<GameObject>();

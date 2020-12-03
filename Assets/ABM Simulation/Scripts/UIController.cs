@@ -9,7 +9,10 @@ public class UIController : MonoBehaviour
     private SimulationController SimulationController;
 
     //GENERAL VARIABLES
-    public string playernick;
+    //WORLD VARIABLES
+    string playernick, nameCamera = "Main Camera";
+    bool listenPlayGame, listenSettings, listenQuitGame, listenApplyM, listenDiscardM, listenInGameSettings,
+        listenApplyG, listenDiscardG, listenButtonBackToMenu, listenPrevCam, listenNextCam = false;
 
     //CANVAS MENU
     public Canvas canvasMenu;
@@ -39,6 +42,12 @@ public class UIController : MonoBehaviour
     {
     }
 
+    //CANVAS SETTINGS INGAME MENU
+    public Canvas canvasSettingsInGameMenu;
+    Button button_applyGame;
+    Button button_xDiscardGame;
+
+
     void Start()
     {
         SimulationController = GameObject.Find("Simulation Controller").GetComponent<SimulationController>();
@@ -47,116 +56,207 @@ public class UIController : MonoBehaviour
         stopSimulation.onClick.AddListener(SimulationController.Stop);
         //setMainMenu();
 
+        SetMainMenu();
+
+        
     }
 
 
     void Update()
     {
-        //CheckNickname();
+        CheckNickname();
         
     }
-
     
-    void setMainMenu()
+    //SETTING MENUS-------------------------
+
+    public void SetMainMenu()
     {
-        textField = GameObject.Find("TextInsertNick").GetComponent<Text>();
-        inputField = GameObject.Find("InputField").GetComponent<InputField>();
+        canvasSettingsMenu.gameObject.SetActive(false);
+        canvasGame.gameObject.SetActive(false);
+        canvasSettingsInGameMenu.gameObject.SetActive(false);
+        canvasMenu.gameObject.SetActive(true);
+
+        textNick = GameObject.Find("TextNick").GetComponent<Text>();
+        inputFieldNick = GameObject.Find("InputFieldNick").GetComponent<InputField>();
         buttonPlayGame = GameObject.Find("ButtonPlayGame").GetComponent<Button>();
         buttonSettings = GameObject.Find("ButtonSettings").GetComponent<Button>();
         buttonQuitGame = GameObject.Find("ButtonQuitGame").GetComponent<Button>();
 
-        buttonPlayGame.onClick.AddListener(StartGame);
-        buttonSettings.onClick.AddListener(MenuSettings);
-        buttonQuitGame.onClick.AddListener(QuitGame);
+        if(listenPlayGame == false)
+        {
+            buttonPlayGame.onClick.AddListener(StartGame);
+            Debug.Log("PLAY game added listener");
+            listenPlayGame = true;
+        }
+        if (listenSettings == false)
+        {
+            buttonSettings.onClick.AddListener(SetSettingsMenu);
+            Debug.Log("SETTINGS game added listener");
+            listenSettings = true;
+        }
+        if (listenQuitGame == false)
+        {
+            buttonQuitGame.onClick.AddListener(QuitGame);
+            Debug.Log("QUIT game added listener");
+            listenQuitGame = true;
+        }
 
-        canvasGame.gameObject.SetActive(false);
-        canvasSettings.gameObject.SetActive(false);
-        
-        buttonPlayGame.interactable = false;
-        
 
     }
 
 
-
     void StartGame()
     {
-        canvasSettings.gameObject.SetActive(false);
+        canvasSettingsMenu.gameObject.SetActive(false);
+        canvasSettingsInGameMenu.gameObject.SetActive(false);
         canvasMenu.gameObject.SetActive(false);
         canvasGame.gameObject.SetActive(true);
 
         Debug.Log("Game Started!");
 
-        playerText = GameObject.Find("PlayerText").GetComponent<Text>();
-        cameraText = GameObject.Find("CamText").GetComponent<Text>();
-        buttonOptions = GameObject.Find("ButtonOptions").GetComponent<Button>();
-        buttonPreviousCam = GameObject.Find("previous_Cam").GetComponent<Button>();
-        buttonNextCam = GameObject.Find("next_Cam").GetComponent<Button>();
-        playSimulation = GameObject.Find("PlaySimulation").GetComponent<Button>();
-        pauseSimulation = GameObject.Find("PauseSimulation").GetComponent<Button>();
-        stopSimulation = GameObject.Find("StopSimulation").GetComponent<Button>();
+        textCamera = GameObject.Find("TextCamera").GetComponent<Text>();
+        textPlayer = GameObject.Find("TextPlayer").GetComponent<Text>();
+
+        buttonBackToMenu = GameObject.Find("Button_menu").GetComponent<Button>();
+        buttonInGameSettings = GameObject.Find("Button_settings").GetComponent<Button>();
+        buttonPreviousCam = GameObject.Find("Button_arrow_leftCam").GetComponent<Button>();
+        buttonNextCam = GameObject.Find("Button_arrow_rightCam").GetComponent<Button>();
+        //playSimulation = GameObject.Find("Button_play").GetComponent<Button>();
+        //pauseSimulation = GameObject.Find("Button_pause").GetComponent<Button>();
+        //stopSimulation = GameObject.Find("Button_xStop").GetComponent<Button>();
 
         
-        playerText.text = "Player: " + inputField.text;
-        cameraText.text = "Main Camera";
-        
+        textCamera.text = nameCamera;
+        textPlayer.text = playernick;
 
-        buttonOptions.onClick.AddListener(inGameSettings);
+        if (listenPrevCam == false)
+        {
+            buttonPreviousCam.onClick.AddListener(ChangeCameraLeft);
+            listenPrevCam = true;
+        }
+
+        if (listenNextCam == false)
+        {
+            buttonNextCam.onClick.AddListener(ChangeCameraRight);
+            listenNextCam = true;
+        }
+
+        if (listenButtonBackToMenu == false)
+        {
+            buttonBackToMenu.onClick.AddListener(SetMainMenu);
+            listenButtonBackToMenu = true;
+        }
+
+        if (listenInGameSettings == false)
+        {
+            buttonInGameSettings.onClick.AddListener(InGameSettings);
+            listenInGameSettings = true;
+        }
         
+    }
+
+    void SetSettingsMenu()
+    {
+        Debug.Log("Settings Menu!");
+        canvasMenu.gameObject.SetActive(false);
+        canvasSettingsMenu.gameObject.SetActive(true);
+
+        button_applyMenu = GameObject.Find("Button_applyMenu").GetComponent<Button>();
+        button_xDiscardMenu = GameObject.Find("Button_xDiscardMenu").GetComponent<Button>();
+
+        //get and show all settings to modify TODO--------------------------
+
+
+        if (listenApplyM == false)
+        {
+            button_applyMenu.onClick.AddListener(ApplyMenuSettings);
+            listenApplyM = true;
+
+        }
+
+        if (listenDiscardM == false)
+        {
+            button_xDiscardMenu.onClick.AddListener(SetMainMenu);
+            listenDiscardM = true;
+
+        }
 
     }
 
-    void inGameSettings()
+    void InGameSettings()
     {
-        
         canvasGame.gameObject.SetActive(false);
-        canvasSettings.gameObject.SetActive(true);
+        canvasSettingsInGameMenu.gameObject.SetActive(true);
         
-        applyButton.onClick.AddListener(ApplySettings);
-        undoChanges.onClick.AddListener(StartGame);
+        button_applyGame = GameObject.Find("Button_applyGame").GetComponent<Button>();
+        button_xDiscardGame = GameObject.Find("Button_xDiscardGame").GetComponent<Button>();
+
+        if (listenApplyG == false)
+        {
+            button_applyGame.onClick.AddListener(ApplyInGameSettings);
+            listenApplyG = true;
+        }
+
+        if (listenDiscardG == false)
+        {
+            button_xDiscardGame.onClick.AddListener(StartGame);
+            listenDiscardG = true;
+        }
     }
 
-    void ApplySettings()
+    //OTHER USEFUL METHODS
+
+    void ChangeCameraLeft()
     {
+
+    }
+
+    void ChangeCameraRight()
+    {
+
+    }
+
+
+    void ApplyInGameSettings()
+    {
+
+        //save new settings into variables and send to simulation TODO------
+
+
+        Debug.Log("Settings InGame Applied!");
+        StartGame();
+    }
+
+
+    void ApplyMenuSettings()
+    {
+
+        //save new settings into variables and send to simulation TODO------
+
+
         Debug.Log("Settings Applied!");
-        applyButton.gameObject.SetActive(false);
-        canvasSettings.gameObject.SetActive(false);
-        canvasMenu.gameObject.SetActive(true);
-        canvasSettings.gameObject.SetActive(false);
-        //save new settings into variables and send to simulation
+        SetMainMenu();
     }
 
 
     void CheckNickname()
     {
-        if (inputField.text.Length > 0 && !inputField.text.Contains(" "))
+        if (inputFieldNick.text.Length > 0 && !inputFieldNick.text.Contains(" "))
         {
-
             buttonPlayGame.interactable = true;
-            playernick = inputField.text;
+            playernick = inputFieldNick.text;
         }
         else buttonPlayGame.interactable = false;
 
     }
-
-    void MenuSettings()
-    {
-        Debug.Log("Settings Menu!");
-        canvasMenu.gameObject.SetActive(false);
-        canvasSettings.gameObject.SetActive(true);
-
-        undoChanges = GameObject.Find("UndoChanges").GetComponent<Button>();
-        applyButton = GameObject.Find("ApplyChanges").GetComponent<Button>();
-        //show all settings to modify
-
-        undoChanges.onClick.AddListener(StartGame);
-        applyButton.onClick.AddListener(ApplySettings);
-    }
-
+    
 
     void QuitGame()
     {
         Application.Quit();
         Debug.Log("Exiting Game!");
     }
+    
 }
+
