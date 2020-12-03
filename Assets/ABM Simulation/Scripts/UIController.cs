@@ -19,21 +19,22 @@ public class UIController : MonoBehaviour
     private Button buttonPlayGame;
     private Button buttonSettings;
     private Button buttonQuitGame;
-    private Text textField;
-    private InputField inputField;
+    private Text textNick;
+    private InputField inputFieldNick;
 
     //CANVAS SETTINGS
-    public Canvas canvasSettings;
-    private Button applyButton;
-    private Button undoChanges;
+    public Canvas canvasSettingsMenu;
+    private Button button_applyMenu;
+    private Button button_xDiscardMenu;
 
     //CANVAS GAME
     public Canvas canvasGame;
     private Button buttonPreviousCam;
     private Button buttonNextCam;
-    private Button buttonOptions;
-    private Text playerText;
-    private Text cameraText;
+    private Button buttonBackToMenu;
+    private Button buttonInGameSettings;
+    private Text textPlayer;
+    private Text textCamera;
     public Button playSimulation;
     public Button pauseSimulation;
     public Button stopSimulation;
@@ -122,11 +123,7 @@ public class UIController : MonoBehaviour
         buttonInGameSettings = GameObject.Find("Button_settings").GetComponent<Button>();
         buttonPreviousCam = GameObject.Find("Button_arrow_leftCam").GetComponent<Button>();
         buttonNextCam = GameObject.Find("Button_arrow_rightCam").GetComponent<Button>();
-        //playSimulation = GameObject.Find("Button_play").GetComponent<Button>();
-        //pauseSimulation = GameObject.Find("Button_pause").GetComponent<Button>();
-        //stopSimulation = GameObject.Find("Button_xStop").GetComponent<Button>();
 
-        
         textCamera.text = nameCamera;
         textPlayer.text = playernick;
 

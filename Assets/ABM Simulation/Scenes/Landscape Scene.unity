@@ -1712,6 +1712,9 @@ MonoBehaviour:
   canvasMenu: {fileID: 125856245}
   canvasSettingsMenu: {fileID: 1889345215}
   canvasGame: {fileID: 2119003544}
+  playSimulation: {fileID: 1854201371}
+  pauseSimulation: {fileID: 475561278}
+  stopSimulation: {fileID: 393438767}
   canvasSettingsInGameMenu: {fileID: 1803972651}
 --- !u!4 &94608235
 Transform:
@@ -2801,7 +2804,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 165046909}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -28589,7 +28592,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1803972649
 MonoBehaviour:
   m_ObjectHideFlags: 0
