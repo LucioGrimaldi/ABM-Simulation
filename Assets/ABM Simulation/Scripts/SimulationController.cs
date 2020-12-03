@@ -10,6 +10,9 @@ using uPLibrary.Networking.M2Mqtt.Messages;
 
 public class SimulationController : MonoBehaviour
 {
+    // UI Controller
+    private UIController UIController;
+
     /// Simulation variables
     // Assets
     public GameObject AgentPrefab;
@@ -30,12 +33,8 @@ public class SimulationController : MonoBehaviour
     private bool CONTROL_CLIENT_READY = false;
     private bool SIM_CLIENT_READY = false;
     private bool AGENTS_READY = false;
-    private enum simStateEnum : int { 
-        PLAY = 1,
-        PAUSE = 2,
-        STOP = 3
-    }
-    private int simulationState = (int)simStateEnum.STOP;
+    private static string SETTINGS = "0", PLAY = "1", PAUSE = "2", STOP = "3";
+    private string simulationState = STOP;
 
     // Settings
     private long currentSimStep = 0;
@@ -105,7 +104,10 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     protected virtual void Awake()
     {
-        
+        //Set default settings
+        flockSim = new FlockerSimulation(400, 400, 400, 1000, 60, 0, 1.0f, 1.0f, 10f, 1.0f, 1.0f, 1.0f, 10f, 0.7f, 0.1f);
+        Ready_buffer = new Vector3[flockSim.NumAgents];
+        positions = new Vector3[flockSim.NumAgents];
     }
 
     /// <summary>
@@ -114,35 +116,7 @@ public class SimulationController : MonoBehaviour
     // Start is called before the first frame update
     private void Start()
     {
-        //GUI creation
-        GameObject.Find("PlayButton").GetComponent<Button>().onClick.AddListener(() => {
-            if(simulationState == (int)simStateEnum.STOP)
-            {
-                InstantiateAgents();
-                SendSimulationSettings(flockSim.Width.ToString() + " " + flockSim.Height.ToString() + " " + flockSim.Lenght.ToString() + " " +
-                flockSim.NumAgents.ToString() + " " + flockSim.SimStepRate.ToString() + " " + flockSim.SimStepDelay.ToString() + " " + flockSim.Cohesion.ToString() + " " +
-                flockSim.Avoidance.ToString() + " " + flockSim.AvoidDistance.ToString() + " " + flockSim.Randomness.ToString() + " " + flockSim.Consistency.ToString() + " " +
-                flockSim.Momentum.ToString() + " " + flockSim.Neighborhood.ToString() + " " + flockSim.Jump.ToString() + " " +
-                flockSim.DeadAgentProbability.ToString());
-                Ready_buffer = new Vector3[flockSim.NumAgents];
-            }
-            else if (simulationState == (int)simStateEnum.PLAY) {return;}
-            ThreadPool.QueueUserWorkItem(Play);
-            simulationState = (int)simStateEnum.PLAY;
-        });
-        GameObject.Find("PauseButton").GetComponent<Button>().onClick.AddListener(() => {
-            ThreadPool.QueueUserWorkItem(Pause);
-            simulationState = (int)simStateEnum.PAUSE;
-        });
-        GameObject.Find("StopButton").GetComponent<Button>().onClick.AddListener(() => {
-            ThreadPool.QueueUserWorkItem(Stop);
-            simulationState = (int)simStateEnum.STOP;
-            DestroyAgents();
-            CurrentSimStep = 0;
-            SimMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
-            SecondaryQueue.Clear();
-        });
-
+        UIController = GameObject.Find("UIController").GetComponent<UIController>();
         //Starting MQTT Clients
         Thread controlClientThread = new Thread(() => controlClient.Connect(out responseMessageQueue, out CONTROL_CLIENT_READY));
         controlClientThread.Start();
@@ -150,7 +124,7 @@ public class SimulationController : MonoBehaviour
         Thread simClientThread = new Thread(() => simClient.Connect(out simMessageQueue, out SIM_CLIENT_READY));
         simClientThread.Start();
         while (!(CONTROL_CLIENT_READY && SIM_CLIENT_READY)){}
-        Setup();
+        SetupBackgroundTasks();
     }
 
     // Update is called once per frame
@@ -158,33 +132,59 @@ public class SimulationController : MonoBehaviour
     {
         UpdateAgents();
     }
-    private void Setup()
-    {
-        CreateSimulation();
-        DoSetup();
+    private void SetupBackgroundTasks()
+    {        
+        PerformanceMonitor();
+        BuildSteps();
     }
-    
-    private void Play(object state)
+
+    private void UpdateSettings()
+    {
+        ready_buffer = new Vector3[flockSim.NumAgents];
+        positions = new Vector3[flockSim.NumAgents];
+    }
+
+    public void Play()
     {
         //blocco il tasto
         //devo aspettare la risposta per eventualmente sbloccare il tasto se mason non ha ricevuto il messaggio
         //sbloccare i bottoni necessari
-        controlClient.Play();
+        if (simulationState == STOP)
+        {
+            InstantiateAgents();
+            SendSimulationSettings();
+            Ready_buffer = new Vector3[flockSim.NumAgents];
+        }
+        else if (simulationState == PLAY) { return; }
+        controlClient.SendCommand(PLAY);
+        simulationState = PLAY;
     }
 
-    public void Pause(object state)
+    public void Pause()
     {
-        controlClient.Pause();
+        controlClient.SendCommand(PAUSE);
+        simulationState = PAUSE;
     }
 
-    public void Stop(object state)
+    public void Stop()
     {
-        controlClient.Stop();
+        if (simulationState == STOP) {return;}
+        controlClient.SendCommand(STOP);
+        simulationState = STOP;
+        DestroyAgents();
+        CurrentSimStep = 0;
+        SimMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
+        SecondaryQueue.Clear();
     }
 
-    public void SendSimulationSettings(string settings)
+    public void SendSimulationSettings()
     {
-        controlClient.SendSettings(settings);
+        string settings = flockSim.Width.ToString() + " " + flockSim.Height.ToString() + " " + flockSim.Lenght.ToString() + " " +
+                flockSim.NumAgents.ToString() + " " + flockSim.SimStepRate.ToString() + " " + flockSim.SimStepDelay.ToString() + " " + flockSim.Cohesion.ToString() + " " +
+                flockSim.Avoidance.ToString() + " " + flockSim.AvoidDistance.ToString() + " " + flockSim.Randomness.ToString() + " " + flockSim.Consistency.ToString() + " " +
+                flockSim.Momentum.ToString() + " " + flockSim.Neighborhood.ToString() + " " + flockSim.Jump.ToString() + " " +
+                flockSim.DeadAgentProbability.ToString();
+        controlClient.SendCommand(SETTINGS + ":" + settings);
     }
 
     public void PerformanceMonitor()
@@ -244,22 +244,6 @@ public class SimulationController : MonoBehaviour
         }
     }
 
-
-    public void CreateSimulation()
-    {
-        flockSim = new FlockerSimulation(400, 400, 400, 1000, 60, 0, 1.0f, 1.0f, 10f, 1.0f, 1.0f, 1.0f, 10f, 0.7f, 0.1f);
-    }
-
-    /// <summary>
-    /// Setup Simulation
-    /// </summary>
-    public void DoSetup()
-    {
-        ready_buffer = new Vector3[flockSim.NumAgents];
-        positions = new Vector3[flockSim.NumAgents];
-        PerformanceMonitor();
-        BuildSteps();
-    }
     public void BuildSteps()
     {
         Debug.Log("Building Steps..");

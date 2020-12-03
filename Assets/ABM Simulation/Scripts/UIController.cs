@@ -5,42 +5,48 @@ using UnityEngine.UI;
 
 public class UIController : MonoBehaviour
 {
-    //GENERAL VARIABLES
-    string playernick;
+    //Simulation Controller
+    private SimulationController SimulationController;
 
+    //GENERAL VARIABLES
+    public string playernick;
 
     //CANVAS MENU
     public Canvas canvasMenu;
-    Button buttonPlayGame;
-    Button buttonSettings;
-    Button buttonQuitGame;
-    Text textField;
-    InputField inputField;
+    private Button buttonPlayGame;
+    private Button buttonSettings;
+    private Button buttonQuitGame;
+    private Text textField;
+    private InputField inputField;
 
     //CANVAS SETTINGS
     public Canvas canvasSettings;
-    Button applyButton;
-    Button undoChanges;
-
+    private Button applyButton;
+    private Button undoChanges;
 
     //CANVAS GAME
     public Canvas canvasGame;
-    Button buttonPreviousCam;
-    Button buttonNextCam;
-    Button buttonOptions;
-    Text playerText;
-    Text cameraText;
-    Button playSimulation;
-    Button pauseSimulation;
-    Button stopSimulation;
+    private Button buttonPreviousCam;
+    private Button buttonNextCam;
+    private Button buttonOptions;
+    private Text playerText;
+    private Text cameraText;
+    public Button playSimulation;
+    public Button pauseSimulation;
+    public Button stopSimulation;
     
-    
+    void Awake()
+    {
+    }
 
     void Start()
     {
-
+        SimulationController = GameObject.Find("Simulation Controller").GetComponent<SimulationController>();
+        playSimulation.onClick.AddListener(SimulationController.Play);
+        pauseSimulation.onClick.AddListener(SimulationController.Pause);
+        stopSimulation.onClick.AddListener(SimulationController.Stop);
         //setMainMenu();
-        
+
     }
 
 
