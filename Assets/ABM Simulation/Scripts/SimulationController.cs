@@ -176,7 +176,7 @@ public class SimulationController : MonoBehaviour
         simulationState = STOP;
         DestroyAgents();
         CurrentSimStep = 0;
-        SimMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
+        MqttMsgPublishEventArgs ignored; while (simMessageQueue.TryDequeue(out ignored));
         SecondaryQueue.Clear();
     }
 
@@ -259,7 +259,7 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     public void BuildStepBatch()
     {
-        int THRESHOLD = 60;
+        int THRESHOLD = 0;
         MqttMsgPublishEventArgs step;
         Tuple<long, Vector3[]> Batch_message;
 

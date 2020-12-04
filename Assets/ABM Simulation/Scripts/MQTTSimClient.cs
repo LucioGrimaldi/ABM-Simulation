@@ -1,9 +1,12 @@
-﻿using System;
+﻿#define TRACE
+
+using System;
 using System.Collections;
 using Fixed;
 using UnityEngine;
 using uPLibrary.Networking.M2Mqtt;
 using uPLibrary.Networking.M2Mqtt.Messages;
+
 
 public class MQTTSimClient
 {
