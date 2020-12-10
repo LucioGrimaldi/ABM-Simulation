@@ -24,7 +24,7 @@ public class DisplayStats : MonoBehaviour
 
         GUIStyle style = new GUIStyle();
 
-        Rect rect = new Rect(h * 2 / 100, h * 8 / 100, w, h * 10 / 100);
+        Rect rect = new Rect(h / 50, h * 2 / 5, w, h);
         style.alignment = TextAnchor.UpperLeft;
         style.fontSize = h * 2 / 100;
         style.normal.textColor = new Color(0.0f, 0.0f, 0.5f, 1.0f);
