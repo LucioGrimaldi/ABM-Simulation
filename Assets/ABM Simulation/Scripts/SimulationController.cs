@@ -5,41 +5,66 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using UnityEngine;
-using UnityEngine.UI;
 using uPLibrary.Networking.M2Mqtt.Messages;
 
 public class SimulationController : MonoBehaviour
 {
-    // UI Controller
+    /// UI Controller ///
     private UIController UIController;
 
-    /// Simulation variables
-    // Assets
+    /// Game-related Assets ///
     public GameObject AgentPrefab;
     private GameObject simSpace;
     private Vector3 simSpacePosition;
     private Quaternion simSpaceRotation;
-    public Button button_Play;
-    public Button button_Pause;
-    public Button button_xStop;
 
-    // Variables
-    private List<GameObject> agents = new List<GameObject>();
-    private FlockerSimulation flockSim;
+    /// Game-related Variables ///
+    private int CONN_TIMEOUT = 5000; //millis
+
+    /// MQTT Clients ///
     private MQTTControlClient controlClient = new MQTTControlClient();
     private MQTTSimClient simClient = new MQTTSimClient();
+    /// Threads
+    Thread controlClientThread, simClientThread, connectionThread;
+    /// Queues
     private ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
     private ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
     private SortedList<long, Vector3[]> secondaryQueue = new SortedList<long, Vector3[]>();
+
+    /// Sim-related variables ///
+    /// State
+    private FlockerSimulation flockSim;
+    private enum simulationState {
+        CONN_ERROR = -2,            // Error in connection
+        NOT_READY = -1,             // Client is not connected
+        READY = 0,                  // Client is ready to play
+        PLAY = 1,                   // Simulation is in PLAY
+        PAUSE = 2,                  // Simulation is in PAUSE
+        STOP = 3                    // Simulation is in STOP (settings not yet send)
+    }
+    private simulationState state = simulationState.NOT_READY;
+    private List<GameObject> agents = new List<GameObject>();
+    /// Step Buffers
     private Vector3[] ready_buffer;
     private Vector3[] Ready_buffer { get => ready_buffer; set => ready_buffer = value; }
+    /// READY Bools
     private bool CONTROL_CLIENT_READY = false;
     private bool SIM_CLIENT_READY = false;
     private bool AGENTS_READY = false;
+    /// Support variables
+    int last_step = 0;
+    Tuple<int, int, String[]> des_msg;
+    long batch_flockSimStep;
+    int batch_flockId;
+    Vector3 position;
+    Vector3[] positions;
+    MemoryStream deserialize_inputStream;
+    MemoryStream decompress_inputStream;
+    BinaryReader deserialize_binaryReader;
+    BinaryReader decompress_binaryReader;
+    GZipStream gZipStream;
+    /// Settings
     private static string SETTINGS = "0", PLAY = "1", PAUSE = "2", STOP = "3";
-    private string simulationState = STOP;
-
-    // Settings
     private long currentSimStep = 0;
     private int flockNum = 0;
     private int deadFlockers = 0;
@@ -49,42 +74,34 @@ public class SimulationController : MonoBehaviour
     private string[] variables = new string[] {"width", "height", "lenght", "numAgents", "simStepRate", "simStepDelay", "cohesion", 
                                                 "avoidance", "avoidDistance" ,"randomness", "consistency",
                                                 "momentum", "neighborhood", "jump", "deadAgentsProbability"};
-
-    public long CurrentSimStep { get => currentSimStep; set => currentSimStep = value; }
-    public int FlockNum { get => flockNum; set => flockNum = value; }
-    public int DeadFlockers { get => deadFlockers; set => deadFlockers = value; }
-    public float Width { get => width; set => width = value; }
-    public float Height { get => height; set => height = value; }
-    public float Lenght { get => lenght; set => lenght = value; }
-
-    // Benchmarking
-    private int mode = 2;
-    private long start_time;
-    private long max_millis = 32;
-    private int max_steps_wait = 3;
-
-    public int MODE { get => mode; set => mode = value; }
-    public long START_TIME { get => start_time; set => start_time = value; }
-    public long MAX_MILLIS { get => max_millis; set => max_millis = value; }
-    public int MAX_STEPS_WAIT { get => max_steps_wait; set => max_steps_wait = value; }
-
-    // Load Balancing
+    /// Load Balancing
     private int target_steps = 60;
     private float step_keep_multiplier = 1;
     private int steps_to_discard = 0;
     private int steps_to_keep = 60;
     private int still_to_discard = 0;
     private int still_to_keep = 0;
+    /// Benchmarking
+    private int mode = 2;
+    private long start_time;
+    private long max_millis = 32;
+    private int max_steps_wait = 3;
 
+    /// Access methods ///
+    public long CurrentSimStep { get => currentSimStep; set => currentSimStep = value; }
+    public int FlockNum { get => flockNum; set => flockNum = value; }
+    public int DeadFlockers { get => deadFlockers; set => deadFlockers = value; }
+    public float Width { get => width; set => width = value; }
+    public float Height { get => height; set => height = value; }
+    public float Lenght { get => lenght; set => lenght = value; }
+    public int MODE { get => mode; set => mode = value; }
+    public long START_TIME { get => start_time; set => start_time = value; }
+    public long MAX_MILLIS { get => max_millis; set => max_millis = value; }
+    public int MAX_STEPS_WAIT { get => max_steps_wait; set => max_steps_wait = value; }
     public int Steps_to_discard { get => steps_to_discard; set => steps_to_discard = value; }
     public int Steps_to_keep { get => steps_to_keep; set => steps_to_keep = value; }
     public int Steps_discarded { get => Still_to_discard; set => Still_to_discard = value; }
     public int Steps_kept { get => Still_to_keep; set => Still_to_keep = value; }
-    
-    // Support
-    int last_step = 0;
-    Tuple<int, int, String[]> des_msg;
-
     public int Last_step { get => last_step; set => last_step = value; }
     public Tuple<int, int, String[]> Des_msg { get => des_msg; set => des_msg = value; }
     public int TARGET_STEPS { get => target_steps; set => target_steps = value; }
@@ -95,23 +112,16 @@ public class SimulationController : MonoBehaviour
     public ConcurrentQueue<MqttMsgPublishEventArgs> SimMessageQueue { get => simMessageQueue; set => simMessageQueue = value; }
     public SortedList<long, Vector3[]> SecondaryQueue { get => secondaryQueue; set => secondaryQueue = value; }
 
-    long batch_flockSimStep;
-    int batch_flockId;
-    Vector3 position;
-    Vector3[] positions;
-    MemoryStream deserialize_inputStream;
-    MemoryStream decompress_inputStream;
-    BinaryReader deserialize_binaryReader;
-    BinaryReader decompress_binaryReader;
-    GZipStream gZipStream;
+
+
  
     /// <summary>
-    /// Remember to call base.Awake() if you override this method.
+    /// We use Awake to setup default Simulation
     /// </summary>
     protected virtual void Awake()
     {
-        //Set default settings
-        flockSim = new FlockerSimulation(400, 400, 400, 1000, 60, 0, 1.0f, 1.0f, 10f, 1.0f, 1.0f, 1.0f, 10f, 0.7f, 0.1f);
+        //Set Default Simulation and instantiate support variables
+        flockSim = new FlockerSimulation(simSpace.GetComponent<Collider>().bounds.size.x, simSpace.GetComponent<Collider>().bounds.size.y, simSpace.GetComponent<Collider>().bounds.size.z, 1000, 60, 0, 1.0f, 1.0f, 10f, 1.0f, 1.0f, 1.0f, 10f, 0.7f, 0.1f);
         Ready_buffer = new Vector3[flockSim.NumAgents];
         positions = new Vector3[flockSim.NumAgents];
     }
@@ -119,25 +129,73 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// Connect to the broker using current settings.
     /// </summary>
-    // Start is called before the first frame update
     private void Start()
     {
+        // Retrieve UIController
         UIController = GameObject.Find("UIController").GetComponent<UIController>();
-        //Starting MQTT Clients
-        Thread controlClientThread = new Thread(() => controlClient.Connect(out responseMessageQueue, out CONTROL_CLIENT_READY));
+
+        // Start MQTT Clients
+        controlClientThread = new Thread(() => controlClient.Connect(out responseMessageQueue, out CONTROL_CLIENT_READY));
         controlClientThread.Start();
 
-        Thread simClientThread = new Thread(() => simClient.Connect(out simMessageQueue, out SIM_CLIENT_READY));
+        simClientThread = new Thread(() => simClient.Connect(out simMessageQueue, out SIM_CLIENT_READY));
         simClientThread.Start();
-        while (!(CONTROL_CLIENT_READY && SIM_CLIENT_READY)){}
-        SetupBackgroundTasks();
+
+        // Start Connection Thread
+        connectionThread = new Thread(() => WaitForConnection());
+        connectionThread.Start();
+
     }
 
-    // Update is called once per frame
+    /// <summary>
+    /// Main routine
+    /// </summary>
     private void Update()
     {
-        UpdateAgents();
+        switch (state) {
+            case simulationState.CONN_ERROR:
+                // Segnalare all'utente la mancata connessione e riprovare a collegarsi
+
+                break;
+            case simulationState.NOT_READY:
+                // Siamo in attesa di connessione con MASON
+
+                break;
+            case simulationState.READY:
+                // Siamo pronti a visualizzare la simulazione
+
+
+
+                break;
+            case simulationState.PLAY:
+                // La simulazione è in PLAY
+                UpdateAgents();
+                break;
+            case simulationState.PAUSE:
+                // La simulazione è in PAUSE
+
+                break;
+            case simulationState.STOP:
+                // La simulazione è in STOP
+
+                break;
+        }
     }
+
+    private void WaitForConnection()
+    {
+        start_time = DateTime.Now.Millisecond;
+        while (DateTime.Now.Millisecond - start_time < CONN_TIMEOUT || !(CONTROL_CLIENT_READY && SIM_CLIENT_READY)) { }
+        if (DateTime.Now.Millisecond - start_time >= CONN_TIMEOUT) { 
+           state = simulationState.CONN_ERROR;
+        }
+        else
+        {
+            state = simulationState.READY;
+            SetupBackgroundTasks();
+        }
+    }
+
     private void SetupBackgroundTasks()
     {        
         PerformanceMonitor();
@@ -155,28 +213,28 @@ public class SimulationController : MonoBehaviour
         //blocco il tasto
         //devo aspettare la risposta per eventualmente sbloccare il tasto se mason non ha ricevuto il messaggio
         //sbloccare i bottoni necessari
-        if (simulationState == STOP)
+        if (state == simulationState.STOP)
         {
             InstantiateAgents();
             SendSimulationSettings();
             Ready_buffer = new Vector3[flockSim.NumAgents];
         }
-        else if (simulationState == PLAY) { return; }
+        else if (state == simulationState.PLAY) { return; }
         controlClient.SendCommand(PLAY);
-        simulationState = PLAY;
+        state = simulationState.PLAY;
     }
 
     public void Pause()
     {
         controlClient.SendCommand(PAUSE);
-        simulationState = PAUSE;
+        state = simulationState.PAUSE;
     }
 
     public void Stop()
     {
-        if (simulationState == STOP) {return;}
+        if (state == simulationState.STOP) {return;}
         controlClient.SendCommand(STOP);
-        simulationState = STOP;
+        state = simulationState.STOP;
         DestroyAgents();
         CurrentSimStep = 0;
         MqttMsgPublishEventArgs ignored; while (simMessageQueue.TryDequeue(out ignored));
@@ -276,7 +334,7 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     public void BuildStepBatch()
     {
-        int THRESHOLD = 0;
+        int THRESHOLD = 60;
         MqttMsgPublishEventArgs step;
         Tuple<long, Vector3[]> Batch_message;
 
@@ -369,6 +427,7 @@ public class SimulationController : MonoBehaviour
         AGENTS_READY = false;
         Debug.Log("Agents Destroyed.");
     }
+    
     private void UpdateAgents()
     {
         if (AGENTS_READY == true)

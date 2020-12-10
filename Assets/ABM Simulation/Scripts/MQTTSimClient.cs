@@ -24,12 +24,13 @@ public class MQTTSimClient
     public int connectionDelay = 500;
     [Tooltip("Connection timeout in milliseconds")]
 
-    /// MQTT settings
-    public int timeoutOnConnection = MqttSettings.MQTT_CONNECT_TIMEOUT;    
+    /// MQTT-related variables ///
+    /// Client
     private MqttClient client;
+    /// Settings
+    public int timeoutOnConnection = MqttSettings.MQTT_CONNECT_TIMEOUT;    
     private bool mqttClientConnectionClosed = false;
     private bool mqttClientConnected = false;
-
     /// MQTT Queues
     private ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
 
@@ -52,7 +53,7 @@ public class MQTTSimClient
         {
             DoConnect();
         }
-        ready = true;
+        ready = client.IsConnected;
     }
 
     /// <summary>
@@ -120,8 +121,9 @@ public class MQTTSimClient
         CloseConnection();
     }
     
-
-
+    /// <summary>
+    /// Routine for incoming messages
+    /// </summary>
     private void OnMqttMessageReceived(object sender, MqttMsgPublishEventArgs msg)
     {
         //if (msg.Topic.Equals("Positions"))
@@ -176,7 +178,6 @@ public class MQTTSimClient
     /// <summary>
     /// Connects to the broker using the current settings.
     /// </summary>
-    /// <returns>The execution is done in a coroutine.</returns>
     private void DoConnect()
     {
         // create MQTTSimClient instance 
@@ -184,11 +185,11 @@ public class MQTTSimClient
         {
             try
             {
-                //Debug.Log("CONNECTING..");
+                Debug.Log("CONNECTING..");
                 client = new MqttClient(brokerAddress, brokerPort, isEncrypted, null, null, isEncrypted ? MqttSslProtocols.SSLv3 : MqttSslProtocols.None);
                 //System.Security.Cryptography.X509Certificates.X509Certificate cert = new System.Security.Cryptography.X509Certificates.X509Certificate();
                 //MQTTSimClient = new MqttClient(brokerAddress, brokerPort, isEncrypted, cert, null, MqttSslProtocols.TLSv1_0, MyRemoteCertificateValidationCallback);
-                //Debug.Log("CONNECTED");
+                Debug.Log("CONNECTED");
 
 
             }

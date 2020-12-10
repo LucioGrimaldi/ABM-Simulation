@@ -25,16 +25,20 @@ public class MQTTControlClient
     public int connectionDelay = 500;
     [Tooltip("Connection timeout in milliseconds")]
 
-    private int PLAY = 1, PAUSE = 2, STOP = 3;
-
-    /// MQTT settings
-    public int timeoutOnConnection = MqttSettings.MQTT_CONNECT_TIMEOUT;
+    /// MQTT-related variables ///
+    /// Client
     private MqttClient client;
+    /// Settings
+    public int timeoutOnConnection = MqttSettings.MQTT_CONNECT_TIMEOUT;
     private bool mqttClientConnectionClosed = false;
     private bool mqttClientConnected = false;
-
-    /// MQTT Queues
+    /// MQTT Queue
     public ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
+    
+    /// Sim-related variables///
+    /// Commands definition
+    private int PLAY = 1, PAUSE = 2, STOP = 3;
+
 
     /// <summary>
     /// Event fired when a connection is successfully estabilished
@@ -79,7 +83,7 @@ public class MQTTControlClient
         {
             DoConnect();
         }
-        ready = true;
+        ready = client.IsConnected;
     }
 
     /// <summary>
