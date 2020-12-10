@@ -46,6 +46,9 @@ public class SimulationController : MonoBehaviour
     private float width;
     private float height;
     private float lenght;
+    private string[] variables = new string[] {"width", "height", "lenght", "numAgents", "simStepRate", "simStepDelay", "cohesion", 
+                                                "avoidance", "avoidDistance" ,"randomness", "consistency",
+                                                "momentum", "neighborhood", "jump", "deadAgentsProbability"};
 
     public long CurrentSimStep { get => currentSimStep; set => currentSimStep = value; }
     public int FlockNum { get => flockNum; set => flockNum = value; }
@@ -190,6 +193,20 @@ public class SimulationController : MonoBehaviour
         controlClient.SendCommand(SETTINGS + ":" + settings);
     }
 
+    public void SendSingleSimulationSetting(string variable, string value)
+    {
+        string settings = "";
+        for (int i = 0; i < 15; i++)
+        {
+            if(i == Array.IndexOf(variables, variable))
+            {
+                settings = settings + value;
+                break;
+            }
+            settings = settings + " -1 ";
+        }
+        controlClient.SendCommand(SETTINGS + ":" + settings);
+    }
     public void PerformanceMonitor()
     {
         Thread PerformanceMonitor = new Thread(this.CalculatePerformance);
