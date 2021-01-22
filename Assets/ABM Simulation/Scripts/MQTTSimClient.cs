@@ -18,7 +18,8 @@ public class MQTTSimClient
     [Tooltip("Use encrypted connection")]
     private bool isEncrypted = false;
     [Tooltip("Topic where Unity receive messages")]
-    private readonly string positionsTopic = "Positions";
+    private readonly string[] topicArray = { "topic0", "topic1", "topic2", "topic3", "topic4", "topic5", "topic6", "topic7", "topic8", "topic9" };
+
     [Header("Connection parameters")]
     [Tooltip("Connection to the broker is delayed by the the given milliseconds")]
     public int connectionDelay = 500;
@@ -100,7 +101,10 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void SubscribeTopics()
     {
-        client.Subscribe(new string[] { positionsTopic }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+        for (int i = 0; i < 10; i++)
+        {
+            client.Subscribe(new string[] { topicArray[i] }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+        }
         OnSubscribe();
     }
 
@@ -109,7 +113,10 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void UnsubscribeTopics()
     {
-        client.Unsubscribe(new string[] { positionsTopic });
+        for (int i = 0; i < 10; i++)
+        {
+            client.Unsubscribe(new string[] { topicArray[i] });
+        }
     }
 
     /// <summary>
@@ -149,7 +156,7 @@ public class MQTTSimClient
 
     protected virtual void OnSubscribe()
     {
-        Debug.Log("Subscribed to topic: " + positionsTopic);
+        Debug.Log("Subscribed to topic: " + "All topics");
     }
 
     /// <summary>
