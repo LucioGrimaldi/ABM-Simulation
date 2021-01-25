@@ -5,8 +5,9 @@ public class DisplayStats : MonoBehaviour
     private int batch_queue_lenght;
     private int secondary_queue_lenght;
     private long current_step;
-    private int steps_to_discard = 0;
-    private int steps_to_keep = 0;
+    private int target_fps;
+    public float fps;
+    public float msec;
 
     void Update()
     {
@@ -14,8 +15,7 @@ public class DisplayStats : MonoBehaviour
         batch_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SimMessageQueue.Count;
         secondary_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SecondaryQueue.Count;
         current_step = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().CurrentSimStep;
-        steps_to_discard = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().Steps_to_discard;
-        steps_to_keep = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().Steps_to_keep;
+        target_fps = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().Target_steps;
     }
 
     void OnGUI()
@@ -28,15 +28,15 @@ public class DisplayStats : MonoBehaviour
         style.alignment = TextAnchor.UpperLeft;
         style.fontSize = h * 2 / 100;
         style.normal.textColor = new Color(0.0f, 0.0f, 0.5f, 1.0f);
-        float msec = deltaTime * 1000.0f;
-        float fps = 1.0f / deltaTime;
+        msec = deltaTime * 1000.0f;
+        fps = 1.0f / deltaTime;
         string fps_text = string.Format(
             "{0:0.0} ms ({1:0.} fps)\n" +
             "Concurrent Queue: " + batch_queue_lenght + "\n" +
             "Sorted Queue: " + secondary_queue_lenght + "\n" +
             "Current Step: " + current_step + "\n" +
-            "step_to_discard: " + steps_to_discard + "\n" +
-            "step_to_keep: " + steps_to_keep, msec, fps);
+            "Target: " + target_fps + "\n",
+             msec, fps);
         GUI.Label(rect, fps_text, style);
     }
 }

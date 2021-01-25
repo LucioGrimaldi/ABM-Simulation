@@ -12,14 +12,15 @@ public class MQTTSimClient
 {
     [Header("MQTT broker configuration")]
     [Tooltip("IP addres or URL of host running the broker")]
-    private string brokerAddress = "82.59.116.190"; //isislab = 193.205.161.52  pietro = 82.59.116.190
+    private string brokerAddress = "87.11.194.30"; //isislab = 193.205.161.52  pietro = 87.11.194.30
     [Tooltip("Port where the broker accepts connections")]
     private int brokerPort = 1883;
     [Tooltip("Use encrypted connection")]
     private bool isEncrypted = false;
     [Tooltip("Topic where Unity receive messages")]
-    private readonly string[] topicArray = { "topic0", "topic1", "topic2", "topic3", "topic4", "topic5", "topic6", "topic7", "topic8", "topic9" };
-
+    private int[] topicArray;
+    //represent all topics available for simulation as strings
+    private string[] stringTopicArray;
     [Header("Connection parameters")]
     [Tooltip("Connection to the broker is delayed by the the given milliseconds")]
     public int connectionDelay = 500;
@@ -82,7 +83,7 @@ public class MQTTSimClient
     protected virtual void OnConnected()
     {
         Debug.LogFormat("Connected to {0}:{1}...\n", brokerAddress, brokerPort.ToString());
-        SubscribeTopics();
+        SubscribeAll();
         ConnectionSucceeded?.Invoke();
         Debug.Log("Waiting for MASON...");
     }
@@ -99,24 +100,50 @@ public class MQTTSimClient
     /// <summary>
     /// Ovverride this method to subscribe to MQTT topics.
     /// </summary>
-    protected virtual void SubscribeTopics()
+    protected virtual void SubscribeAll()
     {
-        for (int i = 0; i < 10; i++)
+        topicArray = new int[60];
+        stringTopicArray = new string[60];
+        byte[] QosArray = new byte[60];
+        for (int i = 0; i < 60; i++)
         {
-            client.Subscribe(new string[] { topicArray[i] }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+            topicArray[i] = i;
+            stringTopicArray[i] = "Topic" + i;
+            QosArray[i] = MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE;
         }
-        OnSubscribe();
+        client.Subscribe(stringTopicArray, QosArray);
+        OnSubscribe(stringTopicArray);
+    }
+
+    public virtual void SubscribeTopics(int[] topics)
+    {
+        string[] topicsToSubscribe = new string[topics.Length];
+        byte[] QosArray = new byte[topics.Length];
+        for (int i = 0; i < topics.Length; i++)
+        {
+            topicsToSubscribe[i] = "Topic" + topics[i];
+            QosArray[i] = MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE;
+        }
+        client.Subscribe(topicsToSubscribe, QosArray);
+        OnSubscribe(topicsToSubscribe);
     }
 
     /// <summary>
     /// Ovverride this method to unsubscribe to MQTT topics (they should be the same you subscribed to with SubscribeTopics() ).
     /// </summary>
-    protected virtual void UnsubscribeTopics()
+    protected virtual void UnsubscribeAll()
     {
-        for (int i = 0; i < 10; i++)
+        client.Unsubscribe(stringTopicArray);
+    }
+
+    public virtual void UnsubscribeTopics(int[] topics)
+    {
+        string[] topicsToUnsubscribe = new string[topics.Length];
+        for (int i = 0; i < topics.Length; i++)
         {
-            client.Unsubscribe(new string[] { topicArray[i] });
+            topicsToUnsubscribe[i] = "Topic" + topics[i];
         }
+        client.Unsubscribe(topicsToUnsubscribe);
     }
 
     /// <summary>
@@ -124,7 +151,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnApplicationQuit()
     {
-        UnsubscribeTopics();
+        UnsubscribeAll();
         CloseConnection();
     }
     
@@ -133,30 +160,12 @@ public class MQTTSimClient
     /// </summary>
     private void OnMqttMessageReceived(object sender, MqttMsgPublishEventArgs msg)
     {
-        //if (msg.Topic.Equals("Positions"))
-        //{
-        //    //We update local performance variables from Performance Manager
-        //    if (Still_to_discard == 0 && Still_to_keep == 0)
-        //    {
-        //        Still_to_discard = Steps_to_discard;
-        //        Still_to_keep = Steps_to_keep;
-        //    }
-        //    if (Still_to_keep > 0)
-        //    {
-        //        //BatchQueue.Enqueue(msg.Message);
-        //        Still_to_keep--;
-        //    }
-        //    else if (Still_to_discard > 0)
-        //    {
-        //        Still_to_discard--;
-        //    }
-        //}
         simMessageQueue.Enqueue(msg);
     }
 
-    protected virtual void OnSubscribe()
+    protected virtual void OnSubscribe(string[] topics)
     {
-        Debug.Log("Subscribed to topic: " + "All topics");
+        Debug.Log("Subscribed to topic: " + topics);
     }
 
     /// <summary>
@@ -254,7 +263,7 @@ public class MQTTSimClient
         {
             if (client.IsConnected)
             {
-                UnsubscribeTopics();
+                UnsubscribeAll();
                 client.Disconnect();
             }
             client.ConnectionClosed -= OnMqttConnectionClosed;

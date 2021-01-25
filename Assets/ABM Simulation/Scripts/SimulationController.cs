@@ -1,11 +1,13 @@
 ﻿using Fixed;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using UnityEngine;
 using uPLibrary.Networking.M2Mqtt.Messages;
+using Debug = UnityEngine.Debug;
 
 public class SimulationController : MonoBehaviour
 {
@@ -52,7 +54,6 @@ public class SimulationController : MonoBehaviour
     private bool SIM_CLIENT_READY = false;
     private bool AGENTS_READY = false;
     /// Support variables
-    int last_step = 0;
     Tuple<int, int, String[]> des_msg;
     long batch_flockSimStep;
     int batch_flockId;
@@ -75,17 +76,19 @@ public class SimulationController : MonoBehaviour
                                                 "avoidance", "avoidDistance" ,"randomness", "consistency",
                                                 "momentum", "neighborhood", "jump", "deadAgentsProbability"};
     /// Load Balancing
-    private int target_steps = 60;
-    private float step_keep_multiplier = 1;
-    private int steps_to_discard = 0;
-    private int steps_to_keep = 60;
-    private int still_to_discard = 0;
-    private int still_to_keep = 0;
+    private int TARGET_FPS = 60;
+    private int[] targetsArray = new int[] { 15, 30, 45, 60 };
+    private int[][] topicsArray;
+    private int[] topicsToSubscribe;
+    private int[] topicsToUnsubscribe;
+    private long TIMEOUT_TARGET_UP = 3000;
+    private long TIMEOUT_TARGET_DOWN = 1000;
+    private long timestampLastUpdate = 0;
+
     /// Benchmarking
-    private int mode = 2;
     private long start_time;
-    private long max_millis = 32;
-    private int max_steps_wait = 3;
+    private float fps;
+    private float deltaTime = 0f;
 
     /// Access methods ///
     public long CurrentSimStep { get => currentSimStep; set => currentSimStep = value; }
@@ -94,20 +97,9 @@ public class SimulationController : MonoBehaviour
     public float Width { get => width; set => width = value; }
     public float Height { get => height; set => height = value; }
     public float Lenght { get => lenght; set => lenght = value; }
-    public int MODE { get => mode; set => mode = value; }
     public long START_TIME { get => start_time; set => start_time = value; }
-    public long MAX_MILLIS { get => max_millis; set => max_millis = value; }
-    public int MAX_STEPS_WAIT { get => max_steps_wait; set => max_steps_wait = value; }
-    public int Steps_to_discard { get => steps_to_discard; set => steps_to_discard = value; }
-    public int Steps_to_keep { get => steps_to_keep; set => steps_to_keep = value; }
-    public int Steps_discarded { get => Still_to_discard; set => Still_to_discard = value; }
-    public int Steps_kept { get => Still_to_keep; set => Still_to_keep = value; }
-    public int Last_step { get => last_step; set => last_step = value; }
     public Tuple<int, int, String[]> Des_msg { get => des_msg; set => des_msg = value; }
-    public int TARGET_STEPS { get => target_steps; set => target_steps = value; }
-    public float Step_keep_multiplier { get => step_keep_multiplier; set => step_keep_multiplier = value; }
-    public int Still_to_discard { get => still_to_discard; set => still_to_discard = value; }
-    public int Still_to_keep { get => still_to_keep; set => still_to_keep = value; }
+    public int Target_steps { get => TARGET_FPS; set => TARGET_FPS = value; }
     public ConcurrentQueue<MqttMsgPublishEventArgs> ResponseMessageQueue { get => responseMessageQueue; set => responseMessageQueue = value; }
     public ConcurrentQueue<MqttMsgPublishEventArgs> SimMessageQueue { get => simMessageQueue; set => simMessageQueue = value; }
     public SortedList<long, Vector3[]> SecondaryQueue { get => secondaryQueue; set => secondaryQueue = value; }
@@ -120,8 +112,10 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     protected virtual void Awake()
     {
+        simSpace = GameObject.FindGameObjectWithTag("SimulationCube");
+        Debug.Log(simSpace.GetComponent<Collider>().bounds.size.x);
         //Set Default Simulation and instantiate support variables
-        flockSim = new FlockerSimulation(simSpace.GetComponent<Collider>().bounds.size.x, simSpace.GetComponent<Collider>().bounds.size.y, simSpace.GetComponent<Collider>().bounds.size.z, 1000, 60, 0, 1.0f, 1.0f, 10f, 1.0f, 1.0f, 1.0f, 10f, 0.7f, 0.1f);
+        flockSim = new FlockerSimulation(simSpace.GetComponent<Collider>().bounds.size.x*10, simSpace.GetComponent<Collider>().bounds.size.y*10, simSpace.GetComponent<Collider>().bounds.size.z*10, 1000, 60, 0, 1.0f, 1.0f, 10f, 1.0f, 1.0f, 1.0f, 10f, 0.7f, 0.1f);
         Ready_buffer = new Vector3[flockSim.NumAgents];
         positions = new Vector3[flockSim.NumAgents];
     }
@@ -152,6 +146,9 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
+        fps = 1.0f / deltaTime;
+
         switch (state) {
             case simulationState.CONN_ERROR:
                 // Segnalare all'utente la mancata connessione e riprovare a collegarsi
@@ -184,16 +181,24 @@ public class SimulationController : MonoBehaviour
 
     private void WaitForConnection()
     {
-        start_time = DateTime.Now.Millisecond;
-        while (DateTime.Now.Millisecond - start_time < CONN_TIMEOUT || !(CONTROL_CLIENT_READY && SIM_CLIENT_READY)) { }
-        if (DateTime.Now.Millisecond - start_time >= CONN_TIMEOUT) { 
-           state = simulationState.CONN_ERROR;
-        }
-        else
+        Stopwatch stopwatch = new Stopwatch();
+        long ts;
+        stopwatch.Start();
+        while (!(CONTROL_CLIENT_READY && SIM_CLIENT_READY)) 
         {
-            state = simulationState.READY;
-            SetupBackgroundTasks();
+            stopwatch.Stop();
+            ts = stopwatch.ElapsedMilliseconds;
+            stopwatch.Start();
+
+            if (ts >= CONN_TIMEOUT)
+            {
+                state = simulationState.CONN_ERROR;
+                stopwatch.Stop();
+                return;
+            }
         }
+        state = simulationState.READY;
+        SetupBackgroundTasks();
     }
 
     private void SetupBackgroundTasks()
@@ -213,7 +218,7 @@ public class SimulationController : MonoBehaviour
         //blocco il tasto
         //devo aspettare la risposta per eventualmente sbloccare il tasto se mason non ha ricevuto il messaggio
         //sbloccare i bottoni necessari
-        if (state == simulationState.STOP)
+        if (state == simulationState.STOP || state == simulationState.READY)
         {
             InstantiateAgents();
             SendSimulationSettings();
@@ -273,52 +278,71 @@ public class SimulationController : MonoBehaviour
 
     public void CalculatePerformance()
     {
+        int[] arrayTarget60 = new int[60];
+        int[] arrayTarget45 = new int[45];
+        int[] arrayTarget30 = new int[30];
+        int[] arrayTarget15 = new int[15];
+        topicsArray = new int[][]{arrayTarget15, arrayTarget30, arrayTarget45, arrayTarget60};
+        //Fill the array incrementally without repeating common values from others target arrays 
+        for (int i = 0 , y = 0, z = 0, k = 0; i < TARGET_FPS; i++)
+        {
+            if ((i % 4) == 3)
+            {
+                arrayTarget60[i] = i;
+            }
+            if ((i % 4) == 1)
+            {
+                arrayTarget45[y] = i;
+                y++;
+            }
+            
+            if ((i % 4) == 2)
+            {
+                arrayTarget30[z] = i;
+                z++;
+            }
+            if ((i % 4) == 0)
+            {
+                arrayTarget15[k] = i;
+                k++;
+            }
+        }
+
+        Stopwatch stopwatch = new Stopwatch();
+        stopwatch.Start();
         while (true)
         {
-            int queue_count = SimMessageQueue.Count;
-            if (queue_count > 0)
+            if (TARGET_FPS < 60 && fps > TARGET_FPS)
             {
-                int new_queue_count = SimMessageQueue.Count;
-                if (new_queue_count - queue_count > 0 && new_queue_count > TARGET_STEPS)
+                stopwatch.Stop();
+                timestampLastUpdate = stopwatch.ElapsedMilliseconds;
+                stopwatch.Start();
+                if (timestampLastUpdate > TIMEOUT_TARGET_UP)
                 {
-                    if (!(Step_keep_multiplier <= 0.1f))
-                    {
-                        Step_keep_multiplier -= 0.1f;
-                        Steps_to_keep = (int)Math.Round(TARGET_STEPS * Step_keep_multiplier);
-                        Steps_to_discard = TARGET_STEPS - Steps_to_keep;
-                        if (Steps_to_keep > Steps_to_discard && Steps_to_discard > 0)
-                        {
-                            Steps_to_keep = (int)Math.Round((float)Steps_to_keep / (float)Steps_to_discard);
-                            Steps_to_discard = 1;
-                        }
-                        else if (Steps_to_discard < Steps_to_keep && Steps_to_keep > 0)
-                        {
-                            Steps_to_discard = (int)Math.Round((float)Steps_to_discard / (float)Steps_to_keep);
-                            Steps_to_keep = 1;
-                        }
-                    }
+                    //controllare il target attuale
+                    int index = Array.IndexOf(targetsArray, TARGET_FPS);
+                    TARGET_FPS = targetsArray[index++];
+                    //prendiamo l'array corretto in base al target aggiornato
+                    simClient.SubscribeTopics(topicsArray[index]);
+                    stopwatch.Restart();
                 }
-                else if (new_queue_count - queue_count < 0)
-                {
-                    if (!(Step_keep_multiplier >= 1))
-                    {
-                        Step_keep_multiplier += 0.01f;
-                        Steps_to_keep = (int)Math.Round(TARGET_STEPS * Step_keep_multiplier);
-                        Steps_to_discard = TARGET_STEPS - Steps_to_keep;
-                        if (Steps_to_keep > Steps_to_discard && Steps_to_discard > 0)
-                        {
-                            Steps_to_keep = (int)Math.Round((float)Steps_to_keep / (float)Steps_to_discard);
-                            Steps_to_discard = 1;
-                        }
-                        else if (Steps_to_discard < Steps_to_keep && Steps_to_keep > 0)
-                        {
-                            Steps_to_discard = (int)Math.Round((float)Steps_to_discard / (float)Steps_to_keep);
-                            Steps_to_keep = 1;
-                        }
-                    }
-                }
-                //logica dei topic
             }
+            else if (TARGET_FPS > 15 && fps < TARGET_FPS)
+            {
+                stopwatch.Stop();
+                timestampLastUpdate = stopwatch.ElapsedMilliseconds;
+                stopwatch.Start();
+                if (timestampLastUpdate > TIMEOUT_TARGET_DOWN)
+                {
+                    //controllare il target attuale
+                    int index = Array.IndexOf(targetsArray, TARGET_FPS);
+                    TARGET_FPS = targetsArray[index-1];
+                    //prendiamo l'array corretto in base al target aggiornato
+                    simClient.UnsubscribeTopics(topicsArray[index]);
+                    stopwatch.Restart();
+                }
+            }
+            Thread.Sleep(500);
         }
     }
 
@@ -334,13 +358,12 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     public void BuildStepBatch()
     {
-        int THRESHOLD = 60;
         MqttMsgPublishEventArgs step;
         Tuple<long, Vector3[]> Batch_message;
 
         while (true)
         {
-            if (SecondaryQueue.Count > THRESHOLD)
+            if (SecondaryQueue.Count > TARGET_FPS)
             {
                 if (SecondaryQueue.TryGetValue(CurrentSimStep, out ready_buffer))
                 {
@@ -405,7 +428,6 @@ public class SimulationController : MonoBehaviour
 
     private void InstantiateAgents()
     {
-        simSpace = GameObject.FindGameObjectWithTag("SimulationCube");
         simSpacePosition = simSpace.transform.position;
         simSpaceRotation = simSpace.transform.rotation;
         for (int i = 0; i < flockSim.NumAgents; i++)
@@ -434,9 +456,10 @@ public class SimulationController : MonoBehaviour
         {
             for (int i = 0; i < Ready_buffer.Length; i++)
             {
-                //TO DO
-                //Calculate quaternion
+                var old_pos = agents[i].transform.position;
                 agents[i].transform.localPosition = Ready_buffer[i];
+                Vector3 velocity = agents[i].transform.position - old_pos;
+                agents[i].transform.rotation = Quaternion.LookRotation(velocity, Vector3.up);
             }
         }
     }

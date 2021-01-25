@@ -13388,6 +13388,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 780d077c2e459ff44827a7ddb403e1ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fps: 0
+  msec: 0
 --- !u!81 &814996017
 AudioListener:
   m_ObjectHideFlags: 0
@@ -21517,6 +21519,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 780d077c2e459ff44827a7ddb403e1ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fps: 0
+  msec: 0
 --- !u!4 &1265806375 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: 8da72e9a2ba2b0d4aa84f50b8f19b35f,
@@ -21726,6 +21730,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 780d077c2e459ff44827a7ddb403e1ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fps: 0
+  msec: 0
 --- !u!81 &1298309403
 AudioListener:
   m_ObjectHideFlags: 0
@@ -27671,6 +27677,11 @@ PrefabInstance:
       objectReference: {fileID: 393438767}
     - target: {fileID: 6774705435195377190, guid: 14bd5fdea1cd1be449478469843738c9,
         type: 3}
+      propertyPath: displayStats
+      value: 
+      objectReference: {fileID: 1263972475}
+    - target: {fileID: 6774705435195377190, guid: 14bd5fdea1cd1be449478469843738c9,
+        type: 3}
       propertyPath: MQTTClientPrefab
       value: 
       objectReference: {fileID: 7602586745678554919, guid: bd84fc94ea494494196ca18bd8b4687c,
@@ -27969,6 +27980,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 780d077c2e459ff44827a7ddb403e1ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fps: 0
+  msec: 0
 --- !u!81 &1662851603
 AudioListener:
   m_ObjectHideFlags: 0
@@ -28405,6 +28418,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 780d077c2e459ff44827a7ddb403e1ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fps: 0
+  msec: 0
 --- !u!81 &1685911220
 AudioListener:
   m_ObjectHideFlags: 0
@@ -36515,6 +36530,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 780d077c2e459ff44827a7ddb403e1ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fps: 0
+  msec: 0
 --- !u!81 &2136699836
 AudioListener:
   m_ObjectHideFlags: 0
