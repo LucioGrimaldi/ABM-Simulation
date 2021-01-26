@@ -271,29 +271,46 @@ public class UIController : MonoBehaviour
         {
             text025x.gameObject.SetActive(true);
             text05x.gameObject.SetActive(false);
+            text1x.gameObject.SetActive(false);
+            text2x.gameObject.SetActive(false);
+            textMax.gameObject.SetActive(false);
+            SimulationController.ChangeSimulationSpeed(0.25f);
         }
         else if (slider.value == 1)
         {
-            text05x.gameObject.SetActive(true);
             text025x.gameObject.SetActive(false);
+            text05x.gameObject.SetActive(true);
             text1x.gameObject.SetActive(false);
+            text2x.gameObject.SetActive(false);
+            textMax.gameObject.SetActive(false);
+            SimulationController.ChangeSimulationSpeed(0.5f);
         }
         else if (slider.value == 2)
         {
-            text1x.gameObject.SetActive(true);
+            text025x.gameObject.SetActive(false);
             text05x.gameObject.SetActive(false);
+            text1x.gameObject.SetActive(true);
             text2x.gameObject.SetActive(false);
+            textMax.gameObject.SetActive(false);
+            SimulationController.ChangeSimulationSpeed(1f);
         }
         else if (slider.value == 3)
         {
-            text2x.gameObject.SetActive(true);
+            text025x.gameObject.SetActive(false);
+            text05x.gameObject.SetActive(false);
             text1x.gameObject.SetActive(false);
+            text2x.gameObject.SetActive(true);
             textMax.gameObject.SetActive(false);
+            SimulationController.ChangeSimulationSpeed(2f);
         }
         else if (slider.value == 4)
         {
-            textMax.gameObject.SetActive(true);
+            text025x.gameObject.SetActive(false);
+            text05x.gameObject.SetActive(false);
+            text1x.gameObject.SetActive(false);
             text2x.gameObject.SetActive(false);
+            textMax.gameObject.SetActive(true);
+            SimulationController.ChangeSimulationSpeed(0f);
         }
 
         //send sim speed to Mason -------TODO

@@ -65,7 +65,7 @@ public class SimulationController : MonoBehaviour
     BinaryReader decompress_binaryReader;
     GZipStream gZipStream;
     /// Settings
-    private static string SETTINGS = "0", PLAY = "1", PAUSE = "2", STOP = "3";
+    private static string SETTINGS = "0", PLAY = "1", PAUSE = "2", STOP = "3", SPEED = "4";
     private long currentSimStep = 0;
     private int flockNum = 0;
     private int deadFlockers = 0;
@@ -246,6 +246,11 @@ public class SimulationController : MonoBehaviour
         SecondaryQueue.Clear();
     }
 
+    public void ChangeSimulationSpeed(float speedMultiplier)
+    {
+        controlClient.SendCommand(SPEED + ":" + speedMultiplier.ToString());
+    }
+
     public void SendSimulationSettings()
     {
         string settings = flockSim.Width.ToString() + " " + flockSim.Height.ToString() + " " + flockSim.Lenght.ToString() + " " +
@@ -312,7 +317,7 @@ public class SimulationController : MonoBehaviour
         stopwatch.Start();
         while (true)
         {
-            if (TARGET_FPS < 60 && fps > TARGET_FPS)
+            if (TARGET_FPS < 60 && fps > targetsArray[Array.IndexOf(targetsArray, TARGET_FPS) + 1])
             {
                 stopwatch.Stop();
                 timestampLastUpdate = stopwatch.ElapsedMilliseconds;
@@ -321,7 +326,7 @@ public class SimulationController : MonoBehaviour
                 {
                     //controllare il target attuale
                     int index = Array.IndexOf(targetsArray, TARGET_FPS);
-                    TARGET_FPS = targetsArray[index++];
+                    TARGET_FPS = targetsArray[++index];
                     //prendiamo l'array corretto in base al target aggiornato
                     simClient.SubscribeTopics(topicsArray[index]);
                     stopwatch.Restart();
@@ -365,9 +370,10 @@ public class SimulationController : MonoBehaviour
         {
             if (SecondaryQueue.Count > TARGET_FPS)
             {
-                if (SecondaryQueue.TryGetValue(CurrentSimStep, out ready_buffer))
+                if (SecondaryQueue.Values[0] != null)
                 {
-                    SecondaryQueue.Remove(CurrentSimStep);
+                    ready_buffer = SecondaryQueue.Values[0];
+                    SecondaryQueue.RemoveAt(0);
                 }
                 else
                 {
@@ -459,7 +465,10 @@ public class SimulationController : MonoBehaviour
                 var old_pos = agents[i].transform.position;
                 agents[i].transform.localPosition = Ready_buffer[i];
                 Vector3 velocity = agents[i].transform.position - old_pos;
-                agents[i].transform.rotation = Quaternion.LookRotation(velocity, Vector3.up);
+                if (!velocity.Equals(Vector3.zero))
+                {
+                    agents[i].transform.rotation = Quaternion.LookRotation(velocity, Vector3.up);
+                }
             }
         }
     }

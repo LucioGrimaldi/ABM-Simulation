@@ -37,7 +37,7 @@ public class MQTTControlClient
     
     /// Sim-related variables///
     /// Commands definition
-    private int PLAY = 1, PAUSE = 2, STOP = 3;
+    private int PLAY = 1, PAUSE = 2, STOP = 3, SPEED = 4;
 
 
     /// <summary>
@@ -68,6 +68,10 @@ public class MQTTControlClient
             case "3":
                 client.Publish(controlTopic, BitConverter.GetBytes(STOP));
                 Debug.LogFormat("Message Sent: STOP.");
+                break;
+            case "4":
+                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command));
+                Debug.LogFormat("Message Sent: CHANGED SPEED {0}.", splitCommand[1]);
                 break;
             default:break;
         }
