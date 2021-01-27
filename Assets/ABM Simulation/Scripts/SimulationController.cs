@@ -36,7 +36,9 @@ public class SimulationController : MonoBehaviour
     /// Sim-related variables ///
     /// State
     private FlockerSimulation flockSim;
-    private enum simulationState {
+    public FlockerSimulation FlockSim { get => flockSim; set => flockSim = value; }
+
+    public enum simulationState {
         CONN_ERROR = -2,            // Error in connection
         NOT_READY = -1,             // Client is not connected
         READY = 0,                  // Client is ready to play
@@ -44,6 +46,7 @@ public class SimulationController : MonoBehaviour
         PAUSE = 2,                  // Simulation is in PAUSE
         STOP = 3                    // Simulation is in STOP (settings not yet send)
     }
+    
     private simulationState state = simulationState.NOT_READY;
     private List<GameObject> agents = new List<GameObject>();
     /// Step Buffers
@@ -103,10 +106,11 @@ public class SimulationController : MonoBehaviour
     public ConcurrentQueue<MqttMsgPublishEventArgs> ResponseMessageQueue { get => responseMessageQueue; set => responseMessageQueue = value; }
     public ConcurrentQueue<MqttMsgPublishEventArgs> SimMessageQueue { get => simMessageQueue; set => simMessageQueue = value; }
     public SortedList<long, Vector3[]> SecondaryQueue { get => secondaryQueue; set => secondaryQueue = value; }
+    public simulationState State { get => state; set => state = value; }
 
 
 
- 
+
     /// <summary>
     /// We use Awake to setup default Simulation
     /// </summary>
@@ -149,20 +153,15 @@ public class SimulationController : MonoBehaviour
         deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
         fps = 1.0f / deltaTime;
 
-        switch (state) {
+        switch (State) {
             case simulationState.CONN_ERROR:
                 // Segnalare all'utente la mancata connessione e riprovare a collegarsi
-
                 break;
             case simulationState.NOT_READY:
                 // Siamo in attesa di connessione con MASON
-
                 break;
             case simulationState.READY:
                 // Siamo pronti a visualizzare la simulazione
-
-
-
                 break;
             case simulationState.PLAY:
                 // La simulazione è in PLAY
@@ -170,11 +169,9 @@ public class SimulationController : MonoBehaviour
                 break;
             case simulationState.PAUSE:
                 // La simulazione è in PAUSE
-
                 break;
             case simulationState.STOP:
                 // La simulazione è in STOP
-
                 break;
         }
     }
@@ -192,12 +189,12 @@ public class SimulationController : MonoBehaviour
 
             if (ts >= CONN_TIMEOUT)
             {
-                state = simulationState.CONN_ERROR;
+                State = simulationState.CONN_ERROR;
                 stopwatch.Stop();
                 return;
             }
         }
-        state = simulationState.READY;
+        State = simulationState.READY;
         SetupBackgroundTasks();
     }
 
@@ -218,28 +215,28 @@ public class SimulationController : MonoBehaviour
         //blocco il tasto
         //devo aspettare la risposta per eventualmente sbloccare il tasto se mason non ha ricevuto il messaggio
         //sbloccare i bottoni necessari
-        if (state == simulationState.STOP || state == simulationState.READY)
+        if (State == simulationState.STOP || State == simulationState.READY)
         {
             InstantiateAgents();
-            SendSimulationSettings();
+            SendSimulationSettings(false);
             Ready_buffer = new Vector3[flockSim.NumAgents];
         }
-        else if (state == simulationState.PLAY) { return; }
+        else if (State == simulationState.PLAY) { return; }
         controlClient.SendCommand(PLAY);
-        state = simulationState.PLAY;
+        State = simulationState.PLAY;
     }
 
     public void Pause()
     {
         controlClient.SendCommand(PAUSE);
-        state = simulationState.PAUSE;
+        State = simulationState.PAUSE;
     }
 
     public void Stop()
     {
-        if (state == simulationState.STOP) {return;}
+        if (State == simulationState.STOP) {return;}
         controlClient.SendCommand(STOP);
-        state = simulationState.STOP;
+        State = simulationState.STOP;
         DestroyAgents();
         CurrentSimStep = 0;
         MqttMsgPublishEventArgs ignored; while (simMessageQueue.TryDequeue(out ignored));
@@ -251,9 +248,11 @@ public class SimulationController : MonoBehaviour
         controlClient.SendCommand(SPEED + ":" + speedMultiplier.ToString());
     }
 
-    public void SendSimulationSettings()
+    public void SendSimulationSettings(bool partialUpdate)
     {
-        string settings = flockSim.Width.ToString() + " " + flockSim.Height.ToString() + " " + flockSim.Lenght.ToString() + " " +
+        //partialUpdate = false -> total update of settings
+        //partialUpdate = true -> partial update of settings
+        string settings = partialUpdate.ToString() + " " + flockSim.Width.ToString() + " " + flockSim.Height.ToString() + " " + flockSim.Lenght.ToString() + " " +
                 flockSim.NumAgents.ToString() + " " + flockSim.SimStepRate.ToString() + " " + flockSim.SimStepDelay.ToString() + " " + flockSim.Cohesion.ToString() + " " +
                 flockSim.Avoidance.ToString() + " " + flockSim.AvoidDistance.ToString() + " " + flockSim.Randomness.ToString() + " " + flockSim.Consistency.ToString() + " " +
                 flockSim.Momentum.ToString() + " " + flockSim.Neighborhood.ToString() + " " + flockSim.Jump.ToString() + " " +

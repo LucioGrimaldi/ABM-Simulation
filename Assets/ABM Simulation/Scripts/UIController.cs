@@ -7,8 +7,7 @@ public class UIController : MonoBehaviour
 {
     //Simulation Controller Variables
     private SimulationController SimulationController;
-    private float cohesion = 0.0f, avoidance = 0.0f, avoidDistance = 0.0f, randomness = 0.0f, consistency = 0.0f, momentum = 0.0f, neighborhood = 0.0f,
-        deadAgentProb = 0.0f, jump = 0.0f, width = 0.0f, height = 0.0f, lenght = 0.0f, numAgents = 0.0f, simStepRate = 0.0f, simStepDelay = 0.0f, framerate = 60f;
+    private float framerate = 60f;
 
 
     //WORLD VARIABLES
@@ -77,6 +76,8 @@ public class UIController : MonoBehaviour
         playSimulation.onClick.AddListener(SimulationController.Play);
         pauseSimulation.onClick.AddListener(SimulationController.Pause);
         stopSimulation.onClick.AddListener(SimulationController.Stop);
+
+        framerate = 60f;
 
         QualitySettings.vSyncCount = 0;
 
@@ -360,41 +361,41 @@ public class UIController : MonoBehaviour
         simStepDelayIF = GameObject.Find("InputFieldSimStepDelay").GetComponent<InputField>();
         framerateIF = GameObject.Find("InputFieldFramerate").GetComponent<InputField>();
 
-        cohesionIF.text = cohesion.ToString();
-        avoidanceIF.text = avoidance.ToString();
-        avoidDistanceIF.text = avoidDistance.ToString();
-        randomnessIF.text = randomness.ToString();
-        consistencyIF.text = consistency.ToString();
-        momentumIF.text = momentum.ToString();
-        neighborhoodIF.text = neighborhood.ToString();
-        deadAgentProbIF.text = deadAgentProb.ToString();
-        jumpIF.text = jump.ToString();
-        widthIF.text = width.ToString();
-        heightIF.text = height.ToString();
-        lenghtIF.text = lenght.ToString();
-        numAgentsIF.text = numAgents.ToString();
-        simStepRateIF.text = simStepRate.ToString();
-        simStepDelayIF.text = simStepDelay.ToString();
+        cohesionIF.text = SimulationController.FlockSim.Cohesion.ToString();
+        avoidanceIF.text = SimulationController.FlockSim.Avoidance.ToString();
+        avoidDistanceIF.text = SimulationController.FlockSim.AvoidDistance.ToString();
+        randomnessIF.text = SimulationController.FlockSim.Randomness.ToString();
+        consistencyIF.text = SimulationController.FlockSim.Consistency.ToString();
+        momentumIF.text = SimulationController.FlockSim.Momentum.ToString();
+        neighborhoodIF.text = SimulationController.FlockSim.Neighborhood.ToString();
+        deadAgentProbIF.text = SimulationController.FlockSim.DeadAgentProbability.ToString();
+        jumpIF.text = SimulationController.FlockSim.Jump.ToString();
+        widthIF.text = SimulationController.FlockSim.Width.ToString();
+        heightIF.text = SimulationController.FlockSim.Height.ToString();
+        lenghtIF.text = SimulationController.FlockSim.Lenght.ToString();
+        numAgentsIF.text = SimulationController.FlockSim.NumAgents.ToString();
+        simStepRateIF.text = SimulationController.FlockSim.SimStepRate.ToString();
+        simStepDelayIF.text = SimulationController.FlockSim.SimStepDelay.ToString();
         framerateIF.text = framerate.ToString();
     }
 
     void SetOptions()
     {
-        cohesion = float.Parse(cohesionIF.text);
-        avoidance = float.Parse(avoidanceIF.text);
-        avoidDistance = float.Parse(avoidDistanceIF.text);
-        randomness = float.Parse(randomnessIF.text);
-        consistency = float.Parse(consistencyIF.text);
-        momentum = float.Parse(momentumIF.text);
-        neighborhood = float.Parse(neighborhoodIF.text);
-        deadAgentProb = float.Parse(deadAgentProbIF.text);
-        jump = float.Parse(jumpIF.text);
-        width = float.Parse(widthIF.text);
-        height = float.Parse(heightIF.text);
-        lenght = float.Parse(lenghtIF.text);
-        numAgents = float.Parse(numAgentsIF.text);
-        simStepRate = float.Parse(simStepRateIF.text);
-        simStepDelay = float.Parse(simStepDelayIF.text);
+        SimulationController.FlockSim.Cohesion = float.Parse(cohesionIF.text);
+        SimulationController.FlockSim.Avoidance = float.Parse(avoidanceIF.text);
+        SimulationController.FlockSim.AvoidDistance = float.Parse(avoidDistanceIF.text);
+        SimulationController.FlockSim.Randomness = float.Parse(randomnessIF.text);
+        SimulationController.FlockSim.Consistency = float.Parse(consistencyIF.text);
+        SimulationController.FlockSim.Momentum = float.Parse(momentumIF.text);
+        SimulationController.FlockSim.Neighborhood = float.Parse(neighborhoodIF.text);
+        SimulationController.FlockSim.DeadAgentProbability = float.Parse(deadAgentProbIF.text);
+        SimulationController.FlockSim.Jump = float.Parse(jumpIF.text);
+        SimulationController.FlockSim.Width = float.Parse(widthIF.text);
+        SimulationController.FlockSim.Height = float.Parse(heightIF.text);
+        SimulationController.FlockSim.Lenght = float.Parse(lenghtIF.text);
+        SimulationController.FlockSim.NumAgents = int.Parse(numAgentsIF.text);
+        SimulationController.FlockSim.SimStepRate = int.Parse(simStepRateIF.text);
+        SimulationController.FlockSim.SimStepDelay = float.Parse(simStepDelayIF.text);
         framerate = float.Parse(framerateIF.text);
     }
 
@@ -597,10 +598,17 @@ public class UIController : MonoBehaviour
         SetOptions();
         //resetAnim = true;
         //ResetAnimation();
-        //send new settings to simulation ------TODO
+        if (SimulationController.State.Equals(SimulationController.simulationState.PLAY) 
+            || SimulationController.State.Equals(SimulationController.simulationState.PAUSE))
+        {
+            SimulationController.SendSimulationSettings(true);
+        }
+        else
+        {
+            SimulationController.SendSimulationSettings(false);
+        }
 
         canvasSettingsInGameMenu.gameObject.SetActive(false);
-
         StartGame();
     }
 
@@ -608,30 +616,37 @@ public class UIController : MonoBehaviour
     void ApplyMenuSettings()
     {
         SetOptions();
-        //send new settings to simulation TODO------
-
+        if (SimulationController.State.Equals(SimulationController.simulationState.PLAY)
+            || SimulationController.State.Equals(SimulationController.simulationState.PAUSE))
+        {
+            SimulationController.SendSimulationSettings(true);
+        }
+        else
+        {
+            SimulationController.SendSimulationSettings(false);
+        }
         SetMainMenu();
     }
 
     
     void DiscardInGameSettings()
     {
-        cohesionIF.text = cohesion.ToString();
-        avoidanceIF.text = avoidance.ToString();
-        avoidDistanceIF.text = avoidDistance.ToString();
-        randomnessIF.text = randomness.ToString();
-        consistencyIF.text = consistency.ToString();
-        momentumIF.text = momentum.ToString();
-        neighborhoodIF.text = neighborhood.ToString();
-        deadAgentProbIF.text = deadAgentProb.ToString();
-        jumpIF.text = jump.ToString();
-        widthIF.text = width.ToString();
-        heightIF.text = height.ToString();
-        lenghtIF.text = lenght.ToString();
-        numAgentsIF.text = numAgents.ToString();
-        simStepRateIF.text = simStepRate.ToString();
-        simStepDelayIF.text = simStepDelay.ToString();
-        
+        cohesionIF.text = SimulationController.FlockSim.Cohesion.ToString();
+        avoidanceIF.text = SimulationController.FlockSim.Avoidance.ToString();
+        avoidDistanceIF.text = SimulationController.FlockSim.AvoidDistance.ToString();
+        randomnessIF.text = SimulationController.FlockSim.Randomness.ToString();
+        consistencyIF.text = SimulationController.FlockSim.Consistency.ToString();
+        momentumIF.text = SimulationController.FlockSim.Momentum.ToString();
+        neighborhoodIF.text = SimulationController.FlockSim.Neighborhood.ToString();
+        deadAgentProbIF.text = SimulationController.FlockSim.DeadAgentProbability.ToString();
+        jumpIF.text = SimulationController.FlockSim.Jump.ToString();
+        widthIF.text = SimulationController.FlockSim.Width.ToString();
+        heightIF.text = SimulationController.FlockSim.Height.ToString();
+        lenghtIF.text = SimulationController.FlockSim.Lenght.ToString();
+        numAgentsIF.text = SimulationController.FlockSim.NumAgents.ToString();
+        simStepRateIF.text = SimulationController.FlockSim.SimStepRate.ToString();
+        simStepDelayIF.text = SimulationController.FlockSim.SimStepDelay.ToString();
+
         //resetAnim = true;
         //ResetAnimation();
 
@@ -644,22 +659,21 @@ public class UIController : MonoBehaviour
 
     void DiscardMenuSettings()
     {
-        cohesionIF.text = cohesion.ToString();
-        avoidanceIF.text = avoidance.ToString();
-        avoidDistanceIF.text = avoidDistance.ToString();
-        randomnessIF.text = randomness.ToString();
-        consistencyIF.text = consistency.ToString();
-        momentumIF.text = momentum.ToString();
-        neighborhoodIF.text = neighborhood.ToString();
-        deadAgentProbIF.text = deadAgentProb.ToString();
-        jumpIF.text = jump.ToString();
-        widthIF.text = width.ToString();
-        heightIF.text = height.ToString();
-        lenghtIF.text = lenght.ToString();
-        numAgentsIF.text = numAgents.ToString();
-        simStepRateIF.text = simStepRate.ToString();
-        simStepDelayIF.text = simStepDelay.ToString();
-
+        cohesionIF.text = SimulationController.FlockSim.Cohesion.ToString();
+        avoidanceIF.text = SimulationController.FlockSim.Avoidance.ToString();
+        avoidDistanceIF.text = SimulationController.FlockSim.AvoidDistance.ToString();
+        randomnessIF.text = SimulationController.FlockSim.Randomness.ToString();
+        consistencyIF.text = SimulationController.FlockSim.Consistency.ToString();
+        momentumIF.text = SimulationController.FlockSim.Momentum.ToString();
+        neighborhoodIF.text = SimulationController.FlockSim.Neighborhood.ToString();
+        deadAgentProbIF.text = SimulationController.FlockSim.DeadAgentProbability.ToString();
+        jumpIF.text = SimulationController.FlockSim.Jump.ToString();
+        widthIF.text = SimulationController.FlockSim.Width.ToString();
+        heightIF.text = SimulationController.FlockSim.Height.ToString();
+        lenghtIF.text = SimulationController.FlockSim.Lenght.ToString();
+        numAgentsIF.text = SimulationController.FlockSim.NumAgents.ToString();
+        simStepRateIF.text = SimulationController.FlockSim.SimStepRate.ToString();
+        simStepDelayIF.text = SimulationController.FlockSim.SimStepDelay.ToString();
         SetMainMenu();
 
     }

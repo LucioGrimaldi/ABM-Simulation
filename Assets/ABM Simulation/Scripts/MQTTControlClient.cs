@@ -54,19 +54,19 @@ public class MQTTControlClient
         string[] splitCommand = command.Split(':');
         switch (splitCommand[0]){
             case "0":
-                client.Publish(settingsTopic, Encoding.ASCII.GetBytes(splitCommand[1]));
+                client.Publish(settingsTopic, Encoding.ASCII.GetBytes(command));
                 Debug.LogFormat("Message Sent: SETTINGS {0}.", splitCommand[1]);
                 break;
             case "1":
-                client.Publish(controlTopic, BitConverter.GetBytes(PLAY));
+                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command + ":"));
                 Debug.LogFormat("Message Sent: PLAY.");
                 break;
             case "2":
-                client.Publish(controlTopic, BitConverter.GetBytes(PAUSE));
+                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command + ":"));
                 Debug.LogFormat("Message Sent: PAUSE.");
                 break;
             case "3":
-                client.Publish(controlTopic, BitConverter.GetBytes(STOP));
+                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command + ":"));
                 Debug.LogFormat("Message Sent: STOP.");
                 break;
             case "4":
