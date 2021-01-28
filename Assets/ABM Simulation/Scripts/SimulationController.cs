@@ -176,6 +176,11 @@ public class SimulationController : MonoBehaviour
         }
     }
 
+    public void UpdateSettings()
+    {
+
+    }
+
     private void WaitForConnection()
     {
         Stopwatch stopwatch = new Stopwatch();
@@ -204,12 +209,6 @@ public class SimulationController : MonoBehaviour
         BuildSteps();
     }
 
-    private void UpdateSettings()
-    {
-        ready_buffer = new Vector3[flockSim.NumAgents];
-        positions = new Vector3[flockSim.NumAgents];
-    }
-
     public void Play()
     {
         //blocco il tasto
@@ -220,6 +219,7 @@ public class SimulationController : MonoBehaviour
             InstantiateAgents();
             SendSimulationSettings(false);
             Ready_buffer = new Vector3[flockSim.NumAgents];
+            positions = new Vector3[flockSim.NumAgents];
         }
         else if (State == simulationState.PLAY) { return; }
         controlClient.SendCommand(PLAY);
@@ -331,7 +331,7 @@ public class SimulationController : MonoBehaviour
                     stopwatch.Restart();
                 }
             }
-            else if (TARGET_FPS > 15 && fps < TARGET_FPS)
+            else if (TARGET_FPS > 15 && fps + 1 < TARGET_FPS)
             {
                 stopwatch.Stop();
                 timestampLastUpdate = stopwatch.ElapsedMilliseconds;
@@ -439,6 +439,7 @@ public class SimulationController : MonoBehaviour
         {
             agents.Add(Instantiate(AgentPrefab, simSpacePosition, simSpaceRotation));
             agents[i].transform.SetParent(simSpace.transform);
+            
         }
         AGENTS_READY = true;
         Debug.Log("Agents Instantiated.");
@@ -466,7 +467,7 @@ public class SimulationController : MonoBehaviour
                 Vector3 velocity = agents[i].transform.position - old_pos;
                 if (!velocity.Equals(Vector3.zero))
                 {
-                    agents[i].transform.rotation = Quaternion.LookRotation(velocity, Vector3.up);
+                    agents[i].transform.rotation = Quaternion.Slerp(agents[i].transform.rotation, Quaternion.LookRotation(velocity, Vector3.up), 4 * Time.deltaTime);
                 }
             }
         }

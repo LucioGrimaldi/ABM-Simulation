@@ -239,6 +239,27 @@ public class UIController : MonoBehaviour
     {
         //settingsAnim = true;
         canvasSettingsInGameMenu.gameObject.SetActive(true);
+        numAgentsIF = GameObject.Find("InputFieldNumAgents").GetComponent<InputField>();
+        widthIF = GameObject.Find("InputFieldWidth").GetComponent<InputField>();
+        heightIF = GameObject.Find("InputFieldHeight").GetComponent<InputField>();
+        lenghtIF = GameObject.Find("InputFieldLenght").GetComponent<InputField>();
+        deadAgentProbIF = GameObject.Find("InputFieldDeadAgentProb").GetComponent<InputField>();
+        if (SimulationController.State.Equals(SimulationController.simulationState.PLAY) || SimulationController.State.Equals(SimulationController.simulationState.PAUSE))
+        {
+            numAgentsIF.interactable = false;
+            widthIF.interactable = false;
+            heightIF.interactable = false;
+            lenghtIF.interactable = false;
+            deadAgentProbIF.interactable = false;
+        }
+        else
+        {
+            numAgentsIF.interactable = true;
+            widthIF.interactable = true;
+            heightIF.interactable = true;
+            lenghtIF.interactable = true;
+            deadAgentProbIF.interactable = true;
+        }
 
         backgroundSettingsInGame = GameObject.Find("bg").GetComponent<Image>();
         button_applyGame = GameObject.Find("Button_applyGame").GetComponent<Button>();
