@@ -275,7 +275,7 @@ public class UIController : MonoBehaviour
             text1x.gameObject.SetActive(false);
             text2x.gameObject.SetActive(false);
             textMax.gameObject.SetActive(false);
-            SimulationController.ChangeSimulationSpeed(0.25f);
+            SimulationController.ChangeSimulationSpeed(0);
         }
         else if (slider.value == 1)
         {
@@ -284,7 +284,7 @@ public class UIController : MonoBehaviour
             text1x.gameObject.SetActive(false);
             text2x.gameObject.SetActive(false);
             textMax.gameObject.SetActive(false);
-            SimulationController.ChangeSimulationSpeed(0.5f);
+            SimulationController.ChangeSimulationSpeed(1);
         }
         else if (slider.value == 2)
         {
@@ -293,7 +293,7 @@ public class UIController : MonoBehaviour
             text1x.gameObject.SetActive(true);
             text2x.gameObject.SetActive(false);
             textMax.gameObject.SetActive(false);
-            SimulationController.ChangeSimulationSpeed(1f);
+            SimulationController.ChangeSimulationSpeed(2);
         }
         else if (slider.value == 3)
         {
@@ -302,7 +302,7 @@ public class UIController : MonoBehaviour
             text1x.gameObject.SetActive(false);
             text2x.gameObject.SetActive(true);
             textMax.gameObject.SetActive(false);
-            SimulationController.ChangeSimulationSpeed(2f);
+            SimulationController.ChangeSimulationSpeed(3);
         }
         else if (slider.value == 4)
         {
@@ -311,7 +311,7 @@ public class UIController : MonoBehaviour
             text1x.gameObject.SetActive(false);
             text2x.gameObject.SetActive(false);
             textMax.gameObject.SetActive(true);
-            SimulationController.ChangeSimulationSpeed(0f);
+            SimulationController.ChangeSimulationSpeed(4);
         }
 
         //send sim speed to Mason -------TODO

@@ -82,8 +82,6 @@ public class SimulationController : MonoBehaviour
     private int TARGET_FPS = 60;
     private int[] targetsArray = new int[] { 15, 30, 45, 60 };
     private int[][] topicsArray;
-    private int[] topicsToSubscribe;
-    private int[] topicsToUnsubscribe;
     private long TIMEOUT_TARGET_UP = 3000;
     private long TIMEOUT_TARGET_DOWN = 1000;
     private long timestampLastUpdate = 0;
@@ -243,9 +241,9 @@ public class SimulationController : MonoBehaviour
         SecondaryQueue.Clear();
     }
 
-    public void ChangeSimulationSpeed(float speedMultiplier)
+    public void ChangeSimulationSpeed(int speedIndicator)
     {
-        controlClient.SendCommand(SPEED + ":" + speedMultiplier.ToString());
+        controlClient.SendCommand(SPEED + ":" + speedIndicator.ToString());
     }
 
     public void SendSimulationSettings(bool partialUpdate)
