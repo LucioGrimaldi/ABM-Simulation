@@ -365,7 +365,7 @@ public class SimulationController : MonoBehaviour
 
         while (true)
         {
-            if (SecondaryQueue.Count > TARGET_FPS)
+            if (SecondaryQueue.Count > TARGET_FPS && !State.Equals(simulationState.PAUSE))
             {
                 if (SecondaryQueue.Values[0] != null)
                 {
