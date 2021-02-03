@@ -12,13 +12,13 @@ public class MQTTSimClient
 {
     [Header("MQTT broker configuration")]
     [Tooltip("IP addres or URL of host running the broker")]
-    private string brokerAddress = "82.59.116.190"; //isislab = 193.205.161.52  pietro = 82.59.116.190
+    private string brokerAddress = "95.238.101.236"; //isislab = 193.205.161.52  pietro = 95.238.101.236
     [Tooltip("Port where the broker accepts connections")]
     private int brokerPort = 1883;
     [Tooltip("Use encrypted connection")]
     private bool isEncrypted = false;
     [Tooltip("Topic where Unity receive messages")]
-    private readonly string positionsTopic = "Positions";
+    private readonly string positionsTopic = "Topic0";
     [Header("Connection parameters")]
     [Tooltip("Connection to the broker is delayed by the the given milliseconds")]
     public int connectionDelay = 500;

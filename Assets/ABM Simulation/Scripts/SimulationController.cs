@@ -1,11 +1,13 @@
 ﻿using Fixed;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using UnityEngine;
 using uPLibrary.Networking.M2Mqtt.Messages;
+using Debug = UnityEngine.Debug;
 
 public class SimulationController : MonoBehaviour
 {
@@ -121,7 +123,8 @@ public class SimulationController : MonoBehaviour
     protected virtual void Awake()
     {
         //Set Default Simulation and instantiate support variables
-        flockSim = new FlockerSimulation(simSpace.GetComponent<Collider>().bounds.size.x, simSpace.GetComponent<Collider>().bounds.size.y, simSpace.GetComponent<Collider>().bounds.size.z, 1000, 60, 0, 1.0f, 1.0f, 10f, 1.0f, 1.0f, 1.0f, 10f, 0.7f, 0.1f);
+        simSpace = GameObject.FindGameObjectWithTag("SimulationCube");
+        flockSim = new FlockerSimulation(simSpace.GetComponent<Collider>().bounds.size.x *10, simSpace.GetComponent<Collider>().bounds.size.y*10, simSpace.GetComponent<Collider>().bounds.size.z*10, 1000, 60, 0, 1.0f, 1.0f, 10f, 1.0f, 1.0f, 1.0f, 10f, 0.7f, 0.1f);
         Ready_buffer = new Vector3[flockSim.NumAgents];
         positions = new Vector3[flockSim.NumAgents];
     }
@@ -155,17 +158,12 @@ public class SimulationController : MonoBehaviour
         switch (state) {
             case simulationState.CONN_ERROR:
                 // Segnalare all'utente la mancata connessione e riprovare a collegarsi
-
                 break;
             case simulationState.NOT_READY:
                 // Siamo in attesa di connessione con MASON
-
                 break;
             case simulationState.READY:
                 // Siamo pronti a visualizzare la simulazione
-
-
-
                 break;
             case simulationState.PLAY:
                 // La simulazione è in PLAY
@@ -173,27 +171,33 @@ public class SimulationController : MonoBehaviour
                 break;
             case simulationState.PAUSE:
                 // La simulazione è in PAUSE
-
                 break;
             case simulationState.STOP:
                 // La simulazione è in STOP
-
                 break;
         }
     }
 
     private void WaitForConnection()
     {
-        start_time = DateTime.Now.Millisecond;
-        while (DateTime.Now.Millisecond - start_time < CONN_TIMEOUT || !(CONTROL_CLIENT_READY && SIM_CLIENT_READY)) { }
-        if (DateTime.Now.Millisecond - start_time >= CONN_TIMEOUT) { 
-           state = simulationState.CONN_ERROR;
-        }
-        else
+        Stopwatch stopwatch = new Stopwatch();
+        long ts;
+        stopwatch.Start();
+        while (!(CONTROL_CLIENT_READY && SIM_CLIENT_READY))
         {
-            state = simulationState.READY;
-            SetupBackgroundTasks();
+            stopwatch.Stop();
+            ts = stopwatch.ElapsedMilliseconds;
+            stopwatch.Start();
+
+            if (ts >= CONN_TIMEOUT)
+            {
+                state = simulationState.CONN_ERROR;
+                stopwatch.Stop();
+                return;
+            }
         }
+        state = simulationState.READY;
+        SetupBackgroundTasks();
     }
 
     private void SetupBackgroundTasks()
@@ -205,7 +209,6 @@ public class SimulationController : MonoBehaviour
     private void UpdateSettings()
     {
         ready_buffer = new Vector3[flockSim.NumAgents];
-        positions = new Vector3[flockSim.NumAgents];
     }
 
     public void Play()
@@ -213,11 +216,12 @@ public class SimulationController : MonoBehaviour
         //blocco il tasto
         //devo aspettare la risposta per eventualmente sbloccare il tasto se mason non ha ricevuto il messaggio
         //sbloccare i bottoni necessari
-        if (state == simulationState.STOP)
+        if (state == simulationState.STOP || state == simulationState.READY)
         {
             InstantiateAgents();
             SendSimulationSettings();
             Ready_buffer = new Vector3[flockSim.NumAgents];
+            positions = new Vector3[flockSim.NumAgents];
         }
         else if (state == simulationState.PLAY) { return; }
         controlClient.SendCommand(PLAY);
@@ -243,7 +247,7 @@ public class SimulationController : MonoBehaviour
 
     public void SendSimulationSettings()
     {
-        string settings = flockSim.Width.ToString() + " " + flockSim.Height.ToString() + " " + flockSim.Lenght.ToString() + " " +
+        string settings = "false " + flockSim.Width.ToString() + " " + flockSim.Height.ToString() + " " + flockSim.Lenght.ToString() + " " +
                 flockSim.NumAgents.ToString() + " " + flockSim.SimStepRate.ToString() + " " + flockSim.SimStepDelay.ToString() + " " + flockSim.Cohesion.ToString() + " " +
                 flockSim.Avoidance.ToString() + " " + flockSim.AvoidDistance.ToString() + " " + flockSim.Randomness.ToString() + " " + flockSim.Consistency.ToString() + " " +
                 flockSim.Momentum.ToString() + " " + flockSim.Neighborhood.ToString() + " " + flockSim.Jump.ToString() + " " +
@@ -381,7 +385,7 @@ public class SimulationController : MonoBehaviour
         }
 
         Tuple<long, Vector3[]> deserializedMessage = new Tuple<long, Vector3[]>(batch_flockSimStep, positions);
-        deserialize_inputStream.Close();
+        deserialize_inputStream.Close();                                                            
         deserialize_binaryReader.Close();
         return deserializedMessage;
     }

@@ -9,7 +9,7 @@ public class MQTTControlClient
 {
     [Header("MQTT broker configuration")]
     [Tooltip("IP addres or URL of host running the broker")]
-    private string brokerAddress = "82.59.116.190"; //isislab = 193.205.161.52  pietro = 82.59.116.190
+    private string brokerAddress = "95.238.101.236"; //isislab = 193.205.161.52  pietro = 95.238.101.236
     [Tooltip("Port where the broker accepts connections")]
     private int brokerPort = 1883;
     [Tooltip("Use encrypted connection")]
@@ -54,19 +54,19 @@ public class MQTTControlClient
         string[] splitCommand = command.Split(':');
         switch (splitCommand[0]){
             case "0":
-                client.Publish(settingsTopic, Encoding.ASCII.GetBytes(splitCommand[1]));
+                client.Publish(settingsTopic, Encoding.ASCII.GetBytes(command));
                 Debug.LogFormat("Message Sent: SETTINGS {0}.", splitCommand[1]);
                 break;
             case "1":
-                client.Publish(controlTopic, BitConverter.GetBytes(PLAY));
+                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command + ":"));
                 Debug.LogFormat("Message Sent: PLAY.");
                 break;
             case "2":
-                client.Publish(controlTopic, BitConverter.GetBytes(PAUSE));
+                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command + ":"));
                 Debug.LogFormat("Message Sent: PAUSE.");
                 break;
             case "3":
-                client.Publish(controlTopic, BitConverter.GetBytes(STOP));
+                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command + ":"));
                 Debug.LogFormat("Message Sent: STOP.");
                 break;
             default:break;
