@@ -182,7 +182,7 @@ public class SimulationController : MonoBehaviour
                 // La simulazione è in STOP
                 break;
         }
-        for (int threadIndex = 0; ; ++threadIndex)
+        /*for (int threadIndex = 0; ; ++threadIndex)
         {
             using (RawFrameDataView frameData = ProfilerDriver.GetRawFrameDataView(Time.frameCount, threadIndex))
             {
@@ -190,7 +190,7 @@ public class SimulationController : MonoBehaviour
                 if (frameData.valid)
                     Debug.Log("FrameGpuTime: " + frameData.frameGpuTimeMs);
             }
-        }
+        }*/
     }
 
     private void WaitForConnection()
