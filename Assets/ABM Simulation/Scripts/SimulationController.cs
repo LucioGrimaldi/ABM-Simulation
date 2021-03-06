@@ -6,8 +6,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using UnityEngine;
+using UnityEditor.Profiling;
 using uPLibrary.Networking.M2Mqtt.Messages;
 using Debug = UnityEngine.Debug;
+using UnityEditorInternal;
 
 public class SimulationController : MonoBehaviour
 {
@@ -73,7 +75,7 @@ public class SimulationController : MonoBehaviour
     private float width;
     private float height;
     private float lenght;
-    private string[] variables = new string[] {"width", "height", "lenght", "numAgents", "simStepRate", "simStepDelay", "cohesion", 
+    private string[] variables = new string[] {"width", "height", "lenght", "numAgents", "simStepRate", "simStepDelay", "cohesion",
                                                 "avoidance", "avoidDistance" ,"randomness", "consistency",
                                                 "momentum", "neighborhood", "jump", "deadAgentsProbability"};
     /// Load Balancing
@@ -114,8 +116,6 @@ public class SimulationController : MonoBehaviour
     public ConcurrentQueue<MqttMsgPublishEventArgs> SimMessageQueue { get => simMessageQueue; set => simMessageQueue = value; }
     public SortedList<long, Vector3[]> SecondaryQueue { get => secondaryQueue; set => secondaryQueue = value; }
 
-
-
  
     /// <summary>
     /// We use Awake to setup default Simulation
@@ -148,14 +148,20 @@ public class SimulationController : MonoBehaviour
         connectionThread = new Thread(() => WaitForConnection());
         connectionThread.Start();
 
+        
     }
 
+    public static void GetEngineStats()
+    {
+
+    }
     /// <summary>
     /// Main routine
     /// </summary>
     private void Update()
     {
-        switch (state) {
+
+            switch (state) {
             case simulationState.CONN_ERROR:
                 // Segnalare all'utente la mancata connessione e riprovare a collegarsi
                 break;
@@ -175,6 +181,15 @@ public class SimulationController : MonoBehaviour
             case simulationState.STOP:
                 // La simulazione è in STOP
                 break;
+        }
+        for (int threadIndex = 0; ; ++threadIndex)
+        {
+            using (RawFrameDataView frameData = ProfilerDriver.GetRawFrameDataView(Time.frameCount, threadIndex))
+            {
+                //Debug.Log("Time.frameCount: " + Time.frameCount);
+                if (frameData.valid)
+                    Debug.Log("FrameGpuTime: " + frameData.frameGpuTimeMs);
+            }
         }
     }
 
