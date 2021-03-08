@@ -7,15 +7,21 @@ public class DisplayStats : MonoBehaviour
     private long current_step;
     private int steps_to_discard = 0;
     private int steps_to_keep = 0;
+   /* private FrameTiming[] frame_timings = new FrameTiming[25];
+    private double cpu_time;*/
 
     void Update()
     {
+        FrameTimingManager.CaptureFrameTimings();
+/*        uint n = FrameTimingManager.GetLatestTimings(20, frame_timings);*/
+
         deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
         batch_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SimMessageQueue.Count;
         secondary_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SecondaryQueue.Count;
         current_step = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().CurrentSimStep;
         steps_to_discard = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().Steps_to_discard;
         steps_to_keep = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().Steps_to_keep;
+        //cpu_time = (double) frame_timings[0].cpuFrameTime;
     }
 
     void OnGUI()
@@ -32,6 +38,7 @@ public class DisplayStats : MonoBehaviour
         float fps = 1.0f / deltaTime;
         string fps_text = string.Format(
             "{0:0.0} ms ({1:0.} fps)\n" +
+            /*"CPU time: " + cpu_time + "\n" +*/
             "Concurrent Queue: " + batch_queue_lenght + "\n" +
             "Sorted Queue: " + secondary_queue_lenght + "\n" +
             "Current Step: " + current_step + "\n" +

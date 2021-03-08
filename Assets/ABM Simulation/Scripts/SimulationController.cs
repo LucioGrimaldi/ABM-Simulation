@@ -6,10 +6,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using UnityEngine;
-using UnityEditor.Profiling;
 using uPLibrary.Networking.M2Mqtt.Messages;
 using Debug = UnityEngine.Debug;
-using UnityEditorInternal;
 
 public class SimulationController : MonoBehaviour
 {
@@ -28,8 +26,10 @@ public class SimulationController : MonoBehaviour
     /// MQTT Clients ///
     private MQTTControlClient controlClient = new MQTTControlClient();
     private MQTTSimClient simClient = new MQTTSimClient();
+
     /// Threads
-    Thread controlClientThread, simClientThread, connectionThread;
+    Thread controlClientThread, simClientThread, connectionThread, buildStepThread, performanceMonitor;
+
     /// Queues
     private ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
     private ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
@@ -48,13 +48,16 @@ public class SimulationController : MonoBehaviour
     }
     private simulationState state = simulationState.NOT_READY;
     private List<GameObject> agents = new List<GameObject>();
+
     /// Step Buffers
     private Vector3[] ready_buffer;
     private Vector3[] Ready_buffer { get => ready_buffer; set => ready_buffer = value; }
+
     /// READY Bools
     private bool CONTROL_CLIENT_READY = false;
     private bool SIM_CLIENT_READY = false;
     private bool AGENTS_READY = false;
+
     /// Support variables
     int last_step = 0;
     Tuple<int, int, String[]> des_msg;
@@ -66,6 +69,7 @@ public class SimulationController : MonoBehaviour
     MemoryStream decompress_inputStream;
     BinaryReader deserialize_binaryReader;
     BinaryReader decompress_binaryReader;
+
     GZipStream gZipStream;
     /// Settings
     private static string SETTINGS = "0", PLAY = "1", PAUSE = "2", STOP = "3";
@@ -85,6 +89,7 @@ public class SimulationController : MonoBehaviour
     private int steps_to_keep = 60;
     private int still_to_discard = 0;
     private int still_to_keep = 0;
+
     /// Benchmarking
     private int mode = 2;
     private long start_time;
@@ -161,7 +166,8 @@ public class SimulationController : MonoBehaviour
     private void Update()
     {
 
-            switch (state) {
+        switch (state)
+        {
             case simulationState.CONN_ERROR:
                 // Segnalare all'utente la mancata connessione e riprovare a collegarsi
                 break;
@@ -182,16 +188,9 @@ public class SimulationController : MonoBehaviour
                 // La simulazione è in STOP
                 break;
         }
-        /*for (int threadIndex = 0; ; ++threadIndex)
-        {
-            using (RawFrameDataView frameData = ProfilerDriver.GetRawFrameDataView(Time.frameCount, threadIndex))
-            {
-                //Debug.Log("Time.frameCount: " + Time.frameCount);
-                if (frameData.valid)
-                    Debug.Log("FrameGpuTime: " + frameData.frameGpuTimeMs);
-            }
-        }*/
+
     }
+
 
     private void WaitForConnection()
     {
@@ -233,6 +232,8 @@ public class SimulationController : MonoBehaviour
         //sbloccare i bottoni necessari
         if (state == simulationState.STOP || state == simulationState.READY)
         {
+            MqttMsgPublishEventArgs ignored; while (simMessageQueue.TryDequeue(out ignored)) ;
+            SecondaryQueue.Clear();
             InstantiateAgents();
             SendSimulationSettings();
             Ready_buffer = new Vector3[flockSim.NumAgents];
@@ -241,21 +242,25 @@ public class SimulationController : MonoBehaviour
         else if (state == simulationState.PLAY) { return; }
         controlClient.SendCommand(PLAY);
         state = simulationState.PLAY;
+
     }
 
     public void Pause()
     {
         controlClient.SendCommand(PAUSE);
         state = simulationState.PAUSE;
+
     }
 
     public void Stop()
     {
+        Pause();
         if (state == simulationState.STOP) {return;}
         controlClient.SendCommand(STOP);
         state = simulationState.STOP;
         DestroyAgents();
         CurrentSimStep = 0;
+
         MqttMsgPublishEventArgs ignored; while (simMessageQueue.TryDequeue(out ignored));
         SecondaryQueue.Clear();
     }
@@ -286,8 +291,8 @@ public class SimulationController : MonoBehaviour
     }
     public void PerformanceMonitor()
     {
-        Thread PerformanceMonitor = new Thread(this.CalculatePerformance);
-        PerformanceMonitor.Start();
+        performanceMonitor = new Thread(this.CalculatePerformance);
+        performanceMonitor.Start();
     }
 
     public void CalculatePerformance()
@@ -344,7 +349,7 @@ public class SimulationController : MonoBehaviour
     public void BuildSteps()
     {
         Debug.Log("Building Steps..");
-        Thread buildStepThread = new Thread(BuildStepBatch);
+        buildStepThread = new Thread(BuildStepBatch);
         buildStepThread.Start();
     }
 
