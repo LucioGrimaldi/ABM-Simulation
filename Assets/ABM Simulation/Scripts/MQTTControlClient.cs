@@ -130,7 +130,7 @@ public class MQTTControlClient
     /// </summary>
     protected virtual void SubscribeTopics()
     {
-        client.Subscribe(new string[] { responseTopic }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+        client.Subscribe(new string[] { responseTopic }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
         OnSubscribe();
     }
 

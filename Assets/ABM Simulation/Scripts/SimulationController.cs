@@ -366,9 +366,10 @@ public class SimulationController : MonoBehaviour
         {
             if (SecondaryQueue.Count > THRESHOLD)
             {
-                if (SecondaryQueue.TryGetValue(CurrentSimStep, out ready_buffer))
+                if (SecondaryQueue.Values[0] != null)
                 {
-                    SecondaryQueue.Remove(CurrentSimStep);
+                    ready_buffer = SecondaryQueue.Values[0];
+                    SecondaryQueue.RemoveAt(0); 
                 }
                 else
                 {
@@ -463,5 +464,16 @@ public class SimulationController : MonoBehaviour
                 agents[i].transform.localPosition = Ready_buffer[i];
             }
         }
+    }
+    void OnApplicationQuit()
+    {
+        controlClient.Disconnect();
+        simClient.Disconnect();
+        controlClientThread.Abort();
+        simClientThread.Abort();
+        connectionThread.Abort(); 
+        buildStepThread.Abort(); 
+        performanceMonitor.Abort();
+
     }
 }
