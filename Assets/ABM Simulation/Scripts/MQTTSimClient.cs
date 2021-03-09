@@ -109,7 +109,7 @@ public class MQTTSimClient
         {
             topicArray[i] = i;
             stringTopicArray[i] = "Topic" + i;
-            QosArray[i] = MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE;
+            QosArray[i] = MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE;
         }
         client.Subscribe(stringTopicArray, QosArray);
         OnSubscribe(stringTopicArray);
@@ -122,7 +122,7 @@ public class MQTTSimClient
         for (int i = 0; i < topics.Length; i++)
         {
             topicsToSubscribe[i] = "Topic" + topics[i];
-            QosArray[i] = MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE;
+            QosArray[i] = MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE;
         }
         client.Subscribe(topicsToSubscribe, QosArray);
         OnSubscribe(topicsToSubscribe);
