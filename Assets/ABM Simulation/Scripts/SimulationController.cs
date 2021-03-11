@@ -27,7 +27,7 @@ public class SimulationController : MonoBehaviour
     private MQTTControlClient controlClient = new MQTTControlClient();
     private MQTTSimClient simClient = new MQTTSimClient();
     /// Threads
-    Thread controlClientThread, simClientThread, connectionThread;
+    Thread controlClientThread, simClientThread, connectionThread, performanceMonitorThread, buildStepThread;
     /// Queues
     private ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
     private ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
@@ -274,8 +274,8 @@ public class SimulationController : MonoBehaviour
     }
     public void PerformanceMonitor()
     {
-        Thread PerformanceMonitor = new Thread(this.CalculatePerformance);
-        PerformanceMonitor.Start();
+        performanceMonitorThread = new Thread(this.CalculatePerformance);
+        performanceMonitorThread.Start();
     }
 
     public void CalculatePerformance()
@@ -351,7 +351,7 @@ public class SimulationController : MonoBehaviour
     public void BuildSteps()
     {
         Debug.Log("Building Steps..");
-        Thread buildStepThread = new Thread(BuildStepBatch);
+        buildStepThread = new Thread(BuildStepBatch);
         buildStepThread.Start();
     }
 
@@ -469,5 +469,15 @@ public class SimulationController : MonoBehaviour
                 }
             }
         }
+    }
+    void OnApplicationQuit()
+    {
+        controlClient.Disconnect();
+        simClient.Disconnect();
+        controlClientThread.Abort();
+        simClientThread.Abort();
+        connectionThread.Abort();
+        buildStepThread.Abort();
+        performanceMonitorThread.Abort();
     }
 }
