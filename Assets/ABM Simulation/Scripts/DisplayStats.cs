@@ -14,7 +14,7 @@ public class DisplayStats : MonoBehaviour
         deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
         batch_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SimMessageQueue.Count;
         secondary_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SecondaryQueue.Count;
-        current_step = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().CurrentSimStep;
+        current_step = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().LatestSimStepArrived;
         target_fps = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().Target_steps;
     }
 

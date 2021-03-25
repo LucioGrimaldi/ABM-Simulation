@@ -50,8 +50,8 @@ public class SimulationController : MonoBehaviour
     private simulationState state = simulationState.NOT_READY;
     private List<GameObject> agents = new List<GameObject>();
     /// Step Buffers
-    private Vector3[] ready_buffer;
-    private Vector3[] Ready_buffer { get => ready_buffer; set => ready_buffer = value; }
+    private Tuple<long, Vector3[]> ready_buffer;
+    private Tuple<long, Vector3[]> Ready_buffer { get => ready_buffer; set => ready_buffer = value; }
     /// READY Bools
     private bool CONTROL_CLIENT_READY = false;
     private bool SIM_CLIENT_READY = false;
@@ -69,7 +69,8 @@ public class SimulationController : MonoBehaviour
     GZipStream gZipStream;
     /// Settings
     private static string SETTINGS = "0", PLAY = "1", PAUSE = "2", STOP = "3", SPEED = "4";
-    private long currentSimStep = 0;
+    private long latestSimStepArrived = 0;
+    private long currentSimStep = -1;
     private int flockNum = 0;
     private int deadFlockers = 0;
     private float width;
@@ -92,6 +93,7 @@ public class SimulationController : MonoBehaviour
     private float deltaTime = 0f;
 
     /// Access methods ///
+    public long LatestSimStepArrived { get => latestSimStepArrived; set => latestSimStepArrived = value; }
     public long CurrentSimStep { get => currentSimStep; set => currentSimStep = value; }
     public int FlockNum { get => flockNum; set => flockNum = value; }
     public int DeadFlockers { get => deadFlockers; set => deadFlockers = value; }
@@ -118,7 +120,7 @@ public class SimulationController : MonoBehaviour
         Debug.Log(simSpace.GetComponent<Collider>().bounds.size.x);
         //Set Default Simulation and instantiate support variables
         flockSim = new FlockerSimulation(simSpace.GetComponent<Collider>().bounds.size.x*10, simSpace.GetComponent<Collider>().bounds.size.y*10, simSpace.GetComponent<Collider>().bounds.size.z*10, 1000, 60, 0, 1.0f, 1.0f, 10f, 1.0f, 1.0f, 1.0f, 10f, 0.7f, 0.1f);
-        Ready_buffer = new Vector3[flockSim.NumAgents];
+        Ready_buffer = new Tuple<long, Vector3[]>(0, new Vector3[flockSim.NumAgents]);
         positions = new Vector3[flockSim.NumAgents];
     }
 
@@ -216,27 +218,27 @@ public class SimulationController : MonoBehaviour
         {
             InstantiateAgents();
             SendSimulationSettings(false);
-            Ready_buffer = new Vector3[flockSim.NumAgents];
+            Ready_buffer = new Tuple<long, Vector3[]>(0 ,new Vector3[flockSim.NumAgents]);
             positions = new Vector3[flockSim.NumAgents];
         }
         else if (State == simulationState.PLAY) { return; }
-        controlClient.SendCommand(PLAY);
+        //controlClient.SendCommand(PLAY);
         State = simulationState.PLAY;
     }
 
     public void Pause()
     {
-        controlClient.SendCommand(PAUSE);
+        //controlClient.SendCommand(PAUSE);
         State = simulationState.PAUSE;
     }
 
     public void Stop()
     {
         if (State == simulationState.STOP) {return;}
-        controlClient.SendCommand(STOP);
+        //controlClient.SendCommand(STOP);
         State = simulationState.STOP;
         DestroyAgents();
-        CurrentSimStep = 0;
+        LatestSimStepArrived = 0;
         MqttMsgPublishEventArgs ignored; while (simMessageQueue.TryDequeue(out ignored));
         SecondaryQueue.Clear();
     }
@@ -369,7 +371,7 @@ public class SimulationController : MonoBehaviour
             {
                 if (SecondaryQueue.Values[0] != null)
                 {
-                    ready_buffer = SecondaryQueue.Values[0];
+                    ready_buffer = new Tuple<long, Vector3[]>(SecondaryQueue.Keys[0] ,SecondaryQueue.Values[0]);
                     SecondaryQueue.RemoveAt(0);
                 }
                 else
@@ -382,8 +384,8 @@ public class SimulationController : MonoBehaviour
                 if (SimMessageQueue.TryDequeue(out step))
                 {
                     Batch_message = DeserializeBatchMsg(DecompressData(step.Message));
-                    CurrentSimStep = Batch_message.Item1;
-                    SecondaryQueue.Add(CurrentSimStep, Batch_message.Item2);
+                    LatestSimStepArrived = Batch_message.Item1;
+                    SecondaryQueue.Add(LatestSimStepArrived, Batch_message.Item2);
                 }
                 else { Debug.LogError("Cannot Dequeue!"); }
             }
@@ -458,15 +460,20 @@ public class SimulationController : MonoBehaviour
     {
         if (AGENTS_READY == true)
         {
-            for (int i = 0; i < Ready_buffer.Length; i++)
+            long current_id = Ready_buffer.Item1;
+            if (current_id > CurrentSimStep)
             {
-                var old_pos = agents[i].transform.position;
-                agents[i].transform.localPosition = Ready_buffer[i];
-                Vector3 velocity = agents[i].transform.position - old_pos;
-                if (!velocity.Equals(Vector3.zero))
+                for (int i = 0; i < Ready_buffer.Item2.Length; i++)
                 {
-                    agents[i].transform.rotation = Quaternion.Slerp(agents[i].transform.rotation, Quaternion.LookRotation(velocity, Vector3.up), 4 * Time.deltaTime);
+                    var old_pos = agents[i].transform.position;
+                    agents[i].transform.localPosition = Ready_buffer.Item2[i];
+                    Vector3 velocity = agents[i].transform.position - old_pos;
+                    if (!velocity.Equals(Vector3.zero))
+                    {
+                        agents[i].transform.rotation = Quaternion.Slerp(agents[i].transform.rotation, Quaternion.LookRotation(velocity, Vector3.up), 4 * Time.deltaTime);
+                    }
                 }
+                CurrentSimStep = current_id;
             }
         }
     }
