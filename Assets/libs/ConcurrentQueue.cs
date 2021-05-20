@@ -647,7 +647,7 @@ namespace Fixed
             //we define two volatile arrays: m_array and m_state. Note that the accesses to the array items 
             //do not get volatile treatment. But we don't need to worry about loading adjacent elements or 
             //store/load on adjacent elements would suffer reordering. 
-            // - Two stores:  these are at risk, but CLRv2 memory model guarantees store-release hence we are safe.
+            // - Two stores:  these are at risk, but CLRv2 memory prefab guarantees store-release hence we are safe.
             // - Two loads: because one item from two volatile arrays are accessed, the loads of the array references
             //          are sufficient to prevent reordering of the loads of the elements.
             internal volatile T[] m_array;

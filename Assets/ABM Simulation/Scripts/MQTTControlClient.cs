@@ -28,6 +28,9 @@ public class MQTTControlClient
     /// MQTT-related variables ///
     /// Client
     private MqttClient client;
+    ///Controller
+    private CommunicationController CommController;
+
     /// Settings
     public int timeoutOnConnection = MqttSettings.MQTT_CONNECT_TIMEOUT;
     private bool mqttClientConnectionClosed = false;
@@ -159,7 +162,7 @@ public class MQTTControlClient
     {
         if (msg.Topic.Equals("Response"))
         {
-            responseMessageQueue.Enqueue(msg);
+            CommController.EnqueueControlMessage(msg);
         }
     }
 

@@ -391,12 +391,12 @@ public class UIController : MonoBehaviour
         neighborhoodIF.text = SimulationController.FlockSim.Neighborhood.ToString();
         deadAgentProbIF.text = SimulationController.FlockSim.DeadAgentProbability.ToString();
         jumpIF.text = SimulationController.FlockSim.Jump.ToString();
-        widthIF.text = SimulationController.FlockSim.Width.ToString();
-        heightIF.text = SimulationController.FlockSim.Height.ToString();
-        lenghtIF.text = SimulationController.FlockSim.Lenght.ToString();
-        numAgentsIF.text = SimulationController.FlockSim.NumAgents.ToString();
-        simStepRateIF.text = SimulationController.FlockSim.SimStepRate.ToString();
-        simStepDelayIF.text = SimulationController.FlockSim.SimStepDelay.ToString();
+        //widthIF.text = SimulationController.FlockSim.Width.ToString();
+        //heightIF.text = SimulationController.FlockSim.Height.ToString();
+        //lenghtIF.text = SimulationController.FlockSim.Lenght.ToString();
+        //numAgentsIF.text = SimulationController.FlockSim.NumAgents.ToString();
+        //simStepRateIF.text = SimulationController.FlockSim.SimStepRate.ToString();
+        //simStepDelayIF.text = SimulationController.FlockSim.SimStepDelay.ToString();
         framerateIF.text = framerate.ToString();
     }
 
@@ -411,12 +411,12 @@ public class UIController : MonoBehaviour
         SimulationController.FlockSim.Neighborhood = float.Parse(neighborhoodIF.text);
         SimulationController.FlockSim.DeadAgentProbability = float.Parse(deadAgentProbIF.text);
         SimulationController.FlockSim.Jump = float.Parse(jumpIF.text);
-        SimulationController.FlockSim.Width = float.Parse(widthIF.text);
-        SimulationController.FlockSim.Height = float.Parse(heightIF.text);
-        SimulationController.FlockSim.Lenght = float.Parse(lenghtIF.text);
-        SimulationController.FlockSim.NumAgents = int.Parse(numAgentsIF.text);
-        SimulationController.FlockSim.SimStepRate = int.Parse(simStepRateIF.text);
-        SimulationController.FlockSim.SimStepDelay = float.Parse(simStepDelayIF.text);
+        //SimulationController.FlockSim.Width = float.Parse(widthIF.text);
+        //SimulationController.FlockSim.Height = float.Parse(heightIF.text);
+        //SimulationController.FlockSim.Lenght = float.Parse(lenghtIF.text);
+        //SimulationController.FlockSim.NumAgents = int.Parse(numAgentsIF.text);
+        //SimulationController.FlockSim.SimStepRate = int.Parse(simStepRateIF.text);
+        //SimulationController.FlockSim.SimStepDelay = float.Parse(simStepDelayIF.text);
         framerate = float.Parse(framerateIF.text);
     }
 
@@ -661,12 +661,12 @@ public class UIController : MonoBehaviour
         neighborhoodIF.text = SimulationController.FlockSim.Neighborhood.ToString();
         deadAgentProbIF.text = SimulationController.FlockSim.DeadAgentProbability.ToString();
         jumpIF.text = SimulationController.FlockSim.Jump.ToString();
-        widthIF.text = SimulationController.FlockSim.Width.ToString();
-        heightIF.text = SimulationController.FlockSim.Height.ToString();
-        lenghtIF.text = SimulationController.FlockSim.Lenght.ToString();
-        numAgentsIF.text = SimulationController.FlockSim.NumAgents.ToString();
-        simStepRateIF.text = SimulationController.FlockSim.SimStepRate.ToString();
-        simStepDelayIF.text = SimulationController.FlockSim.SimStepDelay.ToString();
+        //widthIF.text = SimulationController.FlockSim.Width.ToString();
+        //heightIF.text = SimulationController.FlockSim.Height.ToString();
+        //lenghtIF.text = SimulationController.FlockSim.Lenght.ToString();
+        //numAgentsIF.text = SimulationController.FlockSim.NumAgents.ToString();
+        //simStepRateIF.text = SimulationController.FlockSim.SimStepRate.ToString();
+        //simStepDelayIF.text = SimulationController.FlockSim.SimStepDelay.ToString();
 
         //resetAnim = true;
         //ResetAnimation();
@@ -689,12 +689,12 @@ public class UIController : MonoBehaviour
         neighborhoodIF.text = SimulationController.FlockSim.Neighborhood.ToString();
         deadAgentProbIF.text = SimulationController.FlockSim.DeadAgentProbability.ToString();
         jumpIF.text = SimulationController.FlockSim.Jump.ToString();
-        widthIF.text = SimulationController.FlockSim.Width.ToString();
-        heightIF.text = SimulationController.FlockSim.Height.ToString();
-        lenghtIF.text = SimulationController.FlockSim.Lenght.ToString();
-        numAgentsIF.text = SimulationController.FlockSim.NumAgents.ToString();
-        simStepRateIF.text = SimulationController.FlockSim.SimStepRate.ToString();
-        simStepDelayIF.text = SimulationController.FlockSim.SimStepDelay.ToString();
+        //widthIF.text = SimulationController.FlockSim.Width.ToString();
+        //heightIF.text = SimulationController.FlockSim.Height.ToString();
+        //lenghtIF.text = SimulationController.FlockSim.Lenght.ToString();
+        //numAgentsIF.text = SimulationController.FlockSim.NumAgents.ToString();
+        //simStepRateIF.text = SimulationController.FlockSim.SimStepRate.ToString();
+        //simStepDelayIF.text = SimulationController.FlockSim.SimStepDelay.ToString();
         SetMainMenu();
 
     }

@@ -160,6 +160,7 @@ public class MQTTSimClient
     /// </summary>
     private void OnMqttMessageReceived(object sender, MqttMsgPublishEventArgs msg)
     {
+        //CommunicationController.EnqueueSimMessage();
         simMessageQueue.Enqueue(msg);
     }
 
