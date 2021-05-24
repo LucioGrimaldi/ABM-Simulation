@@ -33,7 +33,7 @@ public class CommunicationController
     private MQTTControlClient controlClient = new MQTTControlClient();
     private MQTTSimClient simClient = new MQTTSimClient();
     /// Threads
-    Thread controlClientThread, simClientThread, buildStepThread;
+    Thread controlClientThread, simClientThread, buildStepThread, readControlMessageThread;
 
     public void StartSimulationClient(ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue, bool SIM_CLIENT_READY)
     {
@@ -69,9 +69,9 @@ public class CommunicationController
 
     }
 
-    public void EnqueueSimMessage()
+    public void EnqueueSimMessage(MqttMsgPublishEventArgs msg)
     {
-
+        simMessageQueue.Enqueue(msg);
     }
 
     public void EnqueueControlMessage(MqttMsgPublishEventArgs msg)
@@ -94,6 +94,51 @@ public class CommunicationController
         Debug.WriteLine("Building Steps..");
         buildStepThread = new Thread(SortAndUpdateSimStep);
         buildStepThread.Start();
+    }
+
+    public void StartReadControlMessageThread()
+    {
+        readControlMessageThread = new Thread(readControlMessages);
+        readControlMessageThread.Start();
+    }
+
+    public void readControlMessages()
+    {
+        JSONObject json_response;
+        JSONArray sim_list;
+        MqttMsgPublishEventArgs msg;
+        string message_code;
+        while (true)
+        {
+            if(responseMessageQueue.TryDequeue(out msg))
+            {
+                json_response = (JSONObject)JSON.Parse(msg.Message.ToString());
+                message_code = json_response["op"];
+                switch (message_code)
+                {
+                    case "000":
+                        break;//check status
+                    case "006":
+                        sim_list = (JSONArray)json_response["sim_list"];
+
+                        break;
+                    case "007"://generic response
+
+                        break;
+                    case "998"://error
+                               //disconnect
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else
+            {
+                //print error
+            }
+            
+
+        }
     }
 
     /// <summary>

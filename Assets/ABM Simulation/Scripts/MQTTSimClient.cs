@@ -44,10 +44,9 @@ public class MQTTSimClient
     /// Event fired when failing to connect
     /// </summary>
     public event Action ConnectionFailed;
+    private CommunicationController CommController;
 
-    /// <summary>
-    /// Connect to the broker.
-    /// </summary>
+
     public virtual void Connect(out ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue, out bool ready)
     {
         simMessageQueue = this.simMessageQueue;
@@ -160,8 +159,8 @@ public class MQTTSimClient
     /// </summary>
     private void OnMqttMessageReceived(object sender, MqttMsgPublishEventArgs msg)
     {
-        //CommunicationController.EnqueueSimMessage();
-        simMessageQueue.Enqueue(msg);
+        CommController.EnqueueSimMessage(msg);
+        //simMessageQueue.Enqueue(msg);
     }
 
     protected virtual void OnSubscribe(string[] topics)
