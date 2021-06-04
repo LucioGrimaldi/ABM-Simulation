@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class Agent : SimObjects
 {
-    public Agent(int id, string name, float x, float y, float z, GameObject prefab ,Dictionary<string, string> parameters)
+    public Agent(string id, string name, float x, float y, float z, GameObject prefab ,Dictionary<string, string> parameters)
         : base(id, name, x, y, z, prefab, parameters)
     {
        

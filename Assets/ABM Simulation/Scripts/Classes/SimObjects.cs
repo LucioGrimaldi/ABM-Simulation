@@ -3,14 +3,14 @@ using UnityEngine;
 
 public abstract class SimObjects : Editable
 {
-    private int id;
+    private string id;
     private string name;
     private float x, y, z;
     public GameObject prefab;
     private GameObject gameObject;
     private Dictionary<string, string> parameters;
 
-    public int Id { get => id; set => id = value; }
+    public string Id { get => id; set => id = value; }
     public string Name { get => name; set => name = value; }
     public float X { get => x; set => x = value; }
     public float Y { get => y; set => y = value; }
@@ -19,7 +19,7 @@ public abstract class SimObjects : Editable
     public Dictionary<string, string> Parameters { get => parameters; set => parameters = value; }
     public GameObject GameObject { get => gameObject; set => gameObject = value; }
 
-    public SimObjects(int id, string name, float x, float y, float z, GameObject prefab, Dictionary<string, string> parameters)
+    public SimObjects(string id, string name, float x, float y, float z, GameObject prefab, Dictionary<string, string> parameters)
     {
         this.Id = id;
         this.Name = name;

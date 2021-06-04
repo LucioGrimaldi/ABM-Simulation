@@ -1,7 +1,6 @@
 ﻿#define TRACE
 
 using System;
-using System.Collections;
 using Fixed;
 using UnityEngine;
 using uPLibrary.Networking.M2Mqtt;
@@ -26,13 +25,18 @@ public class MQTTSimClient
     public int connectionDelay = 500;
     [Tooltip("Connection timeout in milliseconds")]
 
+    // Controllers References
+    private CommunicationController CommController;
+
     /// MQTT-related variables ///
     /// Client
     private MqttClient client;
+
     /// Settings
     public int timeoutOnConnection = MqttSettings.MQTT_CONNECT_TIMEOUT;    
     private bool mqttClientConnectionClosed = false;
     private bool mqttClientConnected = false;
+
     /// MQTT Queues
     private ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
 
@@ -40,13 +44,15 @@ public class MQTTSimClient
     /// Event fired when a connection is successfully estabilished
     /// </summary>
     public event Action ConnectionSucceeded;
+
     /// <summary>
     /// Event fired when failing to connect
     /// </summary>
     public event Action ConnectionFailed;
-    private CommunicationController CommController;
 
-
+    /// <summary>
+    /// Connect to the broker and get Queue ref.
+    /// </summary>
     public virtual void Connect(out ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue, out bool ready)
     {
         simMessageQueue = this.simMessageQueue;
@@ -97,7 +103,7 @@ public class MQTTSimClient
     }
 
     /// <summary>
-    /// Ovverride this method to subscribe to MQTT topics.
+    /// Subscribe to all MQTT topics.
     /// </summary>
     protected virtual void SubscribeAll()
     {
@@ -113,7 +119,10 @@ public class MQTTSimClient
         client.Subscribe(stringTopicArray, QosArray);
         OnSubscribe(stringTopicArray);
     }
-
+   
+    /// <summary>
+    /// Subscribe to multiple MQTT topics.
+    /// </summary>
     public virtual void SubscribeTopics(int[] topics)
     {
         string[] topicsToSubscribe = new string[topics.Length];
@@ -128,13 +137,16 @@ public class MQTTSimClient
     }
 
     /// <summary>
-    /// Ovverride this method to unsubscribe to MQTT topics (they should be the same you subscribed to with SubscribeTopics() ).
+    /// Unsubscribe to all MQTT topics. 
     /// </summary>
     protected virtual void UnsubscribeAll()
     {
         client.Unsubscribe(stringTopicArray);
     }
 
+    /// <summary>
+    /// Unsubscribe to multiple MQTT topics (they should be the same you subscribed to with SubscribeTopics()).
+    /// </summary>
     public virtual void UnsubscribeTopics(int[] topics)
     {
         string[] topicsToUnsubscribe = new string[topics.Length];
@@ -163,6 +175,9 @@ public class MQTTSimClient
         //simMessageQueue.Enqueue(msg);
     }
 
+    /// <summary>
+    /// Log OnSubscribe.
+    /// </summary>
     protected virtual void OnSubscribe(string[] topics)
     {
         Debug.Log("Subscribed to topic: " + topics);
@@ -250,6 +265,9 @@ public class MQTTSimClient
         }
     }
 
+    /// <summary>
+    /// Disconnects.
+    /// </summary>
     private void DoDisconnect()
     {
         CloseConnection();

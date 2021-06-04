@@ -1,22 +1,29 @@
-using System.Collections;
-using System.Collections.Generic;
 using System.Threading;
+using UnityEngine;
 
 public class PerformanceManger
 {
     private Thread performanceMonitorThread;
+
     /// Load Balancing
-    private int TARGET_FPS = 60;
+    private int target_fps = 60;
     private int[] targetsArray = new int[] { 15, 30, 45, 60 };
     private int[][] topicsArray;
-    private long TIMEOUT_TARGET_UP = 3000;
-    private long TIMEOUT_TARGET_DOWN = 1000;
+    private long timeout_target_up = 3000;
+    private long timeout_target_down = 1000;
     private long timestampLastUpdate = 0;
 
     /// Benchmarking
     private long start_time;
     private float fps;
     private float deltaTime = 0f;
+
+    public int TARGET_FPS { get => target_fps; set => target_fps = value; }
+    public int[] TargetsArray { get => targetsArray; set => targetsArray = value; }
+    public int[][] TopicsArray { get => topicsArray; set => topicsArray = value; }
+    public long TIMEOUT_TARGET_UP { get => timeout_target_up; set => timeout_target_up = value; }
+    public long TIMEOUT_TARGET_DOWN { get => timeout_target_down; set => timeout_target_down = value; }
+    public long TimestampLastUpdate { get => timestampLastUpdate; set => timestampLastUpdate = value; }
 
     public void PerformanceMonitor()
     {

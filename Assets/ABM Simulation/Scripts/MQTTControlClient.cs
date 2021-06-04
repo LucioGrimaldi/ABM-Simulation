@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Text;
+using SimpleJSON;
 using Fixed;
 using UnityEngine;
 using uPLibrary.Networking.M2Mqtt;
 using uPLibrary.Networking.M2Mqtt.Messages;
+using System.Text;
 
 public class MQTTControlClient
 {
@@ -14,10 +15,8 @@ public class MQTTControlClient
     private int brokerPort = 1883;
     [Tooltip("Use encrypted connection")]
     private bool isEncrypted = false;
-    [Tooltip("Topic where Unity send control messages")]
-    private readonly string controlTopic = "Control";
-    [Tooltip("Topic where Unity send settings messages")]
-    private readonly string settingsTopic = "Settings";
+    [Tooltip("Topic where Unity send control/settings messages")]
+    private readonly string controlTopic = "all_to_mason";
     [Tooltip("Topic where Unity receives response messages")]
     private readonly string responseTopic = "Response";
     [Header("Connection parameters")]
@@ -25,11 +24,12 @@ public class MQTTControlClient
     public int connectionDelay = 500;
     [Tooltip("Connection timeout in milliseconds")]
 
+    // Controllers References
+    private CommunicationController CommController;
+
     /// MQTT-related variables ///
     /// Client
     private MqttClient client;
-    ///Controller
-    private CommunicationController CommController;
 
     /// Settings
     public int timeoutOnConnection = MqttSettings.MQTT_CONNECT_TIMEOUT;
@@ -39,49 +39,30 @@ public class MQTTControlClient
     public ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
     
     /// Sim-related variables///
-    /// Commands definition
-    private int PLAY = 1, PAUSE = 2, STOP = 3, SPEED = 4;
-
 
     /// <summary>
     /// Event fired when a connection is successfully estabilished
     /// </summary>
     public event Action ConnectionSucceeded;
+
     /// <summary>
     /// Event fired when failing to connect
     /// </summary>
     public event Action ConnectionFailed;
- 
-    public void SendCommand(string command)
-    {
-        string[] splitCommand = command.Split(':');
-        switch (splitCommand[0]){
-            case "0":
-                client.Publish(settingsTopic, Encoding.ASCII.GetBytes(command));
-                Debug.LogFormat("Message Sent: SETTINGS {0}.", splitCommand[1]);
-                break;
-            case "1":
-                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command + ":"));
-                Debug.LogFormat("Message Sent: PLAY.");
-                break;
-            case "2":
-                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command + ":"));
-                Debug.LogFormat("Message Sent: PAUSE.");
-                break;
-            case "3":
-                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command + ":"));
-                Debug.LogFormat("Message Sent: STOP.");
-                break;
-            case "4":
-                client.Publish(controlTopic, Encoding.ASCII.GetBytes(command));
-                Debug.LogFormat("Message Sent: CHANGED SPEED {0}.", splitCommand[1]);
-                break;
-            default:break;
-        }
-    }
- 
+
     /// <summary>
-    /// Connect to the broker.
+    /// Send a command to MASON
+    /// </summary>
+    public void SendMessage(JSONObject msg)
+    {
+        byte[] message = Encoding.ASCII.GetBytes(msg.ToString());
+        Debug.Log("message " + message);
+        client.Publish(controlTopic, message);
+                
+    }
+
+    /// <summary>
+    /// Connect to the broker and get Queue ref.
     /// </summary>
     public virtual void Connect(out ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue, out bool ready)
     {
@@ -133,7 +114,7 @@ public class MQTTControlClient
     }
 
     /// <summary>
-    /// Ovverride this method to subscribe to MQTT topics.
+    /// Subscribe to "responseTopic".
     /// </summary>
     protected virtual void SubscribeTopics()
     {
@@ -142,7 +123,7 @@ public class MQTTControlClient
     }
 
     /// <summary>
-    /// Ovverride this method to unsubscribe to MQTT topics (they should be the same you subscribed to with SubscribeTopics() ).
+    /// Unsubscribe from "responseTopic".
     /// </summary>
     protected virtual void UnsubscribeTopics()
     {
@@ -158,6 +139,9 @@ public class MQTTControlClient
         CloseConnection();
     }
 
+    /// <summary>
+    /// Routine for incoming messages
+    /// </summary>
     private void OnMqttMessageReceived(object sender, MqttMsgPublishEventArgs msg)
     {
         if (msg.Topic.Equals("Response"))

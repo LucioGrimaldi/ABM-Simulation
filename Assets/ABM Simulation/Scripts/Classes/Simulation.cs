@@ -9,17 +9,19 @@ public class Simulation
     private List<Obstacle> obstacle_prototypes;
     private List<Generic> generic_prototypes;
     private Dictionary<string, string> parameters = new Dictionary<string, string>();
-    private List<Agent> agents = new List<Agent>();
-    private List<Obstacle> obstacles = new List<Obstacle>();
-    private List<Generic> generics = new List<Generic>();
+    private Dictionary<string, Agent> agents = new Dictionary<string, Agent>();
+    private Dictionary<string, Obstacle> obstacles = new Dictionary<string, Obstacle>();
+    private Dictionary<string, Generic> generics = new Dictionary<string, Generic>();
     private List<string> editableInPlay;
     private List<string> editableInPause;
+    private long latestSimStepArrived = 0;
+    private long currentSimStep = -1;
 
     public enum StateEnum
     {
         PLAY = 1,                   // Simulation is in PLAY
         PAUSE = 2,                  // Simulation is in PAUSE
-        STOP = 3                    // Simulation is in STOP (settings not yet send)
+        STOP = 3                    // Simulation is in STOP
     }
 
     private StateEnum state = StateEnum.STOP;
@@ -36,9 +38,14 @@ public class Simulation
     public int Id { get => id; set => id = value; }
     public List<string> EditableInPlay { get => editableInPlay; set => editableInPlay = value; }
     public List<string> EditableInPause { get => editableInPause; set => editableInPause = value; }
+    public Dictionary<string, Agent> Agents { get => agents; set => agents = value; }
+    public Dictionary<string, Obstacle> Obstacles { get => obstacles; set => obstacles = value; }
+    public Dictionary<string, Generic> Generics { get => generics; set => generics = value; }
+    public long LatestSimStepArrived { get => latestSimStepArrived; set => latestSimStepArrived = value; }
+    public long CurrentSimStep { get => currentSimStep; set => currentSimStep = value; }
 
     public Simulation(int id, string name, string description, string type, int dimensions, List<Agent> agent_prototypes,
-        List<Obstacle> obstacle_prototypes, List<Generic> generic_prototypes, Dictionary<string, object> parameters)
+        List<Obstacle> obstacle_prototypes, List<Generic> generic_prototypes, Dictionary<string, string> parameters)
     {
         Id = id;
         Name = name;
@@ -51,7 +58,7 @@ public class Simulation
         Parameters = parameters;
     }
     
-    public void UpdateSimParameter(string param_name, System.Object value)
+    public void UpdateSimParameter(string param_name, string value)
     {
         if (Parameters.ContainsKey(param_name))
         {

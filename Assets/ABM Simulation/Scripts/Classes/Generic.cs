@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class Generic : SimObjects
 {
-    public Generic(int id, string name, float x, float y, float z, GameObject prefab, Dictionary<string, string> parameters)
+    public Generic(string id, string name, float x, float y, float z, GameObject prefab, Dictionary<string, string> parameters)
         : base(id, name, x, y, z, prefab, parameters)
     {
 
