@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System;
+using System.Linq;
 
 public class CommunicationController
 {
@@ -25,11 +27,11 @@ public class CommunicationController
     Thread StepsHandlerThread;
     Thread MessagesHandlerThread;
 
-    /// Compression/Decompression variables
-    private MemoryStream deserialize_inputStream;
+    /// Decompression/Deserialize Streams/Readers
     private MemoryStream decompress_inputStream;
-    private BinaryReader deserialize_binaryReader;
     private BinaryReader decompress_binaryReader;
+    private MemoryStream deserialize_inputStream;
+    private BinaryReader deserialize_binaryReader;
     private GZipStream gZipStream;
 
     /// Access Methods ///
@@ -206,7 +208,7 @@ public class CommunicationController
     /// </summary>
     public void SimStepHandler(object parameters)
     {
-        MqttMsgPublishEventArgs step;
+        MqttMsgPublishEventArgs message;
         Simulation simulation = (Simulation) ((object[]) parameters)[0];
         int TARGET_FPS = (int) ((object[]) parameters)[1];
 
@@ -216,7 +218,7 @@ public class CommunicationController
             {
                 if (SecondaryQueue.Values[0] != null)
                 {
-                    DeserializeStep(simulation, SecondaryQueue.Values[0]);
+                    // trigger simulation update passing DecompressStepPayload(SecondaryQueue.Values[0])
                     SecondaryQueue.RemoveAt(0);
                 }
                 else
@@ -226,10 +228,10 @@ public class CommunicationController
             }
             if (SimMessageQueue.Count > 0)
             {
-                if (SimMessageQueue.TryDequeue(out step))
+                if (SimMessageQueue.TryDequeue(out message))
                 {
-                    simulation.LatestSimStepArrived = GetStepId(DecompressData(simulation, step.Message));
-                    SecondaryQueue.Add(simulation.LatestSimStepArrived, step.Message);
+                    // trigger latestsimsteparrived update passing GetStepId(message.Message)
+                    SecondaryQueue.Add(GetStepId(message.Message), message.Message);
                 }
                 else { Debug.WriteLine("Cannot Dequeue!"); }
             }
@@ -237,65 +239,36 @@ public class CommunicationController
     }
 
     /// <summary>
-    /// Deserializes Step Message payload
-    /// </summary>
-    private void DeserializeStep(Simulation simulation, byte[] data)
-    {
-        deserialize_inputStream = new MemoryStream(data);
-        deserialize_binaryReader = new BinaryReader(deserialize_inputStream);
-        batch_flockSimStep = deserialize_binaryReader.ReadInt64();
-
-        for (int i = 0; i < simulation.Parameters.TryGetValue("nome agente"); i++)
-        {
-            batch_flockId = deserialize_binaryReader.ReadInt32();
-            position = new Vector3(deserialize_binaryReader.ReadSingle() / flockSim.Width - 0.5f, deserialize_binaryReader.ReadSingle() / flockSim.Height - 0.5f, deserialize_binaryReader.ReadSingle() / flockSim.Lenght - 0.5f);
-            positions[batch_flockId] = position;
-        }
-
-        deserialize_inputStream.Close();
-        deserialize_binaryReader.Close();
-        //Aggiornare la simulazione con lo step deserializzato
-    }
-
-    /// <summary>
     /// Decompresses Gzipped message payload and get payload byte[]
     /// </summary>
-    private byte[] DecompressData(Simulation simulation, byte[] payload)
+    private byte[] DecompressStepPayload(byte[] payload)
     {
+        // Prepare Binary Stream of Gzipped payload
         decompress_inputStream = new MemoryStream(payload);
         gZipStream = new GZipStream(decompress_inputStream, CompressionMode.Decompress);
-        decompress_binaryReader = new BinaryReader(gZipStream);
 
-        byte[] partial = decompress_binaryReader.ReadBytes(
-            8 +                                                                                                 // Bytes for Sim Step ID (long)
-            4 * (simulation.Agent_prototypes.Count + simulation.Generic_prototypes.Count));                     // Bytes for Agents/Objects # (int)
+        List<byte> uncompressedPayload = new List<byte>();
 
-        deserialize_inputStream = new MemoryStream(partial);
-        deserialize_binaryReader = new BinaryReader(deserialize_inputStream);
-
-        long step_id = deserialize_binaryReader.ReadInt64();
-        int[] simObjectNums = new int[simulation.Agent_prototypes.Count + simulation.Generic_prototypes.Count];
-        for(int i=0; i < simulation.Agent_prototypes.Count + simulation.Generic_prototypes.Count; i++)
+        int bytesRead = gZipStream.ReadByte();
+        while (bytesRead != -1)
         {
-            simObjectNums[i] = deserialize_binaryReader.ReadInt32();
+            uncompressedPayload.Add((byte)bytesRead);
+            bytesRead = gZipStream.ReadByte();
         }
-
-
-        byte[] partial = decompress_binaryReader.ReadBytes(
-            8 +                                                                                                 // Bytes for Sim Step ID (long)
-            4 * (simulation.Agent_prototypes.Count + simulation.Generic_prototypes.Count) +                     // Bytes for Agents/Objects # (int)
-            4 * simObjectNums
-            
-            
-        );
-
-
-
+        gZipStream.Flush();
+        decompress_inputStream.Flush();
         decompress_inputStream.Close();
         gZipStream.Close();
-        decompress_binaryReader.Close();
 
-        return data;
+        return uncompressedPayload.ToArray();
+    }
+
+    public static byte[] Combine(byte[] first, byte[] second)
+    {
+        byte[] bytes = new byte[first.Length + second.Length];
+        Buffer.BlockCopy(first, 0, bytes, 0, first.Length);
+        Buffer.BlockCopy(second, 0, bytes, first.Length, second.Length);
+        return bytes;
     }
 
     /// <summary>
@@ -313,9 +286,18 @@ public class CommunicationController
     /// <summary>
     /// Gets Step id from Step Message payload
     /// </summary>
-    public long GetStepId(byte[] data){
-        deserialize_inputStream = new MemoryStream(data);
-        deserialize_binaryReader = new BinaryReader(deserialize_inputStream);
+    public long GetStepId(byte[] payload){
+
+        // Prepare Binary Stream of Gzipped payload
+        decompress_inputStream = new MemoryStream(payload);
+        gZipStream = new GZipStream(decompress_inputStream, CompressionMode.Decompress);
+        deserialize_binaryReader = new BinaryReader(gZipStream);
+
+        gZipStream.Flush();
+        decompress_inputStream.Flush();
+        decompress_inputStream.Close();
+        gZipStream.Close();
+
         return deserialize_binaryReader.ReadInt64();
     }
 

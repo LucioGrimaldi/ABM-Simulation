@@ -4,21 +4,23 @@ using UnityEngine;
 
 public class Obstacle : SimObjects
 {
+    public static int quantity = 0;
     private string type;
     private List<(string, string)> cells;
 
-    public Obstacle(string id, string name, string type, float x, float y, float z, GameObject prefab, List<(string, string)> cells, Dictionary<string, string> parameters)
+    public Obstacle(int id, string name, string type, float x, float y, float z, GameObject prefab, List<(string, string)> cells, Dictionary<string, object> parameters)
         : base(id, name, x, y, z, prefab, parameters)
     {
         Type = type;
         Cells = cells;
     }
 
-    public Obstacle(string id, string name)
+    public Obstacle(int id, string name)
     {
         Id = id;
         Name = name;
     }
+
     public List<(string, string)> Cells { get => cells; set => cells = value; }
     public string Type { get => type; set => type = value; }
 

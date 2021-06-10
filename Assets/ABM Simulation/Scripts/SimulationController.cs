@@ -2,6 +2,7 @@
 using SimpleJSON;
 using System.Collections.Generic;
 using System;
+using System.IO;
 
 public class SimulationController : MonoBehaviour
 {
@@ -47,6 +48,11 @@ public class SimulationController : MonoBehaviour
 
     /// Support variables
     private string nickname;
+    private long latestSimStepArrived = 0;
+
+    /// Deserialize Streams/Readers
+    private MemoryStream deserialize_inputStream;
+    private BinaryReader deserialize_binaryReader;
 
     /// Access methods ///
     public Simulation Simulation { get => simulation; set => simulation = value; }
@@ -147,6 +153,18 @@ public class SimulationController : MonoBehaviour
     /// SIMULATION ///
 
     /// <summary>
+    /// Get JSONObject from Simulation
+    /// </summary>
+    public JSONObject SimulationToJSON()
+    {
+        JSONObject sim_json = new JSONObject();
+
+        // TODO
+
+        return sim_json;
+    }
+
+    /// <summary>
     /// Load/Init Simulation from JSON
     /// </summary>
     public void InitSimulationFromJSON(JSONObject sim)
@@ -161,14 +179,12 @@ public class SimulationController : MonoBehaviour
 
         foreach(JSONObject p in parameters)
         {
-            //var obj = Activator.CreateInstance(Type.GetType("System." + p["type"] + p["size"]));   //sistemare i tipi
-            //Convert.ChangeType(obj, Type.GetType("System." + p["type"] + p["size"]));             //per castare al tipo corretto
-            simulation.Parameters.Add(p["name"], p["default"]);
-            if (p["editable_in_play"].Equals("true"))
+            simulation.AddParameter(p["name"], p["value"]);
+            if (p["editable_in_play"])
             {
                 simulation.EditableInPlay.Add(p["name"]);
             }
-            if (p["editable_in_pause"].Equals("true"))
+            if (p["editable_in_pause"])
             {
                 simulation.EditableInPause.Add(p["name"]);
             }
@@ -179,33 +195,183 @@ public class SimulationController : MonoBehaviour
             Agent a = new Agent(agent["name"]);
             foreach (JSONObject p in (JSONArray)agent["params"])
             {
-                a.Parameters.Add(p["name"], p["default"]);
-                a.Parameters.Add("editable_in_play", p["editable_in_play"]);
-                a.Parameters.Add("editable_in_pause", p["editable_in_pause"]);
+                a.AddParameter(p["name"], p["value"]);
+                a.AddParameter("editable_in_play", p["editable_in_play"]);
+                a.AddParameter("editable_in_pause", p["editable_in_pause"]);
             }
             simulation.Agent_prototypes.Add(a);
         }
-
-        JSONArray obstacle_prototypes = (JSONArray)sim["obstacle_prototypes"];
-        foreach (JSONObject obstacle in obstacle_prototypes)
-        {
-            Obstacle o = new Obstacle(obstacle["name"], obstacle["type"]);
-            simulation.Obstacle_prototypes.Add(o);
-        }
-
         JSONArray generic_prototypes = (JSONArray)sim["generic_prototypes"];
         foreach (JSONObject generic in generic_prototypes)
         {
             Generic g = new Generic(generic["name"]);
             foreach (JSONObject p in (JSONArray)generic["params"])
             {
-                g.Parameters.Add(p["name"], p["default"]);
-                g.Parameters.Add("editable_in_play", p["editable_in_play"]);
-                g.Parameters.Add("editable_in_pause", p["editable_in_pause"]);
+                g.AddParameter(p["name"], p["value"]);
+                g.AddParameter("editable_in_play", p["editable_in_play"]);
+                g.AddParameter("editable_in_pause", p["editable_in_pause"]);
             }
             simulation.Generic_prototypes.Add(g);
         }
     }
+    
+    /// <summary>
+    /// Update Simulation from committed JSON update
+    /// </summary>
+    public void UpdateSimulationFromJSON(JSONObject update)
+    {
+        // SIM_PARAMS
+        JSONArray parameters = (JSONArray)update["sim_params"];
+
+        foreach (JSONObject p in parameters)
+        {
+            simulation.Parameters.Remove(p["name"]);
+            simulation.Parameters.Add(p["name"], p["value"]);
+        }
+
+        // AGENTS
+        JSONArray agents = (JSONArray)update["agents"];
+        foreach (JSONObject agent in agents)
+        {
+            if (!agent["id"].Equals(null))
+            {
+                simulation.Agents.TryGetValue(agent["id"], out Agent a);
+                foreach (JSONObject p in (JSONArray)agent["params"])
+                {
+                    a.Parameters.Remove(p["name"]);
+                    a.Parameters.Add(p["name"], p["value"]);
+                }
+            }
+            else
+            {
+                foreach (Agent a in simulation.Agents.Values)
+                {
+                    foreach (JSONObject p in (JSONArray)agent["params"])
+                    {
+                        a.Parameters.Remove(p["name"]);
+                        a.Parameters.Add(p["name"], p["value"]);
+                    }
+                }
+            }
+        }
+
+        // OBSTACLES
+        JSONArray obstacles = (JSONArray)update["obstacles"];
+        foreach (JSONObject obstacle in obstacles)
+        {
+            simulation.Obstacles.TryGetValue(obstacle["id"], out Obstacle o);
+            if(obstacle["op"].Equals("0"))
+            {
+                simulation.Obstacles.Remove(obstacle["id"]);
+            }
+            else
+            {
+                Obstacle obs = new Obstacle(obstacle["id"], obstacle["class"]);
+                foreach (JSONObject c in (JSONArray)obstacle["cells"])
+                {
+                    foreach(KeyValuePair<string, JSONNode> e in c)
+                    {
+                        obs.Cells.Add((e.Key, e.Value.ToString()));
+                    }
+                }
+                simulation.Obstacles.Add(obstacle["id"], obs);
+            }
+            
+        }
+
+        // GENERICS
+        JSONArray generics = (JSONArray)update["generics"];
+        foreach (JSONObject generic in generics)
+        {
+            if (!generic["id"].Equals(null))
+            {
+                simulation.Generics.TryGetValue(generic["id"], out Generic g);
+                foreach (JSONObject p in (JSONArray)generic["params"])
+                {
+                    g.Parameters.Remove(p["name"]);
+                    g.Parameters.Add(p["name"], p["value"]);
+                }
+            }
+            else
+            {
+                foreach(Generic g in simulation.Generics.Values)
+                {
+                    foreach (JSONObject p in (JSONArray)generic["params"])
+                    {
+                        g.Parameters.Remove(p["name"]);
+                        g.Parameters.Add(p["name"], p["value"]);
+                    }
+                }
+            }            
+        }
+    }
+
+    /// <summary>
+    /// Update Simulation from MASON Step
+    /// </summary>
+    public void UpdateSimulationFromStep(byte[] payload)
+    {
+        deserialize_inputStream = new MemoryStream(payload);
+        deserialize_binaryReader = new BinaryReader(deserialize_inputStream);
+
+        simulation.CurrentSimStep = deserialize_binaryReader.ReadInt64());
+
+
+        // Partially read payload to properly decompress
+        byte[] partial = decompress_binaryReader.ReadBytes(
+            8 +                                                                                                 // Bytes for Sim Step ID (long)
+            4 * (simulation.Agent_prototypes.Count + simulation.Generic_prototypes.Count));                     // Bytes for Agents/Objects # (int)
+
+        // Prepare Binary Stream of partial
+        deserialize_inputStream = new MemoryStream(partial);
+        deserialize_binaryReader = new BinaryReader(deserialize_inputStream);
+
+        // Save infos
+        long step_id = deserialize_binaryReader.ReadInt64();
+        int[] agentsNum = new int[simulation.Agent_prototypes.Count];
+        int[] genericsNum = new int[simulation.Generic_prototypes.Count];
+        for (int i = 0; i < simulation.Agent_prototypes.Count; i++)
+        {
+            agentsNum[i] = deserialize_binaryReader.ReadInt32();
+        }
+        for (int i = 0; i < simulation.Generic_prototypes.Count; i++)
+        {
+            genericsNum[i] = deserialize_binaryReader.ReadInt32();
+        }
+
+        // Start composing data
+        byte[] data = partial;
+
+        // Read params for each Agent/Generic in payload
+        for (int i = 0; i < agentsNum.Length; i++)
+        {
+            int quantity = agentsNum[i];
+            for (int j = 0; i < quantity; j++)
+            {
+                data = Combine(data, decompress_binaryReader.ReadBytes(4));                                     // Read ID (int, 4 Bytes)
+                for (int d = 0; d < simulation.Dimensions; d++)
+                {
+                    data = Combine(data, decompress_binaryReader.ReadBytes(4));                                 // Read each dimension (float, 4 Bytes)
+                }
+                for (int p = 0; p < simulation.Agent_prototypes.ToArray()[i].Parameters.Count; p++)
+                {
+                    data = Combine(data, decompress_binaryReader.Read());
+                }
+            }
+        }
+
+
+        deserialize_inputStream.Close();
+        deserialize_binaryReader.Close();
+        //Aggiornare la simulazione con lo step deserializzato
+
+
+
+
+
+    }
+
+    /// UTILITIES ///
 
     /// <summary>
     /// Update Simulation with single parameter
@@ -218,7 +384,7 @@ public class SimulationController : MonoBehaviour
                 StoreSimParameterUpdate(param_name, value);
                 break;
             case "obstacle":
-                StoreObstacleParameterUpdate(class_name, id, op, cells);
+                StoreObstacleParameterUpdate(class_name, id, param_name, value);
                 break;
             case "agent":
                 StoreAgentParameterUpdate(class_name, id, param_name, value);
@@ -417,152 +583,22 @@ public class SimulationController : MonoBehaviour
             }
         }
     }
-    public void StoreObstacleParameterUpdate(string obstacle_class, string id, string op, string[] cells)
+    public void StoreObstacleParameterUpdate(string obstacle_class, string id, string param_name, string value)
     {
-        foreach (JSONNode n in uncommitted_updates["obstacles"].Children)
-        {
-            if (n["class"].Equals(obstacle_class) && n["id"].Equals(id))
-            {
-                if (op.Equals("0"))
-                {
-                    _ = (JSONArray)uncommitted_updates["obstacles"].Remove(n);
-                }
-                else
-                {
-                    Debug.LogError("Obstacle " + "ID: " + id + " already exists! Remove it first, then add again.");
-                }
-            }
-            else
-            {
-                if (op.Equals("1"))
-                {
-                    JSONObject obstacle = new JSONObject();
-                    JSONObject cell = new JSONObject();
-                    JSONArray cells_json = new JSONArray();
-                    obstacle.Add("op", "1");
-                    obstacle.Add("class", obstacle_class);
-                    obstacle.Add("id", id);
-                    foreach(string c in cells)
-                    {
-                        for(int i=0; i<simulation.Dimensions; i++)
-                        {
-                            cell.Add("dim_" + i, c.Split(',')[i]);
-                        }
-                        cells_json.Add(cell);
-                    }
-                    obstacle.Add("cells", cells_json);
-                    uncommitted_updates["obstacles"].Add(obstacle);
-                }
-                else
-                {
-                    Debug.LogError("Obstacle " + "ID: " + id + " does not exist! Add it first, then you can remove.");
-                }
-            }
-        }
-    }                                               // rename or consider adding parameters
-
-    /// <summary>
-    /// Update Simulation from JSON
-    /// </summary>
-    public void UpdateSimulationFromJSON(JSONObject update)
+        // ADD PARAMETERS?
+    }
+    public void AddObstacle()
     {
-        // SIM_PARAMS
-        JSONArray parameters = (JSONArray)update["sim_params"];
 
-        foreach (JSONObject p in parameters)
-        {
-            simulation.Parameters.Remove(p["name"]);
-            simulation.Parameters.Add(p["name"], p["value"]);
-        }
+    }    
+    public void RemoveObstacle()
+    {
 
-        // AGENTS
-        JSONArray agents = (JSONArray)update["agents"];
-        foreach (JSONObject agent in agents)
-        {
-            if (!agent["id"].Equals(null))
-            {
-                simulation.Agents.TryGetValue(agent["id"], out Agent a);
-                foreach (JSONObject p in (JSONArray)agent["params"])
-                {
-                    a.Parameters.Remove(p["name"]);
-                    a.Parameters.Add(p["name"], p["value"]);
-                }
-            }
-            else
-            {
-                foreach (Agent a in simulation.Agents.Values)
-                {
-                    foreach (JSONObject p in (JSONArray)agent["params"])
-                    {
-                        a.Parameters.Remove(p["name"]);
-                        a.Parameters.Add(p["name"], p["value"]);
-                    }
-                }
-            }
-        }
-
-        // OBSTACLES
-        JSONArray obstacles = (JSONArray)update["obstacles"];
-        foreach (JSONObject obstacle in obstacles)
-        {
-            simulation.Obstacles.TryGetValue(obstacle["id"], out Obstacle o);
-            if(obstacle["op"].Equals("0"))
-            {
-                simulation.Obstacles.Remove(obstacle["id"]);
-            }
-            else
-            {
-                Obstacle obs = new Obstacle(obstacle["id"], obstacle["class"]);
-                foreach (JSONObject c in (JSONArray)obstacle["cells"])
-                {
-                    foreach(KeyValuePair<string, JSONNode> e in c)
-                    {
-                        obs.Cells.Add((e.Key, e.Value.ToString()));
-                    }
-                }
-                simulation.Obstacles.Add(obstacle["id"], obs);
-            }
-            
-        }
-
-        // GENERICS
-        JSONArray generics = (JSONArray)update["generics"];
-        foreach (JSONObject generic in generics)
-        {
-            if (!generic["id"].Equals(null))
-            {
-                simulation.Generics.TryGetValue(generic["id"], out Generic g);
-                foreach (JSONObject p in (JSONArray)generic["params"])
-                {
-                    g.Parameters.Remove(p["name"]);
-                    g.Parameters.Add(p["name"], p["value"]);
-                }
-            }
-            else
-            {
-                foreach(Generic g in simulation.Generics.Values)
-                {
-                    foreach (JSONObject p in (JSONArray)generic["params"])
-                    {
-                        g.Parameters.Remove(p["name"]);
-                        g.Parameters.Add(p["name"], p["value"]);
-                    }
-                }
-            }            
-        }
     }
 
-    /// <summary>
-    /// Get JSONObject from Simulation
-    /// </summary>
-    public JSONObject SimulationToJSON()
-    {
-        JSONObject sim_json = new JSONObject();
 
-        // TODO
 
-        return sim_json;
-    }
+
 
     /// OPERATIONS ///
     

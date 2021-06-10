@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class Agent : SimObjects
 {
-    public Agent(string id, string name, float x, float y, float z, GameObject prefab ,Dictionary<string, string> parameters)
+    public Agent(int id, string name, float x, float y, float z, GameObject prefab, Dictionary<string, object> parameters)
         : base(id, name, x, y, z, prefab, parameters)
     {
        
@@ -17,6 +17,7 @@ public class Agent : SimObjects
     public override bool Move(float x, float y, float z)
     {
         throw new System.NotImplementedException();
+        // trigger gamecontroller to move
     }
 
     public override bool Remove()
