@@ -1,3 +1,4 @@
+#if UNITY_5_3_OR_NEWER
 #region License and information
 /* * * * *
  * 
@@ -15,7 +16,7 @@
  * 
  * The MIT License (MIT)
  * 
- * Copyright (c) 2012-2017 Markus Göbel (Bunny83)
+ * Copyright (c) 2012-2017 Markus GÃ¶bel (Bunny83)
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,17 +39,19 @@
  * * * * */
 
 #endregion License and information
-
 using UnityEngine;
 
 namespace SimpleJSON
 {
     public enum JSONContainerType { Array, Object }
-    public partial class JSONNode
-    {
+	public partial class JSONNode
+	{
+        public static byte Color32DefaultAlpha = 255;
+        public static float ColorDefaultAlpha = 1f;
         public static JSONContainerType VectorContainerType = JSONContainerType.Array;
         public static JSONContainerType QuaternionContainerType = JSONContainerType.Array;
         public static JSONContainerType RectContainerType = JSONContainerType.Array;
+        public static JSONContainerType ColorContainerType = JSONContainerType.Array;
         private static JSONNode GetContainer(JSONContainerType aType)
         {
             if (aType == JSONContainerType.Array)
@@ -58,37 +61,49 @@ namespace SimpleJSON
 
         #region implicit conversion operators
         public static implicit operator JSONNode(Vector2 aVec)
-        {
+		{
             JSONNode n = GetContainer(VectorContainerType);
             n.WriteVector2(aVec);
-            return n;
-        }
-        public static implicit operator JSONNode(Vector3 aVec)
-        {
+			return n;
+		}
+		public static implicit operator JSONNode(Vector3 aVec)
+		{
             JSONNode n = GetContainer(VectorContainerType);
             n.WriteVector3(aVec);
             return n;
         }
         public static implicit operator JSONNode(Vector4 aVec)
-        {
+		{
             JSONNode n = GetContainer(VectorContainerType);
             n.WriteVector4(aVec);
             return n;
         }
-        public static implicit operator JSONNode(Quaternion aRot)
+        public static implicit operator JSONNode(Color aCol)
         {
+            JSONNode n = GetContainer(ColorContainerType);
+            n.WriteColor(aCol);
+            return n;
+        }
+        public static implicit operator JSONNode(Color32 aCol)
+        {
+            JSONNode n = GetContainer(ColorContainerType);
+            n.WriteColor32(aCol);
+            return n;
+        }
+        public static implicit operator JSONNode(Quaternion aRot)
+		{
             JSONNode n = GetContainer(QuaternionContainerType);
             n.WriteQuaternion(aRot);
             return n;
         }
         public static implicit operator JSONNode(Rect aRect)
-        {
+		{
             JSONNode n = GetContainer(RectContainerType);
             n.WriteRect(aRect);
             return n;
         }
         public static implicit operator JSONNode(RectOffset aRect)
-        {
+		{
             JSONNode n = GetContainer(RectContainerType);
             n.WriteRectOffset(aRect);
             return n;
@@ -105,6 +120,14 @@ namespace SimpleJSON
         public static implicit operator Vector4(JSONNode aNode)
         {
             return aNode.ReadVector4();
+        }
+        public static implicit operator Color(JSONNode aNode)
+        {
+            return aNode.ReadColor();
+        }
+        public static implicit operator Color32(JSONNode aNode)
+        {
+            return aNode.ReadColor32();
         }
         public static implicit operator Quaternion(JSONNode aNode)
         {
@@ -233,6 +256,75 @@ namespace SimpleJSON
             return this;
         }
         #endregion Vector4
+
+        #region Color / Color32
+        public Color ReadColor(Color aDefault)
+        {
+            if (IsObject)
+                return new Color(this["r"].AsFloat, this["g"].AsFloat, this["b"].AsFloat, HasKey("a")?this["a"].AsFloat:ColorDefaultAlpha);
+            if (IsArray)
+                return new Color(this[0].AsFloat, this[1].AsFloat, this[2].AsFloat, (Count>3)?this[3].AsFloat:ColorDefaultAlpha);
+            return aDefault;
+        }
+        public Color ReadColor()
+        {
+            return ReadColor(Color.clear);
+        }
+        public JSONNode WriteColor(Color aCol)
+        {
+            if (IsObject)
+            {
+                Inline = true;
+                this["r"].AsFloat = aCol.r;
+                this["g"].AsFloat = aCol.g;
+                this["b"].AsFloat = aCol.b;
+                this["a"].AsFloat = aCol.a;
+            }
+            else if (IsArray)
+            {
+                Inline = true;
+                this[0].AsFloat = aCol.r;
+                this[1].AsFloat = aCol.g;
+                this[2].AsFloat = aCol.b;
+                this[3].AsFloat = aCol.a;
+            }
+            return this;
+        }
+
+        public Color32 ReadColor32(Color32 aDefault)
+        {
+            if (IsObject)
+                return new Color32((byte)this["r"].AsInt, (byte)this["g"].AsInt, (byte)this["b"].AsInt, (byte)(HasKey("a")?this["a"].AsInt:Color32DefaultAlpha));
+            if (IsArray)
+                return new Color32((byte)this[0].AsInt, (byte)this[1].AsInt, (byte)this[2].AsInt, (byte)((Count>3)?this[3].AsInt:Color32DefaultAlpha));
+            return aDefault;
+        }
+        public Color32 ReadColor32()
+        {
+            return ReadColor32(new Color32());
+        }
+        public JSONNode WriteColor32(Color32 aCol)
+        {
+            if (IsObject)
+            {
+                Inline = true;
+                this["r"].AsInt = aCol.r;
+                this["g"].AsInt = aCol.g;
+                this["b"].AsInt = aCol.b;
+                this["a"].AsInt = aCol.a;
+            }
+            else if (IsArray)
+            {
+                Inline = true;
+                this[0].AsInt = aCol.r;
+                this[1].AsInt = aCol.g;
+                this[2].AsInt = aCol.b;
+                this[3].AsInt = aCol.a;
+            }
+            return this;
+        }
+
+        #endregion Color / Color32
 
         #region Quaternion
         public Quaternion ReadQuaternion(Quaternion aDefault)
@@ -367,3 +459,4 @@ namespace SimpleJSON
         #endregion Matrix4x4
     }
 }
+#endif

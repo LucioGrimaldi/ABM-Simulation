@@ -11,11 +11,11 @@ public class DisplayStats : MonoBehaviour
 
     void Update()
     {
-        deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
-        batch_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SimMessageQueue.Count;
-        secondary_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SecondaryQueue.Count;
-        current_step = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().LatestSimStepArrived;
-        target_fps = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().Target_steps;
+        //deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
+        //batch_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SimMessageQueue.Count;
+        //secondary_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().SecondaryQueue.Count;
+        //current_step = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().LatestSimStepArrived;
+        //target_fps = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().Target_steps;
     }
 
     void OnGUI()

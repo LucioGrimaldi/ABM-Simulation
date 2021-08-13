@@ -24,9 +24,6 @@ public class MQTTControlClient
     public int connectionDelay = 500;
     [Tooltip("Connection timeout in milliseconds")]
 
-    // Controllers References
-    private CommunicationController CommController;
-
     /// MQTT-related variables ///
     /// Client
     private MqttClient client;
@@ -56,15 +53,14 @@ public class MQTTControlClient
     public void SendMessage(JSONObject msg)
     {
         byte[] message = Encoding.ASCII.GetBytes(msg.ToString());
-        Debug.Log("message " + message);
         client.Publish(controlTopic, message);
-                
+        Debug.Log("MQTT_CONTROL_CLIENT | Message published to " + controlTopic + " topic, message: " + msg.ToString());
     }
 
     /// <summary>
     /// Connect to the broker and get Queue ref.
     /// </summary>
-    public virtual void Connect(out ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue, out bool ready)
+    public virtual void Connect(ref ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue, out bool ready)
     {
         responseMessageQueue = this.responseMessageQueue;
         if (client == null || !client.IsConnected)
@@ -90,7 +86,7 @@ public class MQTTControlClient
     /// </summary>
     protected virtual void OnConnecting()
     {
-        Debug.LogFormat("Connecting to broker on {0}:{1}...\n", brokerAddress, brokerPort.ToString());
+        Debug.LogFormat("MQTT_CONTROL_CLIENT | Connecting to broker on {0}:{1}...\n", brokerAddress, brokerPort.ToString());
     }
 
     /// <summary>
@@ -98,10 +94,10 @@ public class MQTTControlClient
     /// </summary>
     protected virtual void OnConnected()
     {
-        Debug.LogFormat("Connected to {0}:{1}...\n", brokerAddress, brokerPort.ToString());
+        Debug.LogFormat("MQTT_CONTROL_CLIENT | Connected to {0}:{1}...\n", brokerAddress, brokerPort.ToString());
         SubscribeTopics();
         ConnectionSucceeded?.Invoke();
-        Debug.Log("Waiting for MASON...");
+        Debug.Log("MQTT_CONTROL_CLIENT | Waiting for MASON...");
     }
 
     /// <summary>
@@ -109,7 +105,7 @@ public class MQTTControlClient
     /// </summary>
     protected virtual void OnConnectionFailed(string errorMessage)
     {
-        Debug.LogWarning("Connection failed.");
+        Debug.LogWarning("MQTT_CONTROL_CLIENT | Connection failed.");
         ConnectionFailed?.Invoke();
     }
 
@@ -146,13 +142,21 @@ public class MQTTControlClient
     {
         if (msg.Topic.Equals("Response"))
         {
-            CommController.EnqueueControlMessage(msg);
+            EnqueueControlMessage(msg);
         }
+    }
+
+    /// <summary>
+    /// Control Message Enqueuer
+    /// </summary>
+    public void EnqueueControlMessage(MqttMsgPublishEventArgs msg)
+    {
+        responseMessageQueue.Enqueue(msg);
     }
 
     protected virtual void OnSubscribe()
     {
-        Debug.Log("Subscribed to topic: " + responseTopic);
+        Debug.Log("MQTT_CONTROL_CLIENT | Subscribed to topic: " + responseTopic);
     }
 
     /// <summary>
@@ -160,7 +164,7 @@ public class MQTTControlClient
     /// </summary>
     protected virtual void OnDisconnected()
     {
-        Debug.Log("Disconnected.");
+        Debug.Log("MQTT_CONTROL_CLIENT | Disconnected.");
     }
 
     /// <summary>
@@ -168,7 +172,7 @@ public class MQTTControlClient
     /// </summary>
     protected virtual void OnConnectionLost()
     {
-        Debug.LogWarning("CONNECTION LOST!");
+        Debug.LogWarning("MQTT_CONTROL_CLIENT | CONNECTION LOST!");
     }
 
     private void OnMqttConnectionClosed(object sender, EventArgs e)
@@ -189,18 +193,18 @@ public class MQTTControlClient
         {
             try
             {
-                //Debug.Log("CONNECTING..");
+                //Debug.Log("MQTT_CONTROL_CLIENT | CONNECTING..");
                 client = new MqttClient(brokerAddress, brokerPort, isEncrypted, null, null, isEncrypted ? MqttSslProtocols.SSLv3 : MqttSslProtocols.None);
                 //System.Security.Cryptography.X509Certificates.X509Certificate cert = new System.Security.Cryptography.X509Certificates.X509Certificate();
                 //MQTTSimClient = new MqttClient(brokerAddress, brokerPort, isEncrypted, cert, null, MqttSslProtocols.TLSv1_0, MyRemoteCertificateValidationCallback);
-                //Debug.Log("CONNECTED");
+                //Debug.Log("MQTT_CONTROL_CLIENT | CONNECTED");
 
 
             }
             catch (Exception e)
             {
                 client = null;
-                Debug.LogErrorFormat("CONNECTION FAILED! {0}", e.ToString());
+                Debug.LogErrorFormat("MQTT_CONTROL_CLIENT | CONNECTION FAILED! {0}", e.ToString());
                 OnConnectionFailed(e.Message);
                 return;
             }
@@ -219,7 +223,7 @@ public class MQTTControlClient
         catch (Exception e)
         {
             client = null;
-            Debug.LogErrorFormat("Failed to connect to {0}:{1}:\n{2}", brokerAddress, brokerPort, e.ToString());
+            Debug.LogErrorFormat("MQTT_CONTROL_CLIENT | Failed to connect to {0}:{1}:\n{2}", brokerAddress, brokerPort, e.ToString());
             OnConnectionFailed(e.Message);
             return;
         }

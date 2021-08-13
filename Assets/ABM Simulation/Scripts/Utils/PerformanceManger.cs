@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using UnityEngine;
 
@@ -63,7 +64,7 @@ public class PerformanceManger
             }
         }
 
-        System.Diagnostics.Stopwatch stopwatch = new Stopwatch();
+        System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         stopwatch.Start();
         while (true)
         {
@@ -78,7 +79,7 @@ public class PerformanceManger
                     int index = Array.IndexOf(targetsArray, TARGET_FPS);
                     TARGET_FPS = targetsArray[++index];
                     //prendiamo l'array corretto in base al target aggiornato
-                    CommController.SubscribeTopics(topicsArray[index]);
+                    //CommController.SubscribeTopics(topicsArray[index]);
                     stopwatch.Restart();
                 }
             }
@@ -93,7 +94,7 @@ public class PerformanceManger
                     int index = Array.IndexOf(targetsArray, TARGET_FPS);
                     TARGET_FPS = targetsArray[index - 1];
                     //prendiamo l'array corretto in base al target aggiornato
-                    CommController.UnsubscribeTopics(topicsArray[index]);
+                    //CommController.UnsubscribeTopics(topicsArray[index]);
                     stopwatch.Restart();
                 }
             }

@@ -25,9 +25,6 @@ public class MQTTSimClient
     public int connectionDelay = 500;
     [Tooltip("Connection timeout in milliseconds")]
 
-    // Controllers References
-    private CommunicationController CommController;
-
     /// MQTT-related variables ///
     /// Client
     private MqttClient client;
@@ -53,7 +50,7 @@ public class MQTTSimClient
     /// <summary>
     /// Connect to the broker and get Queue ref.
     /// </summary>
-    public virtual void Connect(out ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue, out bool ready)
+    public virtual void Connect(ref ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue, out bool ready)
     {
         simMessageQueue = this.simMessageQueue;
         if (client == null || !client.IsConnected)
@@ -79,7 +76,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnConnecting()
     {
-        Debug.LogFormat("Connecting to broker on {0}:{1}...\n", brokerAddress, brokerPort.ToString());
+        Debug.LogFormat("MQTT_SIM_CLIENT | Connecting to broker on {0}:{1}...\n", brokerAddress, brokerPort.ToString());
     }
 
     /// <summary>
@@ -87,10 +84,10 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnConnected()
     {
-        Debug.LogFormat("Connected to {0}:{1}...\n", brokerAddress, brokerPort.ToString());
+        Debug.LogFormat("MQTT_SIM_CLIENT | Connected to {0}:{1}...\n", brokerAddress, brokerPort.ToString());
         SubscribeAll();
         ConnectionSucceeded?.Invoke();
-        Debug.Log("Waiting for MASON...");
+        Debug.Log("MQTT_SIM_CLIENT | Waiting for MASON...");
     }
 
     /// <summary>
@@ -98,7 +95,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnConnectionFailed(string errorMessage)
     {
-        Debug.LogWarning("Connection failed.");
+        Debug.LogWarning("MQTT_SIM_CLIENT | Connection failed.");
         ConnectionFailed?.Invoke();
     }
 
@@ -171,8 +168,15 @@ public class MQTTSimClient
     /// </summary>
     private void OnMqttMessageReceived(object sender, MqttMsgPublishEventArgs msg)
     {
-        CommController.EnqueueSimMessage(msg);
-        //simMessageQueue.Enqueue(msg);
+        EnqueueSimMessage(msg);
+    }
+
+    /// <summary>
+    /// Sim Message Enqueuer
+    /// </summary>
+    public void EnqueueSimMessage(MqttMsgPublishEventArgs msg)
+    {
+        simMessageQueue.Enqueue(msg);
     }
 
     /// <summary>
@@ -180,7 +184,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnSubscribe(string[] topics)
     {
-        Debug.Log("Subscribed to topic: " + topics);
+        Debug.Log("MQTT_SIM_CLIENT | Subscribed to topic: " + String.Join(",", topics));
     }
 
     /// <summary>
@@ -188,7 +192,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnDisconnected()
     {
-        Debug.Log("Disconnected.");
+        Debug.Log("MQTT_SIM_CLIENT | Disconnected.");
     }
 
     /// <summary>
@@ -196,7 +200,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnConnectionLost()
     {
-        Debug.LogWarning("CONNECTION LOST!");
+        Debug.LogWarning("MQTT_SIM_CLIENT | CONNECTION LOST!");
     }
 
     private void OnMqttConnectionClosed(object sender, EventArgs e)
@@ -216,18 +220,18 @@ public class MQTTSimClient
         {
             try
             {
-                Debug.Log("CONNECTING..");
+                Debug.Log("MQTT_SIM_CLIENT | CONNECTING..");
                 client = new MqttClient(brokerAddress, brokerPort, isEncrypted, null, null, isEncrypted ? MqttSslProtocols.SSLv3 : MqttSslProtocols.None);
                 //System.Security.Cryptography.X509Certificates.X509Certificate cert = new System.Security.Cryptography.X509Certificates.X509Certificate();
                 //MQTTSimClient = new MqttClient(brokerAddress, brokerPort, isEncrypted, cert, null, MqttSslProtocols.TLSv1_0, MyRemoteCertificateValidationCallback);
-                Debug.Log("CONNECTED");
+                Debug.Log("MQTT_SIM_CLIENT | CONNECTED");
 
 
             }
             catch (Exception e)
             {
                 client = null;
-                Debug.LogErrorFormat("CONNECTION FAILED! {0}", e.ToString());
+                Debug.LogErrorFormat("MQTT_SIM_CLIENT | CONNECTION FAILED! {0}", e.ToString());
                 OnConnectionFailed(e.Message);
                 return;
             }
@@ -247,7 +251,7 @@ public class MQTTSimClient
         catch (Exception e)
         {
             client = null;
-            Debug.LogErrorFormat("Failed to connect to {0}:{1}:\n{2}", brokerAddress, brokerPort, e.ToString());
+            Debug.LogErrorFormat("MQTT_SIM_CLIENT | Failed to connect to {0}:{1}:\n{2}", brokerAddress, brokerPort, e.ToString());
             OnConnectionFailed(e.Message);
             return;
         }
