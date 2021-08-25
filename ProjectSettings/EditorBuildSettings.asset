@@ -5,10 +5,10 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/ABM Simulation/Scenes/Pc Scene.unity
-    guid: 9d68a143c6062b341980b953b402500f
   - enabled: 1
-    path: Assets/ABM Simulation/Scenes/Landscape Scene.unity
-    guid: 09393422f5095d847b1b23298e5435e2
+    path: Assets/ABM Simulation/Scenes/MenuScene.unity
+    guid: 79890aaa8709b3040a271b8b3ad4443a
+  - enabled: 1
+    path: Assets/ABM Simulation/Scenes/MainScene.unity
+    guid: ea7cd2aeb29ac9d40bc8396a236818c7
   m_configObjects: {}

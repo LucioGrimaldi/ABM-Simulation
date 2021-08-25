@@ -31,7 +31,7 @@ public class SimulationController : MonoBehaviour
 
     /// Controllers ///
     private UIController UIController;
-    private GameController GameController;
+    private SceneController SceneController;
     private CommunicationController CommController;
 
     /// Sim-related variables ///
