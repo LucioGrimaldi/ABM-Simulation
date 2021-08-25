@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 
 public class Utils
 {
@@ -67,226 +68,6 @@ public class Utils
     }
 
     /// <summary>
-    /// Extract step as JSONObject from step as byte[] 
-    /// </summary>
-    public static JSONObject StepToJSON(byte[] step, JSONObject sim_prototype)
-    {
-        // variabili
-        JSONObject sim_step = new JSONObject();
-        byte[] decompressed_step = DecompressStepPayload(step);
-
-        JSONArray element_array = new JSONArray();
-        JSONObject element = new JSONObject();
-        JSONArray element_positions = new JSONArray();
-        JSONObject a = new JSONObject();
-        JSONArray element_params = new JSONArray();
-
-        List<string> agent_class_names = new Func<List<string>>(() => {
-            List<string> array = new List<string>();
-            foreach (JSONObject p in (JSONArray)sim_prototype["agent_prototypes"])
-            {
-                array.Add(p["name"]);
-            }
-            return array;
-        })();                                     // nomi delle classi degli agenti
-        List<string> generic_class_names = new Func<List<string>>(() => {
-            List<string> array = new List<string>();
-            foreach (JSONObject p in (JSONArray)sim_prototype["generic_prototypes"])
-            {
-                array.Add(p["name"]);
-            }
-            return array;
-        })();                                   // nomi delle classi degli oggetti
-        List<List<Tuple<string, string>>> agent_params_for_each_class =
-            new Func<List<List<Tuple<string, string>>>>(() => {
-            List<List<Tuple<string, string>>> array = new List<List<Tuple<string, string>>>();
-            for (int i = 0; i < ((JSONArray)sim_prototype["agent_prototypes"]).Count; i++)
-            {
-                JSONObject c = (JSONObject)((JSONArray)sim_prototype["agent_prototypes"])[i];
-                array.Add(new List<Tuple<string, string>>());
-                foreach (JSONObject p in c["params"] as JSONArray)
-                {
-                        array[i].Add(new Tuple<string,string>(p["name"], p["type"]));
-                }
-            }
-            return array;
-        })();                                             // (nome_param, tipo_param) per ogni parametro per ogni classe di agente 
-        List<List<Tuple<string, string>>> generic_params_for_each_class =
-            new Func<List<List<Tuple<string, string>>>>(() =>
-        {
-            List<List<Tuple<string, string>>> array = new List<List<Tuple<string, string>>>();
-            for (int i = 0; i < ((JSONArray)sim_prototype["generic_prototypes"]).Count; i++)
-            {
-                JSONObject c = (JSONObject)((JSONArray)sim_prototype["generic_prototypes"])[i];
-                array.Add(new List<Tuple<string, string>>());
-                foreach (JSONObject p in c["params"] as JSONArray)
-                {
-                    array[i].Add(new Tuple<string, string>(p["name"], p["type"]));
-                }
-            }
-            return array;
-        })();                                              // (nome_param, tipo_param) per ogni parametro per ogni classe di oggetto 
-        int n_agents_classes = ((JSONArray)sim_prototype["agent_prototypes"]).Count;                              // numero di classi di agenti aggiornati nello step
-        int[] n_agents_for_each_class = new int[n_agents_classes];                                                // numero di agenti di ogni classe presenti nello step
-        int n_generic_classes = ((JSONArray)sim_prototype["generic_prototypes"]).Count;                           // numero di classi di oggetti aggiornati nello step
-        int[] n_objects_for_each_class = new int[n_generic_classes];                                              // numero di oggetti di ogni classe presenti nello step
-        List<char> dimensions = new Func<List<char>>(() => {
-            List<char> array = new List<char>();
-            foreach(JSONObject d in (JSONArray) sim_prototype["dimensions"])
-            {
-                UnityEngine.Debug.Log(d["name"].ToString());
-                array.Add(d["name"].ToString()[1]);
-            }
-        return array;})();                                                                                        // dimensioni della sim come una lista di char (es. ['x', 'y', 'z'])
-
-        // creo stream e reader per leggere lo step
-        deserialize_inputStream = new MemoryStream(decompressed_step);
-        deserialize_binaryReader = new BinaryReader(deserialize_inputStream);
-
-        // estraggo l'ID
-        sim_step.Add("id", deserialize_binaryReader.ReadInt32());
-        // estraggo il numero di agenti per classe presenti nello step
-        for(int i = 0; i < n_agents_classes; i++)
-        {
-            n_agents_for_each_class[i] = deserialize_binaryReader.ReadInt32();
-        }
-        // estraggo il numero di oggetti per classe presenti nello step
-        for (int i = 0; i < n_generic_classes; i++)
-        {
-            n_objects_for_each_class[i] = deserialize_binaryReader.ReadInt32();
-        }
-
-        // AGENTI
-        // estraggo ogni agente per classe
-        for (int i = 0; i < n_agents_classes; i++)                // i è la classe
-        {
-            int n_agents_of_a_class = n_agents_for_each_class[i];
-
-            if(n_agents_of_a_class == 0) { continue; }                                                            //se non ci sono elementi di quella classe è inutile continuare
-
-            for (int j = 0; j < n_agents_of_a_class; j++)                       // j è l'agente
-            {
-                element.Add("class", agent_class_names[i]);
-                element.Add("id", deserialize_binaryReader.ReadInt32());
-
-                // position
-                foreach (char d in "xyz")
-                {
-                    if (dimensions.Contains(d))
-                    {
-                        a.Add(d + "", deserialize_binaryReader.ReadSingle());
-                        element_positions.Add(a);
-                    }
-                    else
-                    {
-                        a.Add(d + "", 0);
-                        element_positions.Add(a);
-                    }
-                    a = new JSONObject();
-                }
-                element.Add("positions", element_positions);
-                element_positions = new JSONArray();
-
-                // params
-                foreach(Tuple<string,string> p in agent_params_for_each_class[i])
-                {
-                    
-                    switch (p.Item2)
-                    {
-                        case "System.Single":
-                            a.Add(p.Item1, deserialize_binaryReader.ReadSingle());
-                            element_params.Add(a);
-                            break;
-                        case "System.Int32":
-                            a.Add(p.Item1, deserialize_binaryReader.ReadInt32());
-                            element_params.Add(a);
-                            break;
-                        case "System.Boolean":
-                            a.Add(p.Item1, deserialize_binaryReader.ReadBoolean());
-                            element_params.Add(a); break;
-                        case "System.String":
-                            a.Add(p.Item1, deserialize_binaryReader.ReadString());
-                            element_params.Add(a);
-                            break;
-                    }
-                    a = new JSONObject();
-                }
-                element.Add("params", element_params);
-                element_array.Add(element);
-                element = new JSONObject();
-                element_params = new JSONArray();
-            }
-        }
-        sim_step.Add("agents_update", element_array);
-        element_array = new JSONArray();
-
-        // OGGETTI
-        // estraggo ogni oggetto per classe
-        for (int i = 0; i < n_objects_for_each_class.Length; i++)                // i è la classe
-        {
-            int n_objects_of_a_class = n_objects_for_each_class[i];
-
-            if (n_objects_of_a_class == 0) { continue; }                                                            //se non ci sono elementi di quella classe è inutile continuare
-
-            for (int j = 0; j < n_objects_of_a_class; j++)                       // j è l'oggetto
-            {
-                element.Add("class", generic_class_names[i]);
-                element.Add("id", deserialize_binaryReader.ReadInt32());
-
-                // position
-                foreach (char d in "xyz")
-                {
-                    if (dimensions.Contains(d))
-                    {
-                        a.Add(d + "", deserialize_binaryReader.ReadSingle());
-                        element_positions.Add(a);
-                    }
-                    else
-                    {
-                        a.Add(d + "", 0);
-                        element_positions.Add(a);
-                    }
-                    a = new JSONObject();
-                }
-                element.Add("positions", element_positions);
-
-                // params
-                foreach (Tuple<string, string> p in generic_params_for_each_class[i])
-                {
-
-                    switch (p.Item2)
-                    {
-                        case "System.Single":
-                            a.Add(p.Item1, deserialize_binaryReader.ReadSingle());
-                            element_params.Add(a);
-                            break;
-                        case "System.Int32":
-                            a.Add(p.Item1, deserialize_binaryReader.ReadInt32());
-                            element_params.Add(a);
-                            break;
-                        case "System.Boolean":
-                            a.Add(p.Item1, deserialize_binaryReader.ReadBoolean());
-                            element_params.Add(a); break;
-                        case "System.String":
-                            a.Add(p.Item1, deserialize_binaryReader.ReadString());
-                            element_params.Add(a);
-                            break;
-                    }
-                    a = new JSONObject();
-                }
-                element.Add("params", element_params);
-                element_array.Add(element);
-                element = new JSONObject();
-                element_params = new JSONArray();
-
-            }
-        }
-        sim_step.Add("generic_update", element_array);
-
-        return sim_step;
-    }
-
-    /// <summary>
     /// Combine byte[]s
     /// </summary>
     public static byte[] Combine(byte[] first, byte[] second)
@@ -300,7 +81,6 @@ public class Utils
 
 
     // ROBA UTILE
-
     public void AddObstacle(string name, float x, float y, float z, List<(dynamic, dynamic, dynamic)> cells)
     {
     //    SimObject o = new SimObject(name, x, y, z, cells);
@@ -314,99 +94,148 @@ public class Utils
     //public void MoveObstacle(int id, float x, float y, float z)
     //{
     //    simulation.MoveObstacle(id, x, y, z);
-    }
-
-
-    //ROBA PER MASON
-    public void UpdateSimulationFromUpdate(JSONObject sim_updateJSON, Dictionary<string, SimObject> sim_update)
+    } 
+    // TESTS
+    public void tests()
     {
-        //// SIM_PARAMS
-        //JSONObject parameters = (JSONObject)sim_updateJSON["sim_params"];
-        //
-        //foreach (KeyValuePair<string, JSONNode> p in parameters.Dict)
+        //SendCheckStatus();
+        //SendConnect();
+        //SendDisconnect();
+        //SendSimListRequest();
+        //SendSimUpdate();
+        //SendSimCommand("4", "2");
+        //SendResponse("001");
+        //SendErrorMessage("GENERIC_ERROR", true);
+
+        //byte[] step, compressed;
+
+        //using (MemoryStream ms = new MemoryStream())
+        //using (BinaryWriter writer = new BinaryWriter(ms, System.Text.Encoding.BigEndianUnicode))
         //{
-        //    Parameters[p.Key] = p.Value;
+        //    writer.Write(0);
+        //    writer.Write(2);
+        //    writer.Write(1);
+        //    writer.Write(0);
+        //    writer.Write(1.5f);
+        //    writer.Write(1.5f);
+        //    writer.Write(1.5f);
+        //    writer.Write(1);
+        //    writer.Write(3.0f);
+        //    writer.Write(3.0f);
+        //    writer.Write(3.0f);
+        //    writer.Write(666);
+        //    writer.Write(1.0f);
+        //    writer.Write(1.0f);
+        //    writer.Write(1.0f);
+        //    writer.Write(9001);
+
+
+        //    step = ms.ToArray();
         //}
-        //
-        //// AGENTS
-        //JSONArray agents = (JSONArray)sim_updateJSON["agents_update"];
-        //foreach (JSONObject agent in agents)
+
+        //using (var outStream = new MemoryStream())
         //{
-        //    if (!agent["id"].Equals("all"))
-        //    {
-        //        Agents.TryGetValue(agent["class"] + "." + agent["id"], out Agent a);
-        //        if (a == null) { } // C'è qualche problema
-        //
-        //        a.X = ((JSONObject)agent["position"])["x"];
-        //        a.Y = ((JSONObject)agent["position"])["y"];
-        //        a.Z = ((JSONObject)agent["position"])["z"];
-        //
-        //        foreach (KeyValuePair<string, JSONNode> p in ((JSONObject)agent["params"]).Dict)
-        //        {
-        //            a.Parameters[p.Key] = p.Value;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        foreach (Agent a in Agents.Values)
-        //        {
-        //            if (a.Name.Equals(agent["class"]))
-        //            {
-        //                a.X = ((JSONObject)agent["position"])["x"];
-        //                a.Y = ((JSONObject)agent["position"])["y"];
-        //                a.Z = ((JSONObject)agent["position"])["z"];
-        //
-        //                foreach (KeyValuePair<string, JSONNode> p in ((JSONObject)agent["params"]).Dict)
-        //                {
-        //                    a.Parameters[p.Key] = p.Value;
-        //                }
-        //            }
-        //        }
-        //    }
+        //    using (var tinyStream = new System.IO.Compression.GZipStream(outStream, System.IO.Compression.CompressionMode.Compress))
+        //    using (var mStream = new MemoryStream(step))
+        //        mStream.CopyTo(tinyStream);
+
+        //    compressed = outStream.ToArray();
         //}
+        //UnityEngine.Debug.Log("SIM_STEP: \n" + Utils.StepToJSON(compressed, (JSONObject)JSON.Parse("{ \"id\" : 0, \"name\" : \"Flockers\", \"description\" : \"....\", \"type\" : \"qualitative\", \"dimensions\" : [ { \"name\" : \"x\", \"type\" : \"System.Single\", \"default\" : 500 }, { \"name\" : \"y\", \"type\" : \"System.Single\", \"default\" : 500 }, { \"name\" : \"z\", \"type\" : \"System.Single\", \"default\" : 500 } ], \"sim_params\" : [ { \"name\" : \"cohesion\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"avoidance\", \"type\" : \"System.Single\", \"default\" : 0.5 }, { \"name\" : \"randomness\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"consistency\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"momentum\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"neighborhood\", \"type\" : \"System.Int32\", \"default\" : 10 }, { \"name\" : \"jump\", \"type\" : \"System.Single\", \"default\" : 0.7 }, ], \"agent_prototypes\" : [ { \"name\" : \"Flocker\", \"params\": [] } ], \"generic_prototypes\" : [ { \"name\" : \"Gerardo\", \"params\": [{ \"name\" : \"scimità\", \"type\" : \"System.Int32\", \"editable_in_play\" : true, \"editable_in_pause\" : true, \"value\" : 9001 }] } ]}")).ToString());
+
+        //simulation.InitSimulationFromJSONEditedPrototype((JSONObject)JSON.Parse("{ \"id\": 0, \"name\": \"Flockers\", \"description\": \"....\", \"type\": \"qualitative\", \"dimensions\": [ { \"name\": \"x\", \"type\": \"System.Int32\", \"default\": 500 }, { \"name\": \"y\", \"type\": \"System.Int32\", \"default\": 500 }, { \"name\": \"z\", \"type\": \"System.Int32\", \"default\": 500 } ], \"sim_params\": [ { \"name\": \"cohesion\", \"type\": \"System.Single\", \"default\": 1 }, { \"name\": \"avoidance\", \"type\": \"System.Single\", \"default\": \"0.5\" }, { \"name\": \"randomness\", \"type\": \"System.Single\", \"default\": 1 }, { \"name\": \"consistency\", \"type\": \"System.Single\", \"default\": 1 }, { \"name\": \"momentum\", \"type\": \"System.Single\", \"default\": 1 }, { \"name\": \"neighborhood\", \"type\": \"System.Int32\", \"default\": 10 }, { \"name\": \"jump\", \"type\": \"System.Single\", \"default\": 0.7 } ], \"agent_prototypes\": [ { \"class\": \"Flocker\", \"position\" : { \"x\" : 1, \"y\" : 1, \"z\" : 1 }, \"default\" : 10, \"params\": [] } ], \"generic_prototypes\": [ { \"class\": \"Gerardo\", \"position\" : { \"x\" : 1, \"y\" : 1, \"z\" : 1 }, \"default\" : 1, \"params\": [ { \"name\": \"scimità\", \"type\": \"System.Int32\", \"editable_in_play\": true, \"editable_in_pause\": true, \"default\": 9001 } ] } ] }"));
+        //UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
         //
-        //// OBSTACLES
         //
+        ////simulation.UpdateSimulationFromJSONUpdate((JSONObject)JSON.Parse("{ \"sim_params\" : { \"cohesion\" : 1.9, \"neighborhood\" : 20 }, \"agents_update\" : [ { \"id\" : 0, \"class\" : \"Flocker\", \"position\" : { \"x\" : 10, \"y\" : 11, \"z\" : 7 }, \"params\" : {} }, { \"id\" : 1, \"class\" : \"Flocker\", \"position\" : { \"x\" : 9, \"y\" : 9, \"z\" : 9 }, \"params\" : {} } ], \"generics_update\" : [ { \"id\" : 0, \"class\" : \"Gerardo\", \"position\" : { \"x\" : 2, \"y\" : 2, \"z\" : 2 }, \"params\" : {\"scimità\" : 10000, \"breathtaking\" : true }}], \"obstacles_update\" : [] }"));
+        ////UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
         //
+        ////StoreParameterUpdate("cohesion", "100.0");
+        //SimObjectModifyEventArgs e = new SimObjectModifyEventArgs();
+        //e.type = SimObjectType.GENERIC;
+        //e.class_name = "Gerardo";
+        //e.id = 0;
+        //e.m_param = false;
+        //e.m_position = true;
+        //e.position = (0.1f, 0.1f, 0.1f);
+        //StoreSimObjectModify(e);
         //
+        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
         //
+        //SimObjectCreateEventArgs c = new SimObjectCreateEventArgs();
+        //c.type = SimObjectType.GENERIC;
+        //c.class_name = "Gerardo";
+        //c.position = (0.1f, 0.1f, 0.1f);
+        //c.parameters = new Dictionary<string, dynamic>();
+        //StoreSimObjectCreate(c);
+        //StoreSimObjectCreate(c);
+        //StoreSimObjectCreate(c);
         //
-        //// GENERICS
-        //JSONArray generics = (JSONArray)sim_updateJSON["generics_update"];
-        //foreach (JSONObject generic in generics)
-        //{
-        //    if (!generic["id"].Equals("all"))
-        //    {
-        //        Generics.TryGetValue(generic["class"] + "." + generic["id"], out Generic g);
-        //        if (g == null) { } // C'è qualche problema
+        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
         //
-        //        g.X = ((JSONObject)generic["position"])["x"];
-        //        g.Y = ((JSONObject)generic["position"])["y"];
-        //        g.Z = ((JSONObject)generic["position"])["z"];
+        //e.type = SimObjectType.GENERIC;
+        //e.class_name = "Gerardo";
+        //e.id = -1;
+        //e.position = (9f, 9f, 9f);
+        //e.param = ("scimità", 1);
+        //e.m_position = true;
+        //e.m_param = true;
+        //StoreSimObjectModify(e);
         //
-        //        foreach (KeyValuePair<string, JSONNode> p in ((JSONObject)generic["params"]).Dict)
-        //        {
-        //            g.Parameters[p.Key] = p.Value;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        foreach (Generic g in Generics.Values)
-        //        {
-        //            if (g.Name.Equals(generic["class"]))
-        //            {
-        //                g.X = ((JSONObject)generic["position"])["x"];
-        //                g.Y = ((JSONObject)generic["position"])["y"];
-        //                g.Z = ((JSONObject)generic["position"])["z"];
+        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
         //
-        //                foreach (KeyValuePair<string, JSONNode> p in ((JSONObject)generic["params"]).Dict)
-        //                {
-        //                    g.Parameters[p.Key] = p.Value;
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
+        //e.type = SimObjectType.GENERIC;
+        //e.class_name = "Gerardo";
+        //e.id = -1;
+        //e.position = (1f, 1f, 1f);
+        //e.param = ("scimità", 999999);
+        //e.m_position = true;
+        //e.m_param = true;
+        //StoreSimObjectModify(e);
+        //
+        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
+        //
+        //SimObjectDeleteEventArgs d = new SimObjectDeleteEventArgs();
+        //d.type = SimObjectType.GENERIC;
+        //d.class_name = "Gerardo";
+        //d.id = -1;
+        //StoreSimObjectDelete(d);
+        //
+        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
     }
 
+}
+
+public class TupleConverter<U,V> : Newtonsoft.Json.JsonConverter
+{
+    public override bool CanConvert(Type objectType)
+    {
+        return typeof((string, float)) == objectType;
+    }
+
+    public override object ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
+    {
+        if (reader.TokenType == Newtonsoft.Json.JsonToken.Null) return null;
+
+        var jObject = Newtonsoft.Json.Linq.JObject.Load(reader);
+        var properties = jObject.Properties().ToList();
+        return new ValueTuple<U, V>(jObject[properties[0].Name].ToObject<U>(), jObject[properties[1].Name].ToObject<V>());
+    }
+
+    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object value, Newtonsoft.Json.JsonSerializer serializer)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName(((ValueTuple<string, float>)value).Item1);
+        writer.WriteValue(((ValueTuple<string, float>)value).Item2);
+        writer.WriteEndObject();
+    }
+
+}
+
+public class MyList<T> : List<T>
+{
+    public override string ToString()
+    {
+        return string.Join("  ", this.ToArray());
+    }
 }

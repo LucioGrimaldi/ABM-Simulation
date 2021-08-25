@@ -2,31 +2,30 @@ using System.Collections.Generic;
 using DeepCopyExtensions;
 public class SimObject
 {
-    private SimulationController.SimObjectType type;
+    private SimObjectType type;
     private string class_name;
     private int id;
-    private float x, y, z;
     private Dictionary<string, dynamic> parameters = new Dictionary<string, dynamic>();
 
-    public SimulationController.SimObjectType Type { get => type; set => type = value; }
+    public SimObjectType Type { get => type; set => type = value; }
     public string Class_name { get => class_name; set => class_name = value; }
     public int Id { get => id; set => id = value; }
-    public float X { get => x; set => x = value; }
-    public float Y { get => y; set => y = value; }
-    public float Z { get => z; set => z = value; }
     public Dictionary<string, dynamic> Parameters { get => parameters; set => parameters = value; }
+    public enum SimObjectType
+    {
+        AGENT = 0,
+        GENERIC = 1,
+        OBSTACLE = 2
+    }
 
-    public SimObject(SimulationController.SimObjectType type, string class_name, int id, float x, float y, float z, Dictionary<string, dynamic> parameters)
+
+    public SimObject(SimObjectType type, string class_name, int id, Dictionary<string, dynamic> parameters)
     {
         this.Type = type;
         this.Class_name = class_name;
         this.Id = id;
-        this.X = x;
-        this.Y = y;
-        this.Z = z;
         this.Parameters = parameters;
     }
-
     public SimObject()
     {
 
@@ -64,13 +63,13 @@ public class SimObject
         return (!parameter.Equals(null)) ? parameter : false;
     }
 
+
     public SimObject Clone()
     {
         return this.DeepCopyByExpressionTree();
     }
-
     public override string ToString()
     {
-        return "{Type: " + type + "| Class: " + class_name + "| Id: " + id + "| x: " + x + ", y: " + y + ", z: " + z + "| Params: " + string.Join("  ", parameters) + "}";
+        return "{Type: " + type + "| Class: " + class_name + "| Id: " + id + "| Params: " + string.Join("  ", parameters) + "}";
     }
 }

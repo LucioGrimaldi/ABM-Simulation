@@ -251,7 +251,6 @@ public class ResponseMessageEventArgs : EventArgs
     public string Op { get; set; }
     public JSONObject Payload { get; set; }
 }
-
 public class StepMessageEventArgs : EventArgs
 {
 
