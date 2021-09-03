@@ -5,37 +5,113 @@ using System;
 using System.Linq;
 using Newtonsoft.Json;
 using System.Threading;
+using uPLibrary.Networking.M2Mqtt.Messages;
+
+
+//#### OPERATIONS_LIST ####
+//OP 000 CHECK_STATUS
+//OP 001 CONNECTION
+//OP 002 DISCONNECTION
+//OP 003 SIM_LIST_REQUEST
+//OP 004 SIM_INITIALIZE
+//OP 005 SIM_UPDATE
+//OP 006 SIM_COMMAND
+//OP 007 RESPONSE
+//OP 999 CLIENT_ERROR
+
+//#### COMMAND_LIST ####
+//CMD 0 STEP
+//CMD 1 PLAY
+//CMD 2 PAUSE
+//CMD 3 STOP
+//CMD 4 CHANGE_SPEED
+
+
+/// <summary>
+/// Event Args Definitions
+/// </summary>
+public class NicknameEnterEventArgs : EventArgs
+{
+    public string nickname;
+}
+public class SimPrototypeConfirmedEventArgs : EventArgs
+{
+    public JSONObject sim_prototype;
+}
+public class SimParamUpdateEventArgs : EventArgs
+{
+    public (string param_name, dynamic value) param;
+}
+public class SimObjectModifyEventArgs : EventArgs
+{
+    public SimObject.SimObjectType type;
+    public string class_name;
+    public int id;
+    public Dictionary<string, dynamic> parameters;                                    // i parametri sono (string param_name, dynamic value)
+    public bool m_params;
+}
+public class SimObjectCreateEventArgs : EventArgs
+{
+    public SimObject.SimObjectType type;
+    public string class_name;
+    public Dictionary<string, dynamic> parameters;
+}
+public class SimObjectDeleteEventArgs : EventArgs
+{
+    public SimObject.SimObjectType type;
+    public string class_name;
+    public int id;
+}
+public class ResponseMessageEventArgs : EventArgs
+{
+    public MqttMsgPublishEventArgs Msg { get; set; }
+    public string Sender { get; set; }
+    public string Op { get; set; }
+    public JSONObject Payload { get; set; }
+}
+public class StepMessageEventArgs : EventArgs
+{
+
+}
+
 
 public class SimulationController : MonoBehaviour
 {
-    //#### OPERATIONS_LIST ####
-    //OP 000 CHECK_STATUS
-    //OP 001 CONNECTION
-    //OP 002 DISCONNECTION
-    //OP 003 SIM_LIST_REQUEST
-    //OP 004 SIM_INITIALIZE
-    //OP 005 SIM_UPDATE
-    //OP 006 SIM_COMMAND
-    //OP 007 RESPONSE
-    //OP 999 CLIENT_ERROR
+    /// EVENT HANDLERS ///
+    
+    /// Queues
+    public event EventHandler<ResponseMessageEventArgs> ResponseMessageEventHandler;
+    public event EventHandler<StepMessageEventArgs> StepMessageEventHandler;
 
-    //#### COMMAND_LIST ####
-    //CMD 0 STEP
-    //CMD 1 PLAY
-    //CMD 2 PAUSE
-    //CMD 3 STOP
-    //CMD 4 CHANGE_SPEED
+    /// Responses
+    public event EventHandler<ResponseMessageEventArgs> OnCheckStatusSuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnCheckStatusUnsuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnConnectionSuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnConnectionUnsuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnDisonnectionSuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnDisconnectionUnsuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnSimListSuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnSimListUnsuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnSimInitSuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnSimInitUnsuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnSimUpdateSuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnSimUpdateUnsuccessEventHandler; 
+    public event EventHandler<ResponseMessageEventArgs> OnSimCommandSuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnSimCommandUnsuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnClientErrorSuccessEventHandler;
+    public event EventHandler<ResponseMessageEventArgs> OnClientErrorUnsuccessEventHandler;
 
-    /// Managers
+    /// MANAGERS ///
     ConnectionManager ConnManager;
     PerformanceManger PerfManager;
 
-    /// Controllers ///
+    /// CONTROLLERS ///
     private UIController UIController;
     private SceneController SceneController;
     private CommunicationController CommController;
 
-    /// Sim-related variables ///
+    /// SIM-RELATED VARIABLES ///
+    
     /// State
     private JSONArray sim_prototypes_list = (JSONArray)JSON.Parse("[{ \"id\" : 0, \"name\" : \"Flockers\", \"description\" : \"....\", \"type\" : \"qualitative\", \"dimensions\" : [ { \"name\" : \"x\", \"type\" : \"System.Single\", \"default\" : 500 }, { \"name\" : \"y\", \"type\" : \"System.Single\", \"default\" : 500 }, { \"name\" : \"z\", \"type\" : \"System.Single\", \"default\" : 500 } ], \"sim_params\" : [ { \"name\" : \"cohesion\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"avoidance\", \"type\" : \"System.Single\", \"default\" : 0.5 }, { \"name\" : \"randomness\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"consistency\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"momentum\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"neighborhood\", \"type\" : \"System.Int32\", \"default\" : 10 }, { \"name\" : \"jump\", \"type\" : \"System.Single\", \"default\" : 0.7 }, ], \"agent_prototypes\" : [ { \"name\" : \"Flocker\", \"params\": [] } ], \"generic_prototypes\" : [ { \"name\" : \"Gerardo\", \"params\": [{ \"name\" : \"scimità\", \"type\" : \"System.Int32\", \"editable_in_play\" : true, \"editable_in_pause\" : true, \"value\" : 9001 }] } ]}]");
     private Simulation simulation = new Simulation();
@@ -46,19 +122,28 @@ public class SimulationController : MonoBehaviour
         NOT_READY = -1,             // Client is not connected
         READY = 0                  // Client is ready to create a simulation
     }
+    public enum Command
+    {
+        STEP,
+        PLAY,
+        PAUSE,
+        STOP,
+        SPEED
+    }
 
     /// Updates
     private JSONObject uncommitted_updatesJSON = new JSONObject();
     private Dictionary<(string op, (SimObject.SimObjectType type, string class_name, int id) obj), SimObject> uncommitted_updates = new Dictionary<(string, (SimObject.SimObjectType, string, int)), SimObject>();
 
     /// Support variables
-    private string nickname;
+    private long LatestSimStepArrived = 0;
+    private string nickname = "";
 
-    /// Access methods ///
-    public Simulation Simulation { get => simulation; set => simulation = value; }
-    public string Nickname { get => nickname; set => nickname = value; }
-    public JSONArray Sim_prototypes_list { get => sim_prototypes_list; set => sim_prototypes_list = value; }
+    /// Threads
+    private Thread StepQueueHandlerThread;
+    private Thread ResponseQueueHandlerThread;
 
+    /// UNITY LOOP METHODS ///
 
     /// <summary>
     /// We use Awake to bootstrap App
@@ -75,8 +160,8 @@ public class SimulationController : MonoBehaviour
         BootstrapBackgroundTasks();
 
         // Register to EventHandlers
-        CommController.responseMessageEventHandler += onResponseMessageReceived;
-        CommController.stepMessageEventHandler += onStepMessageReceived;
+        ResponseMessageEventHandler += onResponseMessageReceived;
+        StepMessageEventHandler += onStepMessageReceived;
 
     }
     /// <summary>
@@ -174,6 +259,10 @@ public class SimulationController : MonoBehaviour
         
         CommController.SendMessage("Loocio", "001", new JSONObject());
         CommController.SendMessage("Loocio", "003", new JSONObject());
+        CommController.SendMessage("Loocio", "004", new JSONObject());
+        CommController.SendMessage("Loocio", "005", new JSONObject());
+        CommController.SendMessage("Loocio", "006", (JSONObject)JSON.Parse("{\"command\" : 3, \"value\" : 1}"));
+        CommController.SendMessage("Loocio", "002", new JSONObject());
 
 
     }
@@ -193,8 +282,119 @@ public class SimulationController : MonoBehaviour
     {
         CommController.StartControlClient();
         CommController.StartSimulationClient();
-        CommController.StartStepQueueHandlerThread(simulation.State, PerfManager.TARGET_FPS);
-        CommController.StartResponseQueueHandlerThread();
+        StartStepQueueHandlerThread();
+        StartResponseQueueHandlerThread();
+    }
+
+    /// Queue Handlers
+
+    /// <summary>
+    /// Start steps message handler
+    /// </summary>
+    public void StartStepQueueHandlerThread()
+    {
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Management Thread started..");
+        StepQueueHandlerThread = new Thread(delegate () { StepQueueHandler(ref simulation.state, ref PerfManager.target_fps); });
+        StepQueueHandlerThread.Start();
+    }
+
+    /// <summary>
+    /// Start messages handler
+    /// </summary>
+    public void StartResponseQueueHandlerThread()
+    {
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message Handler Thread started..");
+        ResponseQueueHandlerThread = new Thread(ResponseQueueHandler);
+        ResponseQueueHandlerThread.Start();
+    }
+
+    /// <summary>
+    /// Stop steps message handler
+    /// </summary>
+    public void StopStepQueueHandlerThread()
+    {
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Management Thread stopped.");
+        StepQueueHandlerThread.Abort();
+    }
+
+    /// <summary>
+    /// Stop messages handler
+    /// </summary>
+    public void StopResponseQueueHandlerThread()
+    {
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message Handler Thread stopped.");
+        ResponseQueueHandlerThread.Abort();
+    }
+
+    /// <summary>
+    /// Orders steps and updates last arrived one
+    /// </summary>
+    public void StepQueueHandler(ref Simulation.StateEnum sim_state, ref int TARGET_FPS)
+    {
+        JSONObject step = new JSONObject();
+        MqttMsgPublishEventArgs message;
+
+        while (true)
+        {
+            if (CommController.SecondaryQueue.Count > TARGET_FPS && !sim_state.Equals(Simulation.StateEnum.PAUSE))
+            {
+                if (CommController.SecondaryQueue.Values[0] != null)
+                {
+                    //
+                    // Trigger StepMessageEventHandler
+                    //
+                    //sim_step = Utils.StepToJSON(SecondaryQueue.Values[0], (JSONObject)sim_prototypes_list[sim_id]);
+                    //UnityEngine.Debug.Log("SIM_STEP: \n" + sim_step.ToString());
+                    CommController.SecondaryQueue.RemoveAt(0);
+                }
+                else
+                {
+                    UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Cannot get Step!");
+                }
+            }
+            if (CommController.SimMessageQueue.Count > 0)
+            {
+                if (CommController.SimMessageQueue.TryDequeue(out message))
+                {
+                    //
+                    // Trigger latestsimsteparrived update passing GetStepId(message.Message)
+                    // 
+                    CommController.SecondaryQueue.Add(Utils.GetStepId(message.Message), message.Message);
+                    UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step " + Utils.GetStepId(message.Message) + " dequeued from SimMessageQueue \n | " + "Topic: " + message.Topic);
+
+                }
+                else { UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Cannot Dequeue!"); }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles messages from MASON
+    /// </summary>
+    public void ResponseQueueHandler()
+    {
+        JSONObject json_response, payload;
+        MqttMsgPublishEventArgs msg;
+        string sender, op;
+        while (CommController.responseMessageQueue == null) { }
+        while (true)
+        {
+            if (CommController.responseMessageQueue.TryDequeue(out msg))
+            {
+                json_response = (JSONObject)JSON.Parse(System.Text.Encoding.Unicode.GetString(Utils.DecompressStepPayload(msg.Message)));
+                sender = json_response["sender"];
+                op = json_response["op"];
+                payload = (JSONObject)json_response["payload"];
+
+                ResponseMessageEventArgs e = new ResponseMessageEventArgs();
+                e.Msg = msg;
+                e.Sender = sender;
+                e.Op = op;
+                e.Payload = payload;
+
+                ResponseMessageEventHandler.Invoke(this, e);
+            }
+        }
     }
 
     /// CONTROL ///
@@ -206,10 +406,7 @@ public class SimulationController : MonoBehaviour
     {
         // check state
         if (simulation.State == Simulation.StateEnum.PLAY) { return; }
-
-        // if not in PLAY
-        SendSimCommand("1", "");                                                                      //0,1,2,3,4 (STEP,PLAY,PAUSE,STOP,CHANGE_SPEED)
-        simulation.State = Simulation.StateEnum.PLAY; //MOMENTANEA
+        SendSimCommand(Command.PLAY, 0);
     }
 
     /// <summary>
@@ -219,10 +416,7 @@ public class SimulationController : MonoBehaviour
     {
         // check state
         if (simulation.State == Simulation.StateEnum.PAUSE) { return; }
-
-        // if not in PAUSE
-        SendSimCommand("2", "");                                                                      //0,1,2,3,4 (STEP,PLAY,PAUSE,STOP,CHANGE_SPEED)
-        simulation.State = Simulation.StateEnum.PAUSE; //MOMENTANEA                                                    
+        SendSimCommand(Command.PAUSE, 0);
     }
 
     /// <summary>
@@ -232,17 +426,50 @@ public class SimulationController : MonoBehaviour
     {
         // check state
         if (simulation.State == Simulation.StateEnum.STOP) {return;}
-
-        // if not in STOP
-        SendSimCommand("3", null);                                                                      //0,1,2,3,4 (STEP,PLAY,PAUSE,STOP,CHANGE_SPEED)
-        simulation.State = Simulation.StateEnum.STOP; //MOMENTANEA
-//      simulation.LatestSimStepArrived = 0;
-        simulation.CurrentSimStep = -1;
-        CommController.EmptyQueues();
+        SendSimCommand(Command.STOP, 0);
     }
 
+    /// <summary>
+    /// Change simulation state
+    /// </summary>
+    private void ChangeState(Command command)
+    {
+        switch (command)
+        {
+            case Command.STEP:
+                // TODO
+                break;
+            case Command.PLAY:
+                simulation.State = Simulation.StateEnum.PLAY;
+                break;
+            case Command.PAUSE:
+                simulation.State = Simulation.StateEnum.PAUSE;
+                break;
+            case Command.STOP:
+                simulation.State = Simulation.StateEnum.STOP;
+                LatestSimStepArrived = 0;
+                simulation.CurrentSimStep = -1;
+                CommController.EmptyQueues();
+                break;
+            case Command.SPEED:
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Change simulation speed
+    /// </summary>
+    public void ChangeSpeed(Simulation.SpeedEnum speed)
+    {
+        // check state
+        if (simulation.Speed == speed) { return; }
+        SendSimCommand(Command.SPEED, (int)speed);
+    }
+
+
     /// SIMULATION ///
-    /// onEvent Methods ///
+    
+    /// onEvent Methods
 
     /// <summary>
     /// Internal Event Handles
@@ -324,9 +551,6 @@ public class SimulationController : MonoBehaviour
             default:
                 break;
         }
-
-
-
     }
     public void onStepMessageReceived(object sender, StepMessageEventArgs e)
     {
@@ -338,56 +562,111 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     private void onCheckStatusResponse(ResponseMessageEventArgs e)
     {
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | CHECK STATUS RESPONSE RECEIVED");
+        bool result = e.Payload["result"];
+
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Server status checked: " + (result ? "ONLINE" : "OFFLINE") + " .");
+
+        //if (result) OnCheckStatusSuccessEventHandler.Invoke(this, e);
+        //else OnCheckStatusUnsuccessEventHandler.Invoke(this, e);
+
     }
     private void onConnectionResponse(ResponseMessageEventArgs e)
     {
         bool result = e.Payload["result"];
+
         state = result ? State.READY : State.CONN_ERROR;
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Client " + (result?"successfully":"unsuccessfully") + " connected.");
-        // TRIGGER ON_CONNECT EVENT
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | " + ((JSONObject)e.Payload["payload_data"])["sender"] + " " + (result ? "successfully" : "unsuccessfully") + " connected.");
+
+        //if (result) OnConnectionSuccessEventHandler.Invoke(this, e);
+        //else OnConnectionUnsuccessEventHandler.Invoke(this, e);
+
     }
     private void onDisconnectionResponse(ResponseMessageEventArgs e)
     {
         bool result = e.Payload["result"];
+
         state = result ? State.NOT_READY : State.CONN_ERROR;
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Client " + (result ? "successfully" : "unsuccessfully") + " disconnected.");
-        // TRIGGER ON_DISCONNECT EVENT
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | " + ((JSONObject)e.Payload["payload_data"])["sender"] + " " + (result ? "successfully" : "unsuccessfully") + " disconnected.");
+        
+        //if (result) OnDisonnectionSuccessEventHandler.Invoke(this, e);
+        //else OnDisconnectionUnsuccessEventHandler.Invoke(this, e);
+
     }
     private void onSimListResponse(ResponseMessageEventArgs e)
     {
         bool result = e.Payload["result"];
-        sim_prototypes_list = (JSONArray)((JSONObject)e.Payload["payload_data"])["sim_list"];
+
+        sim_prototypes_list = result ? (JSONArray)((JSONObject)e.Payload["payload_data"])["sim_list"] : new JSONArray();
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Prototypes list " + (result ? "successfully" : "unsuccessfully") + " received from " + e.Sender + ".");
-        // TRIGGER ON_SIM_LIST EVENT
+
+        //if (result) OnSimListSuccessEventHandler.Invoke(this, e);
+        //else OnSimListUnsuccessEventHandler.Invoke(this, e);
+
     }
     private void onSimInitResponse(ResponseMessageEventArgs e)
     {
         bool result = e.Payload["result"];
+
+        if (result)
+        // TODO simulation.InitSimulationFromPrototype(SceneController.sim_edited_prototype);
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
-        // TRIGGER ON_SIM_INIT EVENT
+
+        //if (result) OnSimInitSuccessEventHandler.Invoke(this, e);
+        //else OnSimInitUnsuccessEventHandler.Invoke(this, e);
+
     }
     private void onSimUpdateResponse(ResponseMessageEventArgs e)
     {
         bool result = e.Payload["result"];
+
+        if (result)
+        {
+            simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
+            uncommitted_updatesJSON.Clear();
+            uncommitted_updates.Clear();
+        }
+        else
+            // TODO retry
+
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Update " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
-        // TRIGGER ON_SIM_UPDATE EVENT
+
+        //if (result) OnSimUpdateSuccessEventHandler.Invoke(this, e);
+        //else OnSimUpdateUnsuccessEventHandler.Invoke(this, e);
     }
     private void onSimCommandResponse(ResponseMessageEventArgs e)
     {
         bool result = e.Payload["result"];
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Command " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
-        // TRIGGER ON_SIM_COMMAND EVENT
+        JSONObject pd = (JSONObject)e.Payload["payload_data"];
+        Command command = (Command)(int)pd["command"];
+
+        if (result)
+        {
+            if (command.Equals(Command.SPEED))
+            {
+                Simulation.SpeedEnum value = (Simulation.SpeedEnum)(int)pd["value"];
+                ChangeSpeed(value);
+            }
+            else ChangeState(command);
+        }
+
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Command: " + command + " " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
+
+        //if (result) OnSimCommandSuccessEventHandler.Invoke(this, e);
+        //else OnSimCommandUnsuccessEventHandler.Invoke(this, e);
     }
     private void onClientErrorResponse(ResponseMessageEventArgs e)
     {
         bool result = e.Payload["result"];
+
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Client " + (result ? "successfully" : "unsuccessfully") + " disconnected by " + e.Sender + ".");
-        OnApplicationQuit();
+
+        //if (result) OnClientErrorSuccessEventHandler.Invoke(this, e);
+        //else OnClientErrorUnsuccessEventHandler.Invoke(this, e);
+
     }
 
 
-    /// Store Methods ///
+    /// Store Methods
 
     /// <summary>
     /// Store in uncommitted_updates parameter changes
@@ -791,11 +1070,11 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// Send sim commands
     /// </summary>
-    public void SendSimCommand(string command, string value)                        //0,1,2,3,4 (STEP,PLAY,PAUSE,STOP,CHANGE_SPEED)
+    public void SendSimCommand(Command command, int value)
     {
         // Create payload
         JSONObject payload = new JSONObject();
-        payload.Add("command", command);
+        payload.Add("command", ((int)command));
         payload.Add("value", value);
         // Send command
         UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending SIM_COMMAND to MASON...");
@@ -831,57 +1110,19 @@ public class SimulationController : MonoBehaviour
         CommController.SendMessage("Loocio", "999", payload);
     }
 
-
     /// <summary>
     /// onApplicationQuit routine
     /// </summary>
     void OnApplicationQuit()
     {
+        // do other stuff
         CommController.DisconnectControlClient();
         CommController.DisconnectSimulationClient();
-        CommController.StopResponseQueueHandlerThread();
-        CommController.StopStepQueueHandlerThread();
+        StopResponseQueueHandlerThread();
+        StopStepQueueHandlerThread();
         // Stop Performance Thread
     }
 
 }
 
-
-/// EVENTS ///
-
-/// <summary>
-/// Event Args Definitions
-/// </summary>
-public class NicknameEnterEventArgs : EventArgs
-{
-    public string nickname;
-}
-public class SimPrototypeConfirmedEventArgs : EventArgs
-{
-    public JSONObject sim_prototype;
-}
-public class SimParamUpdateEventArgs : EventArgs
-{
-    public (string param_name, dynamic value) param;
-}
-public class SimObjectModifyEventArgs : EventArgs
-{
-    public SimObject.SimObjectType type;
-    public string class_name;
-    public int id;
-    public Dictionary<string, dynamic> parameters;                                    // i parametri sono (string param_name, dynamic value)
-    public bool m_params;
-}
-public class SimObjectCreateEventArgs : EventArgs
-{
-    public SimObject.SimObjectType type;
-    public string class_name;
-    public Dictionary<string, dynamic> parameters;
-}
-public class SimObjectDeleteEventArgs : EventArgs
-{
-    public SimObject.SimObjectType type;
-    public string class_name;
-    public int id;
-}
 

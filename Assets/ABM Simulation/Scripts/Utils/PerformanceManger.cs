@@ -7,24 +7,24 @@ public class PerformanceManger
     private Thread performanceMonitorThread;
 
     /// Load Balancing
-    private int target_fps = 60;
-    private int[] targetsArray = new int[] { 15, 30, 45, 60 };
-    private int[][] topicsArray;
-    private long timeout_target_up = 3000;
-    private long timeout_target_down = 1000;
-    private long timestampLastUpdate = 0;
+    public int target_fps = 60;
+    public int[] targets_array = new int[] { 15, 30, 45, 60 };
+    public int[][] topics_array;
+    public long timeout_target_up = 3000;
+    public long timeout_target_down = 1000;
+    public long timestamp_last_update = 0;
 
     /// Benchmarking
-    private long start_time;
-    private float fps;
-    private float deltaTime = 0f;
+    public long start_time;
+    public float fps;
+    public float deltaTime = 0f;
 
     public int TARGET_FPS { get => target_fps; set => target_fps = value; }
-    public int[] TargetsArray { get => targetsArray; set => targetsArray = value; }
-    public int[][] TopicsArray { get => topicsArray; set => topicsArray = value; }
+    public int[] Targets_array { get => targets_array; set => targets_array = value; }
+    public int[][] Topics_array { get => topics_array; set => topics_array = value; }
     public long TIMEOUT_TARGET_UP { get => timeout_target_up; set => timeout_target_up = value; }
     public long TIMEOUT_TARGET_DOWN { get => timeout_target_down; set => timeout_target_down = value; }
-    public long TimestampLastUpdate { get => timestampLastUpdate; set => timestampLastUpdate = value; }
+    public long Timestamp_last_update { get => timestamp_last_update; set => timestamp_last_update = value; }
 
     public void PerformanceMonitor()
     {
@@ -38,7 +38,7 @@ public class PerformanceManger
         int[] arrayTarget45 = new int[45];
         int[] arrayTarget30 = new int[30];
         int[] arrayTarget15 = new int[15];
-        topicsArray = new int[][] { arrayTarget15, arrayTarget30, arrayTarget45, arrayTarget60 };
+        topics_array = new int[][] { arrayTarget15, arrayTarget30, arrayTarget45, arrayTarget60 };
         //Fill the array incrementally without repeating common values from others target arrays 
         for (int i = 0, y = 0, z = 0, k = 0; i < TARGET_FPS; i++)
         {
@@ -68,33 +68,33 @@ public class PerformanceManger
         stopwatch.Start();
         while (true)
         {
-            if (TARGET_FPS < 60 && fps > targetsArray[Array.IndexOf(targetsArray, TARGET_FPS) + 1])
+            if (TARGET_FPS < 60 && fps > targets_array[Array.IndexOf(targets_array, TARGET_FPS) + 1])
             {
                 stopwatch.Stop();
-                timestampLastUpdate = stopwatch.ElapsedMilliseconds;
+                timestamp_last_update = stopwatch.ElapsedMilliseconds;
                 stopwatch.Start();
-                if (timestampLastUpdate > TIMEOUT_TARGET_UP)
+                if (timestamp_last_update > TIMEOUT_TARGET_UP)
                 {
                     //controllare il target attuale
-                    int index = Array.IndexOf(targetsArray, TARGET_FPS);
-                    TARGET_FPS = targetsArray[++index];
+                    int index = Array.IndexOf(targets_array, TARGET_FPS);
+                    TARGET_FPS = targets_array[++index];
                     //prendiamo l'array corretto in base al target aggiornato
-                    //CommController.SubscribeTopics(topicsArray[index]);
+                    //CommController.SubscribeTopics(topics_array[index]);
                     stopwatch.Restart();
                 }
             }
             else if (TARGET_FPS > 15 && fps + 1 < TARGET_FPS)
             {
                 stopwatch.Stop();
-                timestampLastUpdate = stopwatch.ElapsedMilliseconds;
+                timestamp_last_update = stopwatch.ElapsedMilliseconds;
                 stopwatch.Start();
-                if (timestampLastUpdate > TIMEOUT_TARGET_DOWN)
+                if (timestamp_last_update > TIMEOUT_TARGET_DOWN)
                 {
                     //controllare il target attuale
-                    int index = Array.IndexOf(targetsArray, TARGET_FPS);
-                    TARGET_FPS = targetsArray[index - 1];
+                    int index = Array.IndexOf(targets_array, TARGET_FPS);
+                    TARGET_FPS = targets_array[index - 1];
                     //prendiamo l'array corretto in base al target aggiornato
-                    //CommController.UnsubscribeTopics(topicsArray[index]);
+                    //CommController.UnsubscribeTopics(topics_array[index]);
                     stopwatch.Restart();
                 }
             }

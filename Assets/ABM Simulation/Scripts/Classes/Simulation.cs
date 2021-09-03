@@ -7,22 +7,32 @@ using System.Linq;
 public class Simulation
 {
     //Simulation Info
-    private string name, description;
-    private SimType type;
-    private int id;
-    private Dictionary<string, dynamic> dimensions = new Dictionary<string, dynamic>();
-    private Dictionary<string, SimObject> agent_prototypes = new Dictionary<string, SimObject>();
-    private Dictionary<string, SimObject> generic_prototypes = new Dictionary<string, SimObject>();
-    private Dictionary<string, dynamic> parameters = new Dictionary<string, dynamic>();
-    private List<string> editableInPlay = new List<string>();
-    private List<string> editableInPause = new List<string>();
+    public string name, description;
+    public SimTypeEnum type;
+    public int id;
+    public Dictionary<string, dynamic> dimensions = new Dictionary<string, dynamic>();
+    public Dictionary<string, SimObject> agent_prototypes = new Dictionary<string, SimObject>();
+    public Dictionary<string, SimObject> generic_prototypes = new Dictionary<string, SimObject>();
+    public Dictionary<string, dynamic> parameters = new Dictionary<string, dynamic>();
+    public List<string> editableInPlay = new List<string>();
+    public List<string> editableInPause = new List<string>();
+
+    public enum SimTypeEnum
+    {
+        DISCRETE = 1,
+        CONTINUOUS = 2
+    }
+
+
     // Runtime Info
-    private long currentSimStep = 0;
-    private Dictionary<string,int> n_agents_for_each_class = new Dictionary<string, int>();
-    private Dictionary<string,int> n_generics_for_each_class = new Dictionary<string, int>();
-    private Dictionary<(string class_name, int id), SimObject> agents = new Dictionary<(string, int), SimObject>();
-    private Dictionary<(string class_name, int id), SimObject> generics = new Dictionary<(string, int), SimObject>();
-    private Dictionary<(string class_name, int id), SimObject> obstacles = new Dictionary<(string, int), SimObject>();
+    public StateEnum state = StateEnum.PAUSE;
+    public SpeedEnum speed = SpeedEnum.X1;
+    public long currentSimStep = 0;
+    public Dictionary<string,int> n_agents_for_each_class = new Dictionary<string, int>();
+    public Dictionary<string,int> n_generics_for_each_class = new Dictionary<string, int>();
+    public Dictionary<(string class_name, int id), SimObject> agents = new Dictionary<(string, int), SimObject>();
+    public Dictionary<(string class_name, int id), SimObject> generics = new Dictionary<(string, int), SimObject>();
+    public Dictionary<(string class_name, int id), SimObject> obstacles = new Dictionary<(string, int), SimObject>();
 
     public enum StateEnum
     {
@@ -30,22 +40,24 @@ public class Simulation
         PAUSE = 2,
         STOP = 3
     }
-    public enum SimType
+    public enum SpeedEnum
     {
-        DISCRETE = 1,
-        CONTINUOUS = 2
+        X0_25,
+        X0_5,
+        X1,
+        X2,
+        MAX
     }
-
-    private StateEnum state;
 
     public string Name { get => name; set => name = value; }
     public string Description { get => description; set => description = value; }
-    public SimType Type { get => type; set => type = value; }
+    public SimTypeEnum Type { get => type; set => type = value; }
+    public StateEnum State { get => state; set => state = value; }
+    public SpeedEnum Speed { get => speed; set => speed = value; }
     public Dictionary<string, dynamic> Dimensions { get => dimensions; set => dimensions = value; }
     public Dictionary<string, SimObject> Agent_prototypes { get => agent_prototypes; set => agent_prototypes = value; }
     public Dictionary<string, SimObject> Generic_prototypes { get => generic_prototypes; set => generic_prototypes = value; }
     public Dictionary<string, dynamic> Parameters { get => parameters; set => parameters = value; }
-    public StateEnum State { get => state; set => state = value; }
     public int Id { get => id; set => id = value; }
     public List<string> EditableInPlay { get => editableInPlay; set => editableInPlay = value; }
     public List<string> EditableInPause { get => editableInPause; set => editableInPause = value; }
@@ -136,7 +148,7 @@ public class Simulation
 
 
     /// Utils ///
-
+    
     /// <summary>
     /// Get JSONObject from Simulation
     /// </summary>
@@ -158,7 +170,7 @@ public class Simulation
         Id = sim_edited_prototype["id"];
         Name = sim_edited_prototype["name"];
         Description = sim_edited_prototype["description"];
-        Type = sim_edited_prototype["type"] == "DISCRETE" ? SimType.DISCRETE : SimType.CONTINUOUS;
+        Type = sim_edited_prototype["type"] == "DISCRETE" ? SimTypeEnum.DISCRETE : SimTypeEnum.CONTINUOUS;
 
         dynamic value;
         
@@ -338,7 +350,7 @@ public class Simulation
         // Instantiate Agents/Generics needed
         foreach (KeyValuePair<string,int> a4c in N_agents_for_each_class)
         {
-            this.agent_prototypes.TryGetValue(a4c.Key, out SimObject a);
+            Agent_prototypes.TryGetValue(a4c.Key, out SimObject a);
             for (int i = 0; i<a4c.Value; i++)
             {
                 SimObject clone = a.Clone();
@@ -349,7 +361,7 @@ public class Simulation
         }
         foreach (KeyValuePair<string, int> g4c in N_generics_for_each_class)
         {
-            this.generic_prototypes.TryGetValue(g4c.Key, out SimObject g);
+            Generic_prototypes.TryGetValue(g4c.Key, out SimObject g);
             for (int i = 0; i < g4c.Value; i++)
             {
                 SimObject clone = g.Clone();
