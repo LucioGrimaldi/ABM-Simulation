@@ -253,17 +253,16 @@ public class SimulationController : MonoBehaviour
         //simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
         //UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
 
-        CommController.SubscribeTopic("Loocio");
+        nickname = "Gandalfo";
+        CommController.SubscribeTopic(nickname);
 
         Thread.SpinWait(1000);
-        
-        CommController.SendMessage("Loocio", "001", new JSONObject());
-        CommController.SendMessage("Loocio", "003", new JSONObject());
-        CommController.SendMessage("Loocio", "004", new JSONObject());
-        CommController.SendMessage("Loocio", "005", new JSONObject());
-        CommController.SendMessage("Loocio", "006", (JSONObject)JSON.Parse("{\"command\" : 3, \"value\" : 1}"));
-        CommController.SendMessage("Loocio", "002", new JSONObject());
 
+        SendCheckStatus();
+        SendConnect();
+        SendSimListRequest();
+        SendSimUpdate();
+        SendSimCommand(Command.PLAY, 0);
 
     }
     /// <summary>
@@ -637,7 +636,8 @@ public class SimulationController : MonoBehaviour
     {
         bool result = e.Payload["result"];
         JSONObject pd = (JSONObject)e.Payload["payload_data"];
-        Command command = (Command)(int)pd["command"];
+        JSONObject payload = (JSONObject)pd["payload"];
+        Command command = (Command)(int)payload["command"];
 
         if (result)
         {
@@ -966,8 +966,8 @@ public class SimulationController : MonoBehaviour
         JSONObject payload = new JSONObject();
         payload.Add("type", "heartbeat");
         // Send command
-        UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending CHECK_STATUS to MASON...");
-        CommController.SendMessage("Loocio", "000", payload);
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CHECK_STATUS to MASON...");
+        CommController.SendMessage(nickname, "000", payload);
     }
 
     /// <summary>
@@ -980,8 +980,8 @@ public class SimulationController : MonoBehaviour
         payload.Add("admin", "true");
         payload.Add("sys_info", "...");
         // Send command
-        UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending CONNECT to MASON...");
-        CommController.SendMessage("Loocio", "001", payload);
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CONNECT to MASON...");
+        CommController.SendMessage(nickname, "001", payload);
     }
     
     /// <summary>
@@ -993,8 +993,8 @@ public class SimulationController : MonoBehaviour
         JSONObject payload = new JSONObject();
         payload.Add("keep_on", "false");
         // Send command
-        UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending DISCONNECT to MASON...");
-        CommController.SendMessage("Loocio", "002", payload);
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending DISCONNECT to MASON...");
+        CommController.SendMessage(nickname, "002", payload);
     }
 
     /// <summary>
@@ -1005,8 +1005,8 @@ public class SimulationController : MonoBehaviour
         // Create payload
         JSONObject payload = new JSONObject();;
         // Send command
-        UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending SIM_LIST_REQUEST to MASON...");
-        CommController.SendMessage("Loocio", "003", payload);
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending SIM_LIST_REQUEST to MASON...");
+        CommController.SendMessage(nickname, "003", payload);
     }
 
     /// <summary>
@@ -1052,8 +1052,8 @@ public class SimulationController : MonoBehaviour
     //      payload.Add("agent_prototypes", agent_prototypes);
     //      payload.Add("generic_prototypes", generic_prototypes);
     //      // Send command
-    //      UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending SIM_INITIALIZE to MASON...");
-    //      CommController.SendMessage("Loocio", "004", payload);
+    //      UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending SIM_INITIALIZE to MASON...");
+    //      CommController.SendMessage(nickname, "004", payload);
     //  }
 
     /// <summary>
@@ -1061,9 +1061,8 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     public void SendSimUpdate()
     {
-        // Send command
-        UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending SIM_UPDATE to MASON...");
-        CommController.SendMessage("Loocio", "005", uncommitted_updatesJSON);
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending SIM_UPDATE to MASON...");
+        CommController.SendMessage(nickname, "005", uncommitted_updatesJSON);
         uncommitted_updatesJSON = new JSONObject();
     }
 
@@ -1074,11 +1073,11 @@ public class SimulationController : MonoBehaviour
     {
         // Create payload
         JSONObject payload = new JSONObject();
-        payload.Add("command", ((int)command));
+        payload.Add("command", (int)command);
         payload.Add("value", value);
         // Send command
-        UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending SIM_COMMAND to MASON...");
-        CommController.SendMessage("Loocio", "006", payload);
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending SIM_COMMAND to MASON...");
+        CommController.SendMessage(nickname, "006", payload);
     }
 
     /// <summary>
@@ -1091,8 +1090,8 @@ public class SimulationController : MonoBehaviour
         payload.Add("response_to_op", response_to_op);
         payload.Add("response", state.ToString());
         // Send command
-        UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending RESPONSE to MASON...");
-        CommController.SendMessage("Loocio", "007", payload);
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending RESPONSE to MASON...");
+        CommController.SendMessage(nickname, "007", payload);
     }                              // response to CHECK_STATUS message
 
     /// <summary>
@@ -1106,8 +1105,8 @@ public class SimulationController : MonoBehaviour
         payload.Add("alive", alive);
         payload.Add("sys_info", "...");
         // Send command
-        UnityEngine.Debug.Log("SIMULATION_CONTROLLER | Sending CLIENT_ERROR to MASON...");
-        CommController.SendMessage("Loocio", "999", payload);
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CLIENT_ERROR to MASON...");
+        CommController.SendMessage(nickname, "999", payload);
     }
 
     /// <summary>
@@ -1116,6 +1115,7 @@ public class SimulationController : MonoBehaviour
     void OnApplicationQuit()
     {
         // do other stuff
+        SendDisconnect();
         CommController.DisconnectControlClient();
         CommController.DisconnectSimulationClient();
         StopResponseQueueHandlerThread();
