@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System;
 using System.Linq;
 using Newtonsoft.Json;
+using System.Threading;
 
 public class SimulationController : MonoBehaviour
 {
@@ -36,13 +37,14 @@ public class SimulationController : MonoBehaviour
 
     /// Sim-related variables ///
     /// State
+    private JSONArray sim_prototypes_list = (JSONArray)JSON.Parse("[{ \"id\" : 0, \"name\" : \"Flockers\", \"description\" : \"....\", \"type\" : \"qualitative\", \"dimensions\" : [ { \"name\" : \"x\", \"type\" : \"System.Single\", \"default\" : 500 }, { \"name\" : \"y\", \"type\" : \"System.Single\", \"default\" : 500 }, { \"name\" : \"z\", \"type\" : \"System.Single\", \"default\" : 500 } ], \"sim_params\" : [ { \"name\" : \"cohesion\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"avoidance\", \"type\" : \"System.Single\", \"default\" : 0.5 }, { \"name\" : \"randomness\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"consistency\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"momentum\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"neighborhood\", \"type\" : \"System.Int32\", \"default\" : 10 }, { \"name\" : \"jump\", \"type\" : \"System.Single\", \"default\" : 0.7 }, ], \"agent_prototypes\" : [ { \"name\" : \"Flocker\", \"params\": [] } ], \"generic_prototypes\" : [ { \"name\" : \"Gerardo\", \"params\": [{ \"name\" : \"scimità\", \"type\" : \"System.Int32\", \"editable_in_play\" : true, \"editable_in_pause\" : true, \"value\" : 9001 }] } ]}]");
     private Simulation simulation = new Simulation();
     private State state = State.NOT_READY;
     public enum State 
     {
         CONN_ERROR = -2,            // Error in connection
         NOT_READY = -1,             // Client is not connected
-        READY = 0                  // Client is ready to play
+        READY = 0                  // Client is ready to create a simulation
     }
 
     /// Updates
@@ -55,6 +57,7 @@ public class SimulationController : MonoBehaviour
     /// Access methods ///
     public Simulation Simulation { get => simulation; set => simulation = value; }
     public string Nickname { get => nickname; set => nickname = value; }
+    public JSONArray Sim_prototypes_list { get => sim_prototypes_list; set => sim_prototypes_list = value; }
 
 
     /// <summary>
@@ -86,52 +89,92 @@ public class SimulationController : MonoBehaviour
         UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
 
         //StoreParameterUpdate("cohesion", "100.0");
-        SimObjectModifyEventArgs e = new SimObjectModifyEventArgs();
-        SimObjectDeleteEventArgs d = new SimObjectDeleteEventArgs();
+        //SimObjectModifyEventArgs e = new SimObjectModifyEventArgs();
+        //SimObjectDeleteEventArgs d = new SimObjectDeleteEventArgs();
+        //
+        //e.type = SimObject.SimObjectType.GENERIC;
+        //e.class_name = "Gerardo";
+        //e.id = 0;
+        //e.m_params = false;
+        //StoreSimObjectModify(e);
+        //
+        //SimObjectCreateEventArgs c = new SimObjectCreateEventArgs();
+        //c.type = SimObject.SimObjectType.GENERIC;
+        //c.class_name = "Gerardo";
+        //c.parameters = new Dictionary<string, dynamic>() {
+        //    {"scimità", 9999},
+        //    {"asd", 1},
+        //    {"capocchia", 0},
+        //};
+        //StoreSimObjectCreate(c);
+        //StoreSimObjectCreate(c);
+        //StoreSimObjectCreate(c);
+        //StoreSimObjectCreate(c);
+        //
+        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
+        //
+        //e.type = SimObject.SimObjectType.GENERIC;
+        //e.class_name = "Gerardo";
+        //e.id = -1;
+        //e.parameters = new Dictionary<string, dynamic>() {
+        //    {"scimità", 100000000},
+        //};
+        //e.m_params = true;
+        //StoreSimObjectModify(e);
+        //
+        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
+        //
+        //d.type = SimObject.SimObjectType.GENERIC;
+        //d.class_name = "Gerardo";
+        //d.id = -1;
+        //StoreSimObjectDelete(d);
+        //
+        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
+        //
+        //StoreUncommittedUpdatesToJSON();
+        //UnityEngine.Debug.Log("Uncommitted updates JSON: \n" + uncommitted_updatesJSON.ToString());
+        //
+        //simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
+        //UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
 
-        e.type = SimObject.SimObjectType.GENERIC;
-        e.class_name = "Gerardo";
-        e.id = 0;
-        e.m_params = false;
-        StoreSimObjectModify(e);
+        //SimObjectCreateEventArgs c = new SimObjectCreateEventArgs();
+        //c.type = SimObject.SimObjectType.OBSTACLE;
+        //c.class_name = "Gerardo";
+        //c.parameters = new Dictionary<string, dynamic>()
+        //{
+        //    { "cells" , new MyList<MyList<(string, int)>>()
+        //        {
+        //            new MyList<(string, int)>()
+        //            {
+        //                {("x", 10)},
+        //                {("y", 9)},
+        //                {("z", 11)}
+        //            },
+        //            new MyList<(string, int)>()
+        //            {
+        //                {("x", 10)},
+        //                {("y", 9)},
+        //                {("z", 12)}
+        //            }
+        //        } 
+        //    },
+        //    {"resistenza", 1000}
+        //};
+        //StoreSimObjectCreate(c);
+        //
+        //StoreUncommittedUpdatesToJSON();
+        //UnityEngine.Debug.Log("Uncommitted updates JSON: \n" + uncommitted_updatesJSON.ToString());
+        //
+        //simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
+        //UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
 
-        SimObjectCreateEventArgs c = new SimObjectCreateEventArgs();
-        c.type = SimObject.SimObjectType.GENERIC;
-        c.class_name = "Gerardo";
-        c.parameters = new Dictionary<string, dynamic>() {
-            {"scimità", 9999},
-            {"asd", 1},
-            {"capocchia", 0},
-        };
-        StoreSimObjectCreate(c);
-        StoreSimObjectCreate(c);
-        StoreSimObjectCreate(c);
+        CommController.SubscribeTopic("Loocio");
 
-        UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
+        Thread.SpinWait(1000);
+        
+        CommController.SendMessage("Loocio", "001", new JSONObject());
+        CommController.SendMessage("Loocio", "003", new JSONObject());
 
-        e.type = SimObject.SimObjectType.GENERIC;
-        e.class_name = "Gerardo";
-        e.id = -1;
-        e.parameters = new Dictionary<string, dynamic>() {
-            {"scimità", 100000000},
-        };
-        e.m_params = true;
-        StoreSimObjectModify(e);
-
-        UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
-
-        d.type = SimObject.SimObjectType.GENERIC;
-        d.class_name = "Gerardo";
-        d.id = 1;
-        StoreSimObjectDelete(d);
-
-        UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
-
-        StoreUncommittedUpdatesToJSON();
-        UnityEngine.Debug.Log("Uncommitted updates JSON: \n" + uncommitted_updatesJSON.ToString());
-
-        simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
-        UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
 
     }
     /// <summary>
@@ -139,7 +182,6 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     private void Update()
     {
-
     }
 
     /// UTILS ///
@@ -203,8 +245,17 @@ public class SimulationController : MonoBehaviour
     /// onEvent Methods ///
 
     /// <summary>
-    /// Event Handles
+    /// Internal Event Handles
     /// </summary>
+    private void onNicknameEnter(object sender, NicknameEnterEventArgs e)
+    {
+        nickname = e.nickname;
+        CommController.SubscribeTopic(nickname);
+    }
+    private void onSimPrototypeConfirmed(object sender, SimPrototypeConfirmedEventArgs e)
+    {
+        simulation.InitSimulationFromPrototype(e.sim_prototype);
+    }
     private void onSimParamModify(object sender, SimParamUpdateEventArgs e)
     {
         StoreSimParameterUpdateToJSON(e);
@@ -221,65 +272,54 @@ public class SimulationController : MonoBehaviour
     {
         StoreSimObjectDelete(e);
     }
-    public void onUpdateCommitRequest(object sender, EventArgs e)
-    {
-        //
-        // TODO
-        //
-    }
+
+    /// <summary>
+    /// External Event Handles
+    /// </summary>
     public void onResponseMessageReceived(object sender, ResponseMessageEventArgs e)
     {
-
         switch (e.Op)
         {
-            case "000":
-
-                //check status
-
+            case "000": // check_status
+                
+                // check status
+                
                 break;
-            case "007":
-
-                // SIM_LIST
-                string response_to_op = e.Payload["response_to_op"];
+            case "007": // response
+                string response_to_op = (string)e.Payload["response_to_op"];
                 switch (response_to_op)
                 {
                     case "000":
-
+                        onCheckStatusResponse(e);
                         break;
                     case "001":
-
+                        onConnectionResponse(e);
                         break;
                     case "002":
-
+                        onDisconnectionResponse(e);
                         break;
-                    case "003":
-
-                        CommController.Sim_prototypes_list = (JSONArray)e.Payload["response"];
-
+                    case "003":                                                           
+                        onSimListResponse(e);
                         break;
-                    case "004":
-
+                    case "004": 
+                        onSimInitResponse(e);
                         break;
                     case "005":
-
-                        // Conferma di update avvenuto
-                        // GameController.commitUpdate
-
+                        onSimUpdateResponse(e);
                         break;
                     case "006":
-
-
-
-
+                        onSimCommandResponse(e);
                         break;
                     case "999":
-
+                        onClientErrorResponse(e);
                         break;
                 }
 
                 break;
-            case "998"://error
-                       //disconnect
+            case "998": // error
+                
+                // disconnect
+
                 break;
             default:
                 break;
@@ -292,6 +332,60 @@ public class SimulationController : MonoBehaviour
     {
 
     }
+
+    /// <summary>
+    /// Derivate Event Handles
+    /// </summary>
+    private void onCheckStatusResponse(ResponseMessageEventArgs e)
+    {
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | CHECK STATUS RESPONSE RECEIVED");
+    }
+    private void onConnectionResponse(ResponseMessageEventArgs e)
+    {
+        bool result = e.Payload["result"];
+        state = result ? State.READY : State.CONN_ERROR;
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Client " + (result?"successfully":"unsuccessfully") + " connected.");
+        // TRIGGER ON_CONNECT EVENT
+    }
+    private void onDisconnectionResponse(ResponseMessageEventArgs e)
+    {
+        bool result = e.Payload["result"];
+        state = result ? State.NOT_READY : State.CONN_ERROR;
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Client " + (result ? "successfully" : "unsuccessfully") + " disconnected.");
+        // TRIGGER ON_DISCONNECT EVENT
+    }
+    private void onSimListResponse(ResponseMessageEventArgs e)
+    {
+        bool result = e.Payload["result"];
+        sim_prototypes_list = (JSONArray)((JSONObject)e.Payload["payload_data"])["sim_list"];
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Prototypes list " + (result ? "successfully" : "unsuccessfully") + " received from " + e.Sender + ".");
+        // TRIGGER ON_SIM_LIST EVENT
+    }
+    private void onSimInitResponse(ResponseMessageEventArgs e)
+    {
+        bool result = e.Payload["result"];
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
+        // TRIGGER ON_SIM_INIT EVENT
+    }
+    private void onSimUpdateResponse(ResponseMessageEventArgs e)
+    {
+        bool result = e.Payload["result"];
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Update " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
+        // TRIGGER ON_SIM_UPDATE EVENT
+    }
+    private void onSimCommandResponse(ResponseMessageEventArgs e)
+    {
+        bool result = e.Payload["result"];
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Command " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
+        // TRIGGER ON_SIM_COMMAND EVENT
+    }
+    private void onClientErrorResponse(ResponseMessageEventArgs e)
+    {
+        bool result = e.Payload["result"];
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Client " + (result ? "successfully" : "unsuccessfully") + " disconnected by " + e.Sender + ".");
+        OnApplicationQuit();
+    }
+
 
     /// Store Methods ///
 
@@ -521,7 +615,6 @@ public class SimulationController : MonoBehaviour
             
             if (entry.Key.obj.type.Equals(SimObject.SimObjectType.OBSTACLE))
             {
-                JSONObject cell = new JSONObject();
                 JSONArray cells = new JSONArray();
                 dynamic cell_list = new MyList<MyList<(string coord, int value)>>();
                 SimObject obstacle = new SimObject();
@@ -531,7 +624,8 @@ public class SimulationController : MonoBehaviour
                     entry.Value.Parameters.TryGetValue("cells", out cell_list);                                         // cells are in MyList<MyList<(string coord, int value)>> form
                     foreach (MyList<(string coord, int value)> c in cell_list)
                     {
-                        foreach((string coord, int value) in c)
+                        JSONObject cell = new JSONObject();
+                        foreach ((string coord, int value) in c)
                         {
                             cell.Add(coord, value);
                         }
@@ -542,6 +636,7 @@ public class SimulationController : MonoBehaviour
                     obstacle.Parameters.TryGetValue("cells", out cell_list);                                            // cells are in MyList<MyList<(string coord, int value)>> form
                     foreach (MyList<(string coord, int value)> c in cell_list)
                     {
+                        JSONObject cell = new JSONObject();
                         foreach ((string coord, int value) in c)
                         {
                             cell.Add(coord, value);
@@ -555,6 +650,7 @@ public class SimulationController : MonoBehaviour
                     entry.Value.Parameters.TryGetValue("cells", out cell_list);                                         // cells are in MyList<MyList<(string coord, int value)>> form
                     foreach (MyList<(string coord, int value)> c in cell_list)
                     {
+                        JSONObject cell = new JSONObject();
                         foreach ((string coord, int value) in c)
                         {
                             cell.Add(coord, value);
@@ -756,6 +852,14 @@ public class SimulationController : MonoBehaviour
 /// <summary>
 /// Event Args Definitions
 /// </summary>
+public class NicknameEnterEventArgs : EventArgs
+{
+    public string nickname;
+}
+public class SimPrototypeConfirmedEventArgs : EventArgs
+{
+    public JSONObject sim_prototype;
+}
 public class SimParamUpdateEventArgs : EventArgs
 {
     public (string param_name, dynamic value) param;

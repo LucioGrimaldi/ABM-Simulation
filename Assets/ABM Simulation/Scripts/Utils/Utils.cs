@@ -80,21 +80,6 @@ public class Utils
 
 
 
-    // ROBA UTILE
-    public void AddObstacle(string name, float x, float y, float z, List<(dynamic, dynamic, dynamic)> cells)
-    {
-    //    SimObject o = new SimObject(name, x, y, z, cells);
-    //    o.Id = simulation.Obstacles.Count;
-    //    simulation.AddObstacle(o);
-    //}
-    //public void RemoveObstacle(int id)
-    //{
-    //    simulation.RemoveObstacle(id.ToString());
-    //}
-    //public void MoveObstacle(int id, float x, float y, float z)
-    //{
-    //    simulation.MoveObstacle(id, x, y, z);
-    } 
     // TESTS
     public void tests()
     {

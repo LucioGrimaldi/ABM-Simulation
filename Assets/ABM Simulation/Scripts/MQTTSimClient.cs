@@ -11,7 +11,7 @@ public class MQTTSimClient
 {
     [Header("MQTT broker configuration")]
     [Tooltip("IP addres or URL of host running the broker")]
-    private string brokerAddress = "193.205.161.52"; //isislab = 193.205.161.52  pietro = 87.11.194.30
+    private string brokerAddress = "localhost"; //isislab = 193.205.161.52  pietro = 87.11.194.30
     [Tooltip("Port where the broker accepts connections")]
     private int brokerPort = 1883;
     [Tooltip("Use encrypted connection")]
@@ -76,7 +76,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnConnecting()
     {
-        Debug.LogFormat("MQTT_SIM_CLIENT | Connecting to broker on {0}:{1}...\n", brokerAddress, brokerPort.ToString());
+        Debug.LogFormat(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Connecting to broker on {0}:{1}...\n", brokerAddress, brokerPort.ToString());
     }
 
     /// <summary>
@@ -84,10 +84,10 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnConnected()
     {
-        Debug.LogFormat("MQTT_SIM_CLIENT | Connected to {0}:{1}...\n", brokerAddress, brokerPort.ToString());
+        Debug.LogFormat(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Connected to {0}:{1}...\n", brokerAddress, brokerPort.ToString());
         SubscribeAll();
         ConnectionSucceeded?.Invoke();
-        Debug.Log("MQTT_SIM_CLIENT | Waiting for MASON...");
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Waiting for MASON...");
     }
 
     /// <summary>
@@ -95,7 +95,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnConnectionFailed(string errorMessage)
     {
-        Debug.LogWarning("MQTT_SIM_CLIENT | Connection failed.");
+        Debug.LogWarning(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Connection failed.");
         ConnectionFailed?.Invoke();
     }
 
@@ -184,7 +184,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnSubscribe(string[] topics)
     {
-        Debug.Log("MQTT_SIM_CLIENT | Subscribed to topic: " + String.Join(",", topics));
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Subscribed to topic: " + String.Join(",", topics));
     }
 
     /// <summary>
@@ -192,7 +192,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnDisconnected()
     {
-        Debug.Log("MQTT_SIM_CLIENT | Disconnected.");
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Disconnected.");
     }
 
     /// <summary>
@@ -200,7 +200,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void OnConnectionLost()
     {
-        Debug.LogWarning("MQTT_SIM_CLIENT | CONNECTION LOST!");
+        Debug.LogWarning(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | CONNECTION LOST!");
     }
 
     private void OnMqttConnectionClosed(object sender, EventArgs e)
@@ -220,18 +220,18 @@ public class MQTTSimClient
         {
             try
             {
-                Debug.Log("MQTT_SIM_CLIENT | CONNECTING..");
+                Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | CONNECTING..");
                 client = new MqttClient(brokerAddress, brokerPort, isEncrypted, null, null, isEncrypted ? MqttSslProtocols.SSLv3 : MqttSslProtocols.None);
                 //System.Security.Cryptography.X509Certificates.X509Certificate cert = new System.Security.Cryptography.X509Certificates.X509Certificate();
                 //MQTTSimClient = new MqttClient(brokerAddress, brokerPort, isEncrypted, cert, null, MqttSslProtocols.TLSv1_0, MyRemoteCertificateValidationCallback);
-                Debug.Log("MQTT_SIM_CLIENT | CONNECTED");
+                Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | CONNECTED");
 
 
             }
             catch (Exception e)
             {
                 client = null;
-                Debug.LogErrorFormat("MQTT_SIM_CLIENT | CONNECTION FAILED! {0}", e.ToString());
+                Debug.LogErrorFormat(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | CONNECTION FAILED! {0}", e.ToString());
                 OnConnectionFailed(e.Message);
                 return;
             }
@@ -251,7 +251,7 @@ public class MQTTSimClient
         catch (Exception e)
         {
             client = null;
-            Debug.LogErrorFormat("MQTT_SIM_CLIENT | Failed to connect to {0}:{1}:\n{2}", brokerAddress, brokerPort, e.ToString());
+            Debug.LogErrorFormat(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Failed to connect to {0}:{1}:\n{2}", brokerAddress, brokerPort, e.ToString());
             OnConnectionFailed(e.Message);
             return;
         }

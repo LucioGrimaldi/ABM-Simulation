@@ -31,8 +31,6 @@ public class CommunicationController
 
     /// Utility
     private JSONObject sim_step = new JSONObject();
-    private JSONArray sim_prototypes_list = (JSONArray) JSON.Parse("[{ \"id\" : 0, \"name\" : \"Flockers\", \"description\" : \"....\", \"type\" : \"qualitative\", \"dimensions\" : [ { \"name\" : \"x\", \"type\" : \"System.Single\", \"default\" : 500 }, { \"name\" : \"y\", \"type\" : \"System.Single\", \"default\" : 500 }, { \"name\" : \"z\", \"type\" : \"System.Single\", \"default\" : 500 } ], \"sim_params\" : [ { \"name\" : \"cohesion\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"avoidance\", \"type\" : \"System.Single\", \"default\" : 0.5 }, { \"name\" : \"randomness\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"consistency\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"momentum\", \"type\" : \"System.Single\", \"default\" : 1 }, { \"name\" : \"neighborhood\", \"type\" : \"System.Int32\", \"default\" : 10 }, { \"name\" : \"jump\", \"type\" : \"System.Single\", \"default\" : 0.7 }, ], \"agent_prototypes\" : [ { \"name\" : \"Flocker\", \"params\": [] } ], \"generic_prototypes\" : [ { \"name\" : \"Gerardo\", \"params\": [{ \"name\" : \"scimità\", \"type\" : \"System.Int32\", \"editable_in_play\" : true, \"editable_in_pause\" : true, \"value\" : 9001 }] } ]}]");
-    private int sim_id = 0;
 
     /// Access Methods ///
     public ConcurrentQueue<MqttMsgPublishEventArgs> ResponseMessageQueue { get => responseMessageQueue; set => responseMessageQueue = value; }
@@ -41,7 +39,6 @@ public class CommunicationController
     public bool SIM_CLIENT_READY { get => sim_client_ready; set => sim_client_ready = value; }
     public bool CONTROL_CLIENT_READY { get => control_client_ready; set => control_client_ready = value; }
     public JSONObject Sim_step { get => sim_step; set => sim_step = value; }
-    public JSONArray Sim_prototypes_list { get => sim_prototypes_list; set => sim_prototypes_list = value; }    
     
     /// Methods ///
     
@@ -93,6 +90,14 @@ public class CommunicationController
     }
 
     /// <summary>
+    /// SubscribeTopic Wrapper
+    /// </summary>
+    public void SubscribeTopic(string nickname)
+    {
+        controlClient.SubscribeTopic(nickname);
+    }
+
+    /// <summary>
     /// UnsubscribeTopics Wrapper
     /// </summary>
     public void UnsubscribeTopics(int[] topics)
@@ -108,7 +113,7 @@ public class CommunicationController
     /// </summary>
     public void StartStepQueueHandlerThread(Simulation.StateEnum sim_state, int TARGET_FPS)
     {
-        UnityEngine.Debug.Log("COMMUNICATION_CONTROLLER | Step Management Thread started..");
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Management Thread started..");
         StepQueueHandlerThread = new Thread(() => StepQueueHandler(sim_state, TARGET_FPS));
         StepQueueHandlerThread.Start();
     }
@@ -118,7 +123,7 @@ public class CommunicationController
     /// </summary>
     public void StartResponseQueueHandlerThread()
     {
-        UnityEngine.Debug.Log("COMMUNICATION_CONTROLLER | Message Handler Thread started..");
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message Handler Thread started..");
         ResponseQueueHandlerThread = new Thread(ResponseQueueHandler);
         ResponseQueueHandlerThread.Start();
     }
@@ -128,7 +133,7 @@ public class CommunicationController
     /// </summary>
     public void StopStepQueueHandlerThread()
     {
-        UnityEngine.Debug.Log("COMMUNICATION_CONTROLLER | Step Management Thread stopped.");
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Management Thread stopped.");
         StepQueueHandlerThread.Abort();
     }
 
@@ -137,7 +142,7 @@ public class CommunicationController
     /// </summary>
     public void StopResponseQueueHandlerThread()
     {
-        UnityEngine.Debug.Log("COMMUNICATION_CONTROLLER | Message Handler Thread stopped.");
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message Handler Thread stopped.");
         ResponseQueueHandlerThread.Abort();
     }
 
@@ -154,15 +159,20 @@ public class CommunicationController
         {
             if(responseMessageQueue.TryDequeue(out msg))
             {
-                json_response = (JSONObject) JSON.Parse(System.Text.Encoding.UTF8.GetString(msg.Message));
+                json_response = (JSONObject) JSON.Parse(System.Text.Encoding.Unicode.GetString(Utils.DecompressStepPayload(msg.Message)));
                 sender = json_response["sender"];
                 op = json_response["op"];
                 payload = (JSONObject) json_response["payload"];
-                
-                // Trigger ResponseMessageEventHandler
 
-                UnityEngine.Debug.Log("COMMUNICATION_CONTROLLER | Message received in " + msg.Topic + " topic.\n" + "Sender: " + sender + "\n" + "OP: " + op + "\n" + "Payload: " + payload.ToString(1));
-                
+                ResponseMessageEventArgs e = new ResponseMessageEventArgs();
+                e.Msg = msg;
+                e.Sender = sender;
+                e.Op = op;
+                e.Payload = payload;
+
+                UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message received in " + msg.Topic + " topic.\n" + "Sender: " + sender + "\n" + "OP: " + op + "\n" + "Payload: " + payload.ToString(1));
+
+                responseMessageEventHandler.Invoke(this, e);
             }
             else
             {
@@ -194,7 +204,7 @@ public class CommunicationController
                 }
                 else
                 {
-                    UnityEngine.Debug.Log("COMMUNICATION_CONTROLLER | Cannot get Step!");
+                    UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Cannot get Step!");
                 }
             }
             if (SimMessageQueue.Count > 0)
@@ -205,10 +215,10 @@ public class CommunicationController
                     // Trigger latestsimsteparrived update passing GetStepId(message.Message)
                     // 
                     SecondaryQueue.Add(Utils.GetStepId(message.Message), message.Message);
-                    UnityEngine.Debug.Log("COMMUNICATION_CONTROLLER | Step " + Utils.GetStepId(message.Message) + " dequeued from SimMessageQueue \n | " + "Topic: " + message.Topic);
+                    UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step " + Utils.GetStepId(message.Message) + " dequeued from SimMessageQueue \n | " + "Topic: " + message.Topic);
 
                 }
-                else { UnityEngine.Debug.Log("COMMUNICATION_CONTROLLER | Cannot Dequeue!"); }
+                else { UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Cannot Dequeue!"); }
             }
         }
     }
@@ -225,7 +235,7 @@ public class CommunicationController
         msg.Add("sender", sender);
         msg.Add("op", op);
         msg.Add("payload", payload);
-        UnityEngine.Debug.Log("COMMUNICATION_CONTROLLER | Trying sending message...");
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Trying sending message...");
         controlClient.SendMessage(msg);
     }
 
