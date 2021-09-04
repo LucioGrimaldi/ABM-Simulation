@@ -35,7 +35,7 @@ public class GridBuildingSystem : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0) && placedObjectTypeSO != null)
+        if (Input.GetMouseButtonDown(0) && placedObjectTypeSO != null && !Vector3.zero.Equals(Mouse3DPosition.GetMouseWorldPosition()))
         {
             //grid.GetXYZ(Mouse3DPosition.GetMouseWorldPosition(), out int x, out int y, out int z);
             //Instantiate(prefab, grid.GetWorldPosition(x, y, z), Quaternion.identity);
@@ -45,15 +45,31 @@ public class GridBuildingSystem : MonoBehaviour
 
             //Controllo Canbuild
             bool canBuild = true;
+
             foreach(Vector3Int gridPosition in gridPositionList)
             {
-                if(!grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).CanBuild())
+                //Debug.Log("Grid dimension x: " + grid.Width + " y: " + grid.Height + " z: " + grid.Lenght);
+                //Debug.Log("Grid Position: " + gridPosition);
+
+                if (!(gridPosition.x < grid.Width && gridPosition.y < grid.Height && gridPosition.z < grid.Lenght
+                        && gridPosition.x >= 0 && gridPosition.y >= 0 && gridPosition.z >= 0)) // && Vector3.zero.Equals(Mouse3DPosition.GetMouseWorldPosition()
                 {
-                    //Non posso costruire
+                    //Out of grid bounds!
                     canBuild = false;
+                    UtilsClass.CreateWorldTextPopup("Out of grid Bounds!", Mouse3DPosition.GetMouseWorldPosition(), Color.red);
                     break;
                 }
-
+                else
+                {
+                    //Controllo se c'è già un oggetto
+                    if (!grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).CanBuild())
+                    {
+                        //Non posso costruire
+                        canBuild = false;
+                        UtilsClass.CreateWorldTextPopup("Cannot build here!", Mouse3DPosition.GetMouseWorldPosition(), Color.yellow);
+                        break;
+                    }
+                }
             }
 
             GridObject gridObject = grid.GetGridObject(x, y, z);
@@ -77,12 +93,8 @@ public class GridBuildingSystem : MonoBehaviour
                 OnObjectPlaced?.Invoke(this, EventArgs.Empty);
 
                 //gridObject.SetTransform(builtTransform);
+
                 //DeselectObjectType();
-            }
-            else
-            {
-                //Cannot build
-                UtilsClass.CreateWorldTextPopup("Cannot build here!", Mouse3DPosition.GetMouseWorldPosition());
             }
 
         }
@@ -90,26 +102,40 @@ public class GridBuildingSystem : MonoBehaviour
         //Demolizione
         if (Input.GetKeyDown(KeyCode.Backslash))
         {
-            GridObject gridObject = grid.GetGridObject(Mouse3DPosition.GetMouseWorldPosition());
-            PlacedObject placedObject = gridObject.GetPlacedObject();
-            if (placedObject != null)
+            //Debug.Log(Mouse3DPosition.GetMouseWorldPosition());
+
+            if(grid.GetGridObject(Mouse3DPosition.GetMouseWorldPosition()) != null && !Vector3.zero.Equals(Mouse3DPosition.GetMouseWorldPosition()))
             {
-                //Distruggilo
-                placedObject.Destroy();
-
-                List<Vector3Int> gridPositionList = placedObject.GetGridPositionList();
-
-                foreach (Vector3Int gridPosition in gridPositionList) //resetto transform per ogni posizione in gridPositionList
+                GridObject gridObject = grid.GetGridObject(Mouse3DPosition.GetMouseWorldPosition());
+                PlacedObject placedObject = gridObject.GetPlacedObject();
+                Debug.Log("Grid Object: " + gridObject);
+                if (placedObject != null)
                 {
-                    grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).ClearPlacedObject();
+                    //Distruggilo
+                    placedObject.Destroy();
+
+                    List<Vector3Int> gridPositionList = placedObject.GetGridPositionList();
+
+                    foreach (Vector3Int gridPosition in gridPositionList) //resetto transform per ogni posizione in gridPositionList
+                    {
+                        grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).ClearPlacedObject();
+                    }
                 }
+                else
+                    UtilsClass.CreateWorldTextPopup("Nothing to destroy!", Mouse3DPosition.GetMouseWorldPosition(), Color.yellow);
+
             }
+            else
+                //do nothing
+                UtilsClass.CreateWorldTextPopup("Nothing to destroy!", Mouse3DPosition.GetMouseWorldPosition(), Color.yellow);
 
         }
+
 
         //Spostamento
         if (Input.GetKeyDown(KeyCode.F))
         {
+            String buildName;
             Vector3 mousePosition = Mouse3DPosition.GetMouseWorldPosition();
             if (grid.GetGridObject(mousePosition) != null)
             {
@@ -117,6 +143,8 @@ public class GridBuildingSystem : MonoBehaviour
                 PlacedObject placedObject = grid.GetGridObject(mousePosition).GetPlacedObject();
                 if (placedObject != null)
                 {
+                    buildName = placedObject.name;
+                    //Debug.Log("Nome prefab: " + buildName);
                     // Distruggi
                     placedObject.Destroy();
 
@@ -125,18 +153,40 @@ public class GridBuildingSystem : MonoBehaviour
                     {
                         grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).ClearPlacedObject();
                     }
-                }
 
-                //placedObjectTypeSO = placedObject;->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><
+                    foreach (ScriptableObjectType scriptableObj in placedSOList)
+                    {
+                        //Debug.Log("ScriptableObj: " + scriptableObj.nameString); //stampa il nome del Building1x1 o Building2x1
+                        //Debug.Log("BuildNAME: " + buildName); //stampa pf1x1 o pf2x1
+                        if (buildName.Contains(scriptableObj.name))
+                        {
+                            placedObjectTypeSO = scriptableObj;
+                            UtilsClass.CreateWorldTextPopup("Moving Building", Mouse3DPosition.GetMouseWorldPosition(), Color.yellow);
+                            RefreshSelectedObjectType();
+                            //DeselectObjectType();
+                            break;
+                        }
+                    }
+                }
+                else
+                    UtilsClass.CreateWorldTextPopup("Nothing to MOVE!", Mouse3DPosition.GetMouseWorldPosition(), Color.yellow);
+
             }
+            else
+                //do nothing
+                UtilsClass.CreateWorldTextPopup("Nothing to MOVE!", Mouse3DPosition.GetMouseWorldPosition(), Color.yellow);
+
         }
 
 
         if (Input.GetKeyDown(KeyCode.R))
         {
-            direction = ScriptableObjectType.GetNextDirection(direction);
-            UtilsClass.CreateWorldTextPopup(null, "" + direction, Mouse3DPosition.GetMouseWorldPosition(), 40, Color.green, Mouse3DPosition.GetMouseWorldPosition() + new Vector3(0, 10), 2f);
-
+            if (placedObjectTypeSO != null)
+            {
+                direction = ScriptableObjectType.GetNextDirection(direction);
+                UtilsClass.CreateWorldTextPopup("" + direction, Mouse3DPosition.GetMouseWorldPosition(), Color.green);
+            }
+                
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha1)) { placedObjectTypeSO = placedSOList[0]; RefreshSelectedObjectType(); }
@@ -151,6 +201,7 @@ public class GridBuildingSystem : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F4)) { placedObjectTypeSO = placedSOList[8]; RefreshSelectedObjectType(); }
         if (Input.GetKeyDown(KeyCode.F5)) { placedObjectTypeSO = placedSOList[9]; RefreshSelectedObjectType(); }
 
+        
         if (Input.GetKeyDown(KeyCode.Escape)) { DeselectObjectType(); }
 
 

@@ -6,6 +6,8 @@ using System.Linq;
 using Newtonsoft.Json;
 using System.Threading;
 using uPLibrary.Networking.M2Mqtt.Messages;
+using UnityEditor.UI;
+using UnityEngine.UI;
 
 
 //#### OPERATIONS_LIST ####
@@ -110,6 +112,7 @@ public class SimulationController : MonoBehaviour
 
     /// CONTROLLERS ///
     private UIController UIController;
+    private MenuController MenuController;
     private SceneController SceneController;
     private CommunicationController CommController;
 
@@ -157,12 +160,14 @@ public class SimulationController : MonoBehaviour
         //UIController = GameObject.Find("UIController").GetComponent<UIController>();
         //GameController = GameObject.Find("GameController").GetComponent<GameController>();
         CommController = new CommunicationController();
+        MenuController = GameObject.Find("MenuController").GetComponent<MenuController>();
         PerfManager = new PerformanceManger();
         //ConnManager = new ConnectionManager(CommController, Nickname);
 
         BootstrapBackgroundTasks();
 
         // Register to EventHandlers
+        MenuController.OnNicknameEnterEventHandler += onNicknameEnter;
         MessageEventHandler += onMessageReceived;
         StepMessageEventHandler += onStepMessageReceived;
 
@@ -174,97 +179,9 @@ public class SimulationController : MonoBehaviour
     {
 
         simulation.InitSimulationFromPrototype((JSONObject)JSON.Parse("{ \"id\": 0, \"name\": \"Flockers\", \"description\": \"....\", \"type\": \"CONTINUOUS\", \"dimensions\": [ { \"name\": \"x\", \"type\": \"System.Int32\", \"default\": 500 }, { \"name\": \"y\", \"type\": \"System.Int32\", \"default\": 500 }, { \"name\": \"z\", \"type\": \"System.Int32\", \"default\": 500 } ], \"sim_params\": [ { \"name\": \"cohesion\", \"type\": \"System.Single\", \"default\": 1 }, { \"name\": \"avoidance\", \"type\": \"System.Single\", \"default\": \"0.5\" }, { \"name\": \"randomness\", \"type\": \"System.Single\", \"default\": 1 }, { \"name\": \"consistency\", \"type\": \"System.Single\", \"default\": 1 }, { \"name\": \"momentum\", \"type\": \"System.Single\", \"default\": 1 }, { \"name\": \"neighborhood\", \"type\": \"System.Int32\", \"default\": 10 }, { \"name\": \"jump\", \"type\": \"System.Single\", \"default\": 0.7 } ], \"agent_prototypes\": [ { \"class\": \"Flocker\", \"default\" : 10, \"params\": [ { \"name\" : \"position\", \"type\": \"System.Position\", \"editable_in_play\": true, \"editable_in_pause\": true, \"position\" : { \"x\" : 1, \"y\" : 1, \"z\" : 1 } } ] } ], \"generic_prototypes\": [ { \"class\": \"Gerardo\", \"default\" : 2, \"params\": [ { \"name\": \"scimità\", \"type\": \"System.Int32\", \"editable_in_play\": true, \"editable_in_pause\": true, \"default\": 9001 }, { \"name\" : \"position\", \"type\": \"System.Position\", \"editable_in_play\": true, \"editable_in_pause\": true, \"position\" : { \"x\" : 2, \"y\" : 2, \"z\" : 2 } } ] } ] }"));
-        UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
+        Debug.Log("SIMULATION: \n" + simulation);
 
-        //StoreParameterUpdate("cohesion", "100.0");
-        //SimObjectModifyEventArgs e = new SimObjectModifyEventArgs();
-        //SimObjectDeleteEventArgs d = new SimObjectDeleteEventArgs();
-        //
-        //e.type = SimObject.SimObjectType.GENERIC;
-        //e.class_name = "Gerardo";
-        //e.id = 0;
-        //e.m_params = false;
-        //StoreSimObjectModify(e);
-        //
-        //SimObjectCreateEventArgs c = new SimObjectCreateEventArgs();
-        //c.type = SimObject.SimObjectType.GENERIC;
-        //c.class_name = "Gerardo";
-        //c.parameters = new Dictionary<string, dynamic>() {
-        //    {"scimità", 9999},
-        //    {"asd", 1},
-        //    {"capocchia", 0},
-        //};
-        //StoreSimObjectCreate(c);
-        //StoreSimObjectCreate(c);
-        //StoreSimObjectCreate(c);
-        //StoreSimObjectCreate(c);
-        //
-        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
-        //
-        //e.type = SimObject.SimObjectType.GENERIC;
-        //e.class_name = "Gerardo";
-        //e.id = -1;
-        //e.parameters = new Dictionary<string, dynamic>() {
-        //    {"scimità", 100000000},
-        //};
-        //e.m_params = true;
-        //StoreSimObjectModify(e);
-        //
-        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
-        //
-        //d.type = SimObject.SimObjectType.GENERIC;
-        //d.class_name = "Gerardo";
-        //d.id = -1;
-        //StoreSimObjectDelete(d);
-        //
-        //UnityEngine.Debug.Log("Uncommitted updates: \n" + string.Join("  ", uncommitted_updates));
-        //
-        //StoreUncommittedUpdatesToJSON();
-        //UnityEngine.Debug.Log("Uncommitted updates JSON: \n" + uncommitted_updatesJSON.ToString());
-        //
-        //simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
-        //UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
 
-        //SimObjectCreateEventArgs c = new SimObjectCreateEventArgs();
-        //c.type = SimObject.SimObjectType.OBSTACLE;
-        //c.class_name = "Gerardo";
-        //c.parameters = new Dictionary<string, dynamic>()
-        //{
-        //    { "cells" , new MyList<MyList<(string, int)>>()
-        //        {
-        //            new MyList<(string, int)>()
-        //            {
-        //                {("x", 10)},
-        //                {("y", 9)},
-        //                {("z", 11)}
-        //            },
-        //            new MyList<(string, int)>()
-        //            {
-        //                {("x", 10)},
-        //                {("y", 9)},
-        //                {("z", 12)}
-        //            }
-        //        } 
-        //    },
-        //    {"resistenza", 1000}
-        //};
-        //StoreSimObjectCreate(c);
-        //
-        //StoreUncommittedUpdatesToJSON();
-        //UnityEngine.Debug.Log("Uncommitted updates JSON: \n" + uncommitted_updatesJSON.ToString());
-        //
-        //simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
-        //UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
-
-        Thread.SpinWait(5000);
-
-        nickname = "Gandalfo";
-        CommController.SubscribeTopic(nickname);
-
-        Thread.SpinWait(1000);
-
-        SendCheckStatus();
-        SendConnect();
 
     }
     /// <summary>
@@ -477,8 +394,16 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     private void onNicknameEnter(object sender, NicknameEnterEventArgs e)
     {
+
         nickname = e.nickname;
+        Debug.Log(nickname);
         CommController.SubscribeTopic(nickname);
+
+        Thread.SpinWait(1000);
+
+        SendCheckStatus();
+        SendConnect();
+
     }
     private void onSimPrototypeConfirmed(object sender, SimPrototypeConfirmedEventArgs e)
     {
@@ -574,8 +499,11 @@ public class SimulationController : MonoBehaviour
     private void onCheckStatusResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
+        simulation.State = (Simulation.StateEnum) (int) ((JSONObject) e.Payload["payload_data"])["state"];
 
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Server status checked: " + (result ? "ONLINE" : "OFFLINE") + " .");
+        //Check status for errors
+
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Server status checked: " + simulation.State + " .");
 
         //if (result) OnCheckStatusSuccessEventHandler.Invoke(this, e);
         //else OnCheckStatusUnsuccessEventHandler.Invoke(this, e);

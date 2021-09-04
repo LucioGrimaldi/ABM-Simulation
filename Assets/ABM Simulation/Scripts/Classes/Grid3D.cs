@@ -127,7 +127,7 @@ public class Grid3D<TGridObject>
     }
 
 
-    //Get coordinate x,y
+    //Get coordinate x,y,z
     public TGridObject GetGridObject(int x, int y, int z)
     {
         if (x >= 0 && y >= 0 && z >= 0 && x < width && y < height && z < lenght)

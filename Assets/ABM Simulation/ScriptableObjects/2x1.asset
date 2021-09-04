@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b5b86cb100e54c47bfb63fe057fa279, type: 3}
   m_Name: 2x1
   m_EditorClassIdentifier: 
-  nameString: Building
+  nameString: Building2x1
   prefab: {fileID: 2815158344800700208, guid: 4b5a6bf57c8baed4b988fcfe8a9fe442, type: 3}
   visual: {fileID: 2815158344800700208, guid: 4b5a6bf57c8baed4b988fcfe8a9fe442, type: 3}
   width: 2

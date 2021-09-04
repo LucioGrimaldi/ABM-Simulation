@@ -7,8 +7,8 @@ using GerardoUtils;
 
 public class UIController : MonoBehaviour
 {
-    private int counter1 = 1, counter2 = 1, counter3 = 1, counter4 = 1;
-    public GameObject panelSim, panelSettings, panelInfo, panelBackToMenu;
+    private int counter1 = 0, counter2 = 1, counter3 = 1, counter4 = 1, counter5 = 1;
+    public GameObject panelSim, panelSettings, panelFPS, panelBackToMenu, panelInspector;
     public Slider slider;
 
     //private Grid2DGeneric<bool> grid;
@@ -91,6 +91,11 @@ public class UIController : MonoBehaviour
         //INVIA SETTAGGI A MASON
     }
 
+    public void ApplyParameters()
+    {
+        //INVIA PARAMETRI A MASON
+    }
+
     public void BackToMenu()
     {
         SceneManager.LoadScene("MenuScene");
@@ -107,7 +112,7 @@ public class UIController : MonoBehaviour
 
     }
 
-
+    
     public void ShowHidePanelSettings()
     {
         counter2++;
@@ -123,9 +128,9 @@ public class UIController : MonoBehaviour
     {
         counter3++;
         if (counter3 % 2 == 1)
-            panelInfo.gameObject.SetActive(false);
+            panelFPS.gameObject.SetActive(false);
         else
-            panelInfo.gameObject.SetActive(true);
+            panelFPS.gameObject.SetActive(true);
 
     }
 
@@ -137,6 +142,16 @@ public class UIController : MonoBehaviour
             panelBackToMenu.gameObject.SetActive(false);
         else
             panelBackToMenu.gameObject.SetActive(true);
+
+    }
+
+    public void ShowHidePanelInspector()
+    {
+        counter5++;
+        if (counter5 % 2 == 1)
+            panelInspector.gameObject.SetActive(false);
+        else
+            panelInspector.gameObject.SetActive(true);
 
     }
 }

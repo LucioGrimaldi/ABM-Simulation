@@ -25,7 +25,7 @@ public class Simulation
 
 
     // Runtime Info
-    public StateEnum state = StateEnum.PAUSE;
+    public StateEnum state = StateEnum.NOT_READY;
     public SpeedEnum speed = SpeedEnum.X1;
     public long currentSimStep = 0;
     public Dictionary<string,int> n_agents_for_each_class = new Dictionary<string, int>();
@@ -36,9 +36,12 @@ public class Simulation
 
     public enum StateEnum
     {
-        PLAY = 1,
-        PAUSE = 2,
-        STOP = 3
+        NOT_READY = 0,
+        READY = 1,
+        PLAY = 2,
+        PAUSE = 3,
+        STOP = 4,
+        ERROR = 5
     }
     public enum SpeedEnum
     {
