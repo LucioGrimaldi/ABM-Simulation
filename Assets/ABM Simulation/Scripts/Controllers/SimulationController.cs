@@ -62,7 +62,7 @@ public class SimObjectDeleteEventArgs : EventArgs
     public string class_name;
     public int id;
 }
-public class ResponseMessageEventArgs : EventArgs
+public class ReceivedMessageEventArgs : EventArgs
 {
     public MqttMsgPublishEventArgs Msg { get; set; }
     public string Sender { get; set; }
@@ -80,26 +80,29 @@ public class SimulationController : MonoBehaviour
     /// EVENT HANDLERS ///
     
     /// Queues
-    public event EventHandler<ResponseMessageEventArgs> ResponseMessageEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> MessageEventHandler;
     public event EventHandler<StepMessageEventArgs> StepMessageEventHandler;
 
+    /// Messages
+    public event EventHandler<ReceivedMessageEventArgs> OnNewAdminEventHandler;
+
     /// Responses
-    public event EventHandler<ResponseMessageEventArgs> OnCheckStatusSuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnCheckStatusUnsuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnConnectionSuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnConnectionUnsuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnDisonnectionSuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnDisconnectionUnsuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnSimListSuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnSimListUnsuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnSimInitSuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnSimInitUnsuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnSimUpdateSuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnSimUpdateUnsuccessEventHandler; 
-    public event EventHandler<ResponseMessageEventArgs> OnSimCommandSuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnSimCommandUnsuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnClientErrorSuccessEventHandler;
-    public event EventHandler<ResponseMessageEventArgs> OnClientErrorUnsuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnCheckStatusSuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnCheckStatusUnsuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnConnectionSuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnConnectionUnsuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnDisonnectionSuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnDisconnectionUnsuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnSimListSuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnSimListUnsuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnSimInitSuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnSimInitUnsuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnSimUpdateSuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnSimUpdateUnsuccessEventHandler; 
+    public event EventHandler<ReceivedMessageEventArgs> OnSimCommandSuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnSimCommandUnsuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnClientErrorSuccessEventHandler;
+    public event EventHandler<ReceivedMessageEventArgs> OnClientErrorUnsuccessEventHandler;
 
     /// MANAGERS ///
     ConnectionManager ConnManager;
@@ -141,7 +144,7 @@ public class SimulationController : MonoBehaviour
 
     /// Threads
     private Thread StepQueueHandlerThread;
-    private Thread ResponseQueueHandlerThread;
+    private Thread MessageQueueHandlerThread;
 
     /// UNITY LOOP METHODS ///
 
@@ -160,7 +163,7 @@ public class SimulationController : MonoBehaviour
         BootstrapBackgroundTasks();
 
         // Register to EventHandlers
-        ResponseMessageEventHandler += onResponseMessageReceived;
+        MessageEventHandler += onMessageReceived;
         StepMessageEventHandler += onStepMessageReceived;
 
     }
@@ -253,6 +256,8 @@ public class SimulationController : MonoBehaviour
         //simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
         //UnityEngine.Debug.Log("SIMULATION: \n" + simulation);
 
+        Thread.SpinWait(5000);
+
         nickname = "Gandalfo";
         CommController.SubscribeTopic(nickname);
 
@@ -260,9 +265,6 @@ public class SimulationController : MonoBehaviour
 
         SendCheckStatus();
         SendConnect();
-        SendSimListRequest();
-        SendSimUpdate();
-        SendSimCommand(Command.PLAY, 0);
 
     }
     /// <summary>
@@ -282,7 +284,7 @@ public class SimulationController : MonoBehaviour
         CommController.StartControlClient();
         CommController.StartSimulationClient();
         StartStepQueueHandlerThread();
-        StartResponseQueueHandlerThread();
+        StartMessageQueueHandlerThread();
     }
 
     /// Queue Handlers
@@ -300,11 +302,11 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// Start messages handler
     /// </summary>
-    public void StartResponseQueueHandlerThread()
+    public void StartMessageQueueHandlerThread()
     {
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message Handler Thread started..");
-        ResponseQueueHandlerThread = new Thread(ResponseQueueHandler);
-        ResponseQueueHandlerThread.Start();
+        MessageQueueHandlerThread = new Thread(MessageQueueHandler);
+        MessageQueueHandlerThread.Start();
     }
 
     /// <summary>
@@ -319,10 +321,10 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// Stop messages handler
     /// </summary>
-    public void StopResponseQueueHandlerThread()
+    public void StopMessageQueueHandlerThread()
     {
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message Handler Thread stopped.");
-        ResponseQueueHandlerThread.Abort();
+        MessageQueueHandlerThread.Abort();
     }
 
     /// <summary>
@@ -370,28 +372,28 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// Handles messages from MASON
     /// </summary>
-    public void ResponseQueueHandler()
+    public void MessageQueueHandler()
     {
         JSONObject json_response, payload;
         MqttMsgPublishEventArgs msg;
         string sender, op;
-        while (CommController.responseMessageQueue == null) { }
+        while (CommController.messageQueue == null) { }
         while (true)
         {
-            if (CommController.responseMessageQueue.TryDequeue(out msg))
+            if (CommController.messageQueue.TryDequeue(out msg))
             {
                 json_response = (JSONObject)JSON.Parse(System.Text.Encoding.Unicode.GetString(Utils.DecompressStepPayload(msg.Message)));
                 sender = json_response["sender"];
                 op = json_response["op"];
                 payload = (JSONObject)json_response["payload"];
 
-                ResponseMessageEventArgs e = new ResponseMessageEventArgs();
+                ReceivedMessageEventArgs e = new ReceivedMessageEventArgs();
                 e.Msg = msg;
                 e.Sender = sender;
                 e.Op = op;
                 e.Payload = payload;
 
-                ResponseMessageEventHandler.Invoke(this, e);
+                MessageEventHandler.Invoke(this, e);
             }
         }
     }
@@ -502,7 +504,7 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// External Event Handles
     /// </summary>
-    public void onResponseMessageReceived(object sender, ResponseMessageEventArgs e)
+    public void onMessageReceived(object sender, ReceivedMessageEventArgs e)
     {
         switch (e.Op)
         {
@@ -540,7 +542,9 @@ public class SimulationController : MonoBehaviour
                         onClientErrorResponse(e);
                         break;
                 }
-
+                break;
+            case "008": // new_admin
+                onNewAdmin(e);
                 break;
             case "998": // error
                 
@@ -559,7 +563,15 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// Derivate Event Handles
     /// </summary>
-    private void onCheckStatusResponse(ResponseMessageEventArgs e)
+    private void onNewAdmin(ReceivedMessageEventArgs e)
+    {
+        string new_admin = e.Payload["new_admin"];
+
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | NEW_ADMIN MESSAGE RECEIVED. | " + (nickname.Equals(new_admin) ? "You are" : new_admin + " is") + " the new room admin.");
+
+        //OnNewAdminEventHandler.Invoke(this, e);
+    }
+    private void onCheckStatusResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
@@ -569,7 +581,7 @@ public class SimulationController : MonoBehaviour
         //else OnCheckStatusUnsuccessEventHandler.Invoke(this, e);
 
     }
-    private void onConnectionResponse(ResponseMessageEventArgs e)
+    private void onConnectionResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
@@ -580,7 +592,7 @@ public class SimulationController : MonoBehaviour
         //else OnConnectionUnsuccessEventHandler.Invoke(this, e);
 
     }
-    private void onDisconnectionResponse(ResponseMessageEventArgs e)
+    private void onDisconnectionResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
@@ -591,22 +603,22 @@ public class SimulationController : MonoBehaviour
         //else OnDisconnectionUnsuccessEventHandler.Invoke(this, e);
 
     }
-    private void onSimListResponse(ResponseMessageEventArgs e)
+    private void onSimListResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
-        sim_prototypes_list = result ? (JSONArray)((JSONObject)e.Payload["payload_data"])["sim_list"] : new JSONArray();
+        if(result) sim_prototypes_list = result ? (JSONArray)((JSONObject)e.Payload["payload_data"])["sim_list"] : new JSONArray();
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Prototypes list " + (result ? "successfully" : "unsuccessfully") + " received from " + e.Sender + ".");
 
         //if (result) OnSimListSuccessEventHandler.Invoke(this, e);
         //else OnSimListUnsuccessEventHandler.Invoke(this, e);
 
     }
-    private void onSimInitResponse(ResponseMessageEventArgs e)
+    private void onSimInitResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
-        if (result)
+        if (result) { }
         // TODO simulation.InitSimulationFromPrototype(SceneController.sim_edited_prototype);
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
 
@@ -614,7 +626,7 @@ public class SimulationController : MonoBehaviour
         //else OnSimInitUnsuccessEventHandler.Invoke(this, e);
 
     }
-    private void onSimUpdateResponse(ResponseMessageEventArgs e)
+    private void onSimUpdateResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
@@ -625,14 +637,16 @@ public class SimulationController : MonoBehaviour
             uncommitted_updates.Clear();
         }
         else
+        {
             // TODO retry
+        }
 
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Update " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
 
         //if (result) OnSimUpdateSuccessEventHandler.Invoke(this, e);
         //else OnSimUpdateUnsuccessEventHandler.Invoke(this, e);
     }
-    private void onSimCommandResponse(ResponseMessageEventArgs e)
+    private void onSimCommandResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
         JSONObject pd = (JSONObject)e.Payload["payload_data"];
@@ -654,7 +668,7 @@ public class SimulationController : MonoBehaviour
         //if (result) OnSimCommandSuccessEventHandler.Invoke(this, e);
         //else OnSimCommandUnsuccessEventHandler.Invoke(this, e);
     }
-    private void onClientErrorResponse(ResponseMessageEventArgs e)
+    private void onClientErrorResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
@@ -664,7 +678,6 @@ public class SimulationController : MonoBehaviour
         //else OnClientErrorUnsuccessEventHandler.Invoke(this, e);
 
     }
-
 
     /// Store Methods
 
@@ -1118,7 +1131,7 @@ public class SimulationController : MonoBehaviour
         SendDisconnect();
         CommController.DisconnectControlClient();
         CommController.DisconnectSimulationClient();
-        StopResponseQueueHandlerThread();
+        StopMessageQueueHandlerThread();
         StopStepQueueHandlerThread();
         // Stop Performance Thread
     }

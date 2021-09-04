@@ -8,7 +8,7 @@ using System;
 public class CommunicationController
 {
     /// QUEUES ///
-    public ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
+    public ConcurrentQueue<MqttMsgPublishEventArgs> messageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
     public ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
     private SortedList<long, byte[]> secondaryQueue = new SortedList<long, byte[]>();
 
@@ -22,7 +22,7 @@ public class CommunicationController
     private Thread simClientThread;
 
     /// ACCESS METHODS ///
-    public ConcurrentQueue<MqttMsgPublishEventArgs> ResponseMessageQueue { get => responseMessageQueue; set => responseMessageQueue = value; }
+    public ConcurrentQueue<MqttMsgPublishEventArgs> MessageQueue { get => messageQueue; set => messageQueue = value; }
     public ConcurrentQueue<MqttMsgPublishEventArgs> SimMessageQueue { get => simMessageQueue; set => simMessageQueue = value; }
     public SortedList<long, byte[]> SecondaryQueue { get => secondaryQueue; set => secondaryQueue = value; }
     public bool SIM_CLIENT_READY { get => sim_client_ready; set => sim_client_ready = value; }
@@ -47,7 +47,7 @@ public class CommunicationController
     public void StartControlClient()
     {
         // Start MQTT Clients
-        controlClientThread = new Thread(() => controlClient.Connect(ref responseMessageQueue, out control_client_ready));
+        controlClientThread = new Thread(() => controlClient.Connect(ref messageQueue, out control_client_ready));
         controlClientThread.Start();
     }
 
