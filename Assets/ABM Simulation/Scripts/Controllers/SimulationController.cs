@@ -119,7 +119,7 @@ public class SimulationController : MonoBehaviour
 
     /// State
     private JSONArray sim_prototypes_list = new JSONArray();
-    private int sim_id;
+    private int sim_id = 0;
     private Simulation simulation = new Simulation();
     private StateEnum state = StateEnum.NOT_READY;
     public enum StateEnum 
@@ -388,7 +388,6 @@ public class SimulationController : MonoBehaviour
         switch (command)
         {
             case Command.STEP:
-                // TODO
                 break;
             case Command.PLAY:
                 simulation.State = Simulation.StateEnum.PLAY;
@@ -517,7 +516,7 @@ public class SimulationController : MonoBehaviour
     {
         //try
         //{
-            simulation.UpdateSimulationFromStep(e.Step, (JSONObject)sim_prototypes_list[0]);
+            simulation.UpdateSimulationFromStep(e.Step, (JSONObject)sim_prototypes_list[sim_id]);
         //}
         //catch (Exception ex)
         //{
@@ -580,7 +579,7 @@ public class SimulationController : MonoBehaviour
         if(result) sim_prototypes_list = result ? (JSONArray)((JSONObject)e.Payload["payload_data"])["list"] : new JSONArray();
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Prototypes list " + (result ? "successfully" : "unsuccessfully") + " received from " + e.Sender + ".");
 
-        SendSimInitialize((JSONObject)sim_prototypes_list[0]);              // DA CANCELLARE
+        SendSimInitialize((JSONObject)sim_prototypes_list[sim_id]);              // DA CANCELLARE
 
         if (result) OnSimListSuccessEventHandler?.Invoke(this, e);
         else OnSimListUnsuccessEventHandler?.Invoke(this, e);
@@ -593,7 +592,7 @@ public class SimulationController : MonoBehaviour
         if (result) { }
 
         // TODO MOMENTANEO
-        simulation.InitSimulationFromPrototype((JSONObject) sim_prototypes_list[0]);
+        simulation.InitSimulationFromPrototype((JSONObject) sim_prototypes_list[sim_id]);
 
         while(simulation.state != Simulation.StateEnum.READY) { }
 
@@ -632,7 +631,7 @@ public class SimulationController : MonoBehaviour
         }
         else
         {
-            // TODO retry
+            // TODO ERROR + QUIT
         }
 
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Update " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
