@@ -7,11 +7,6 @@ using System.Linq;
 
 public class Utils
 {
-    /// Decompression/Deserialize Streams/Readers
-    private static MemoryStream decompress_inputStream;
-    private static MemoryStream deserialize_inputStream;
-    private static BinaryReader deserialize_binaryReader;
-    private static GZipStream gZipStream;
 
     /// <summary>
     /// Gets Step id from Step Message payload
@@ -20,23 +15,13 @@ public class Utils
     {
 
         // Prepare Binary Stream of Gzipped payload
-        decompress_inputStream = new MemoryStream(payload);
-        gZipStream = new GZipStream(decompress_inputStream, CompressionMode.Decompress);
-        deserialize_binaryReader = new BinaryReader(gZipStream);
-
-        long id = deserialize_binaryReader.ReadInt64();
-
-        gZipStream.Flush();
-        gZipStream.Dispose();
-        gZipStream.Close();
-        decompress_inputStream.Flush();
-        decompress_inputStream.Dispose();
-        decompress_inputStream.Close();
-        deserialize_binaryReader.Dispose();
-        deserialize_binaryReader.Close();
-
-
-        return id;
+        using (MemoryStream decompress_inputStream = new MemoryStream(payload))
+        using (GZipStream gZipStream = new GZipStream(decompress_inputStream, CompressionMode.Decompress))
+        using (BinaryReader deserialize_binaryReader = new BinaryReader(gZipStream))
+        {
+            long id = BitConverter.ToInt64(deserialize_binaryReader.ReadBytes(8).Reverse().ToArray(), 0);
+            return id;
+        }
     }
 
     /// <summary>
@@ -45,26 +30,18 @@ public class Utils
     public static byte[] DecompressStepPayload(byte[] payload)
     {
         // Prepare Binary Stream of Gzipped payload
-        decompress_inputStream = new MemoryStream(payload);
-        gZipStream = new GZipStream(decompress_inputStream, CompressionMode.Decompress);
-        deserialize_binaryReader = new BinaryReader(gZipStream);
         byte[] uncompressedPayload;
+
+        using (MemoryStream decompress_inputStream = new MemoryStream(payload))
         using (MemoryStream ms = new MemoryStream())
+        using (GZipStream gZipStream = new GZipStream(decompress_inputStream, CompressionMode.Decompress))
+        using (BinaryReader deserialize_binaryReader = new BinaryReader(gZipStream))
         {
             gZipStream.CopyTo(ms);
             uncompressedPayload = ms.ToArray();
+            return uncompressedPayload;
         }
 
-        gZipStream.Flush();
-        gZipStream.Dispose();
-        gZipStream.Close();
-        decompress_inputStream.Flush();
-        decompress_inputStream.Dispose();
-        decompress_inputStream.Close();
-        deserialize_binaryReader.Dispose();
-        deserialize_binaryReader.Close();
-
-        return uncompressedPayload;
     }
 
     /// <summary>

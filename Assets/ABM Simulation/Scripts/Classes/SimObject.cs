@@ -26,10 +26,7 @@ public class SimObject
         this.Id = id;
         this.Parameters = parameters;
     }
-    public SimObject()
-    {
-
-    }
+    public SimObject() {}
     public SimObject(string class_name)
     {
         Class_name = class_name;
@@ -70,6 +67,6 @@ public class SimObject
     }
     public override string ToString()
     {
-        return "{Type: " + type + "| Class: " + class_name + "| Id: " + id + "| Params: " + string.Join("  ", parameters) + "}";
+        return "{Type: " + type + " | Class: " + class_name + " | Id: " + id + " | Params: " + string.Join("  ", parameters) + "}";
     }
 }

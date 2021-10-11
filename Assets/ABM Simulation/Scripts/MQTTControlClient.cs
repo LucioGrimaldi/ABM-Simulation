@@ -13,7 +13,7 @@ public class MQTTControlClient
 {
     [Header("MQTT broker configuration")]
     [Tooltip("IP addres or URL of host running the broker")]
-    private string brokerAddress = "193.205.161.52"; //isislab = 193.205.161.52  pietro = 87.11.194.30
+    private string brokerAddress = "193.205.161.52"; //isislab = 193.205.161.52
     [Tooltip("Port where the broker accepts connections")]
     private int brokerPort = 1883;
     [Tooltip("Use encrypted connection")]

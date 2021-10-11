@@ -6,7 +6,7 @@ using System.Linq;
 
 public class Simulation
 {
-    //Simulation Info
+    //Simulation data
     public string name, description;
     public SimTypeEnum type;
     public int id;
@@ -15,33 +15,20 @@ public class Simulation
     public Dictionary<string, SimObject> generic_prototypes = new Dictionary<string, SimObject>();
     public Dictionary<string, dynamic> parameters = new Dictionary<string, dynamic>();
     public List<string> editableInPlay = new List<string>();
+    public List<string> editableInInit = new List<string>();
     public List<string> editableInPause = new List<string>();
 
     public enum SimTypeEnum
     {
-        DISCRETE = 1,
-        CONTINUOUS = 2
+        CONTINUOUS = 0,
+        DISCRETE = 1
     }
-
-
-    // Runtime Info
-    public StateEnum state = StateEnum.NOT_READY;
-    public SpeedEnum speed = SpeedEnum.X1;
-    public long currentSimStep = 0;
-    public Dictionary<string,int> n_agents_for_each_class = new Dictionary<string, int>();
-    public Dictionary<string,int> n_generics_for_each_class = new Dictionary<string, int>();
-    public Dictionary<(string class_name, int id), SimObject> agents = new Dictionary<(string, int), SimObject>();
-    public Dictionary<(string class_name, int id), SimObject> generics = new Dictionary<(string, int), SimObject>();
-    public Dictionary<(string class_name, int id), SimObject> obstacles = new Dictionary<(string, int), SimObject>();
-
     public enum StateEnum
     {
-        NOT_READY = 0,
-        READY = 1,
-        PLAY = 2,
-        PAUSE = 3,
-        STOP = 4,
-        ERROR = 5
+        NOT_READY = -1,
+        READY = 0,
+        PLAY = 1,
+        PAUSE = 2
     }
     public enum SpeedEnum
     {
@@ -51,6 +38,16 @@ public class Simulation
         X2,
         MAX
     }
+
+    // Runtime data
+    public StateEnum state = StateEnum.NOT_READY;
+    public SpeedEnum speed = SpeedEnum.X1;
+    public long currentSimStep = 0;
+    public Dictionary<string,int> n_agents_for_each_class = new Dictionary<string, int>();
+    public Dictionary<string,int> n_generics_for_each_class = new Dictionary<string, int>();
+    public Dictionary<(string class_name, int id), SimObject> agents = new Dictionary<(string, int), SimObject>();
+    public Dictionary<(string class_name, int id), SimObject> generics = new Dictionary<(string, int), SimObject>();
+    public Dictionary<(string class_name, int id), SimObject> obstacles = new Dictionary<(string, int), SimObject>();
 
     public string Name { get => name; set => name = value; }
     public string Description { get => description; set => description = value; }
@@ -63,6 +60,7 @@ public class Simulation
     public Dictionary<string, dynamic> Parameters { get => parameters; set => parameters = value; }
     public int Id { get => id; set => id = value; }
     public List<string> EditableInPlay { get => editableInPlay; set => editableInPlay = value; }
+    public List<string> EditableInInit { get => editableInInit; set => editableInInit = value; }
     public List<string> EditableInPause { get => editableInPause; set => editableInPause = value; }
     public long CurrentSimStep { get => currentSimStep; set => currentSimStep = value; }
     public Dictionary<string, int> N_agents_for_each_class { get => n_agents_for_each_class; set => n_agents_for_each_class = value; }
@@ -220,8 +218,13 @@ public class Simulation
             }
             AddParameter(p["name"], value);
             if ((bool)p["editable_in_play"])
+
             {
                 EditableInPlay.Add(p["name"]);
+            }
+            if ((bool)p["editable_in_init"])
+            {
+                EditableInInit.Add(p["name"]);
             }
             if ((bool)p["editable_in_pause"])
             {
@@ -259,12 +262,12 @@ public class Simulation
                         value = new MyList<(string, float)>();
                         foreach (string dimension in Dimensions.Keys)
                         {
-                            value.Add((dimension, (float)p["position"][dimension]));
+                            value.Add((dimension, (float)p["default"][dimension]));
                         }
                         break;
                     case "System.Cells":
                         value = new MyList<MyList<(string, int)>>();
-                        foreach (JSONNode c in (JSONArray)p["cells"])
+                        foreach (JSONNode c in (JSONArray)p["default"])
                         {
                             var coordinates = new MyList<(string, int)>();
                             foreach (string dimension in Dimensions.Keys)
@@ -282,6 +285,10 @@ public class Simulation
                 if ((bool)p["editable_in_play"])
                 {
                     EditableInPlay.Add(p["name"]);
+                }
+                if ((bool)p["editable_in_init"])
+                {
+                    EditableInInit.Add(p["name"]);
                 }
                 if ((bool)p["editable_in_pause"])
                 {
@@ -318,12 +325,12 @@ public class Simulation
                         value = new MyList<(string, float)>();
                         foreach (string dimension in Dimensions.Keys)
                         {
-                            value.Add((dimension, (float)p["position"][dimension]));
+                            value.Add((dimension, (float)p["default"][dimension]));
                         }
                         break;
                     case "System.Cells":
                         value = new MyList<MyList<(string, int)>>();
-                        foreach (JSONNode c in (JSONArray)p["cells"])
+                        foreach (JSONNode c in (JSONArray)p["default"])
                         {
                             var coordinates = new MyList<(string, int)>();
                             foreach (string dimension in Dimensions.Keys)
@@ -341,6 +348,10 @@ public class Simulation
                 if ((bool)p["editable_in_play"])
                 {
                     EditableInPlay.Add(p["name"]);
+                }
+                if ((bool)p["editable_in_init"])
+                {
+                    EditableInInit.Add(p["name"]);
                 }
                 if ((bool)p["editable_in_pause"])
                 {
@@ -374,6 +385,8 @@ public class Simulation
             }
         }
 
+        state = StateEnum.READY;
+        UnityEngine.Debug.Log("SIMULATION UPDATED FROM PROTOTYPE: " + this.ToString());
     }
 
     /// <summary>
@@ -384,128 +397,172 @@ public class Simulation
         // variabili
         byte[] decompressed_step = Utils.DecompressStepPayload(step);
         SimObject x = new SimObject();
-        MyList<(string, float)> coords = new MyList<(string, float)>();
-
-
+        bool is_discrete = sim_prototype["type"].Equals("DISCRETE");
+        List<List<(string, string)>> parameters;
 
         List<string> agent_class_names = new Func<List<string>>(() => {
             List<string> array = new List<string>();
-            foreach (JSONObject p in (JSONArray)sim_prototype["agent_prototypes"])
+            foreach (JSONObject p in ((JSONArray)sim_prototype["agent_prototypes"]).Linq.Where((o) => (bool)((JSONObject)o)["is_in_step"]))
             {
-                array.Add(p["name"]);
+                array.Add(p["class"]);
             }
             return array;
-        })();                                     // nomi delle classi degli agenti
+        })();                                                                                   // nomi delle classi degli agenti
         List<string> generic_class_names = new Func<List<string>>(() => {
             List<string> array = new List<string>();
-            foreach (JSONObject p in (JSONArray)sim_prototype["generic_prototypes"])
+            foreach (JSONObject p in ((JSONArray)sim_prototype["generic_prototypes"]).Linq.Where((o) => (bool)((JSONObject)o)["is_in_step"]))
             {
-                array.Add(p["name"]);
+                array.Add(p["class"]);
             }
             return array;
-        })();                                   // nomi delle classi degli oggetti
+        })();                                                                                 // nomi delle classi degli oggetti nello step
         List<List<(string, string)>> agent_params_for_each_class =
             new Func<List<List<(string, string)>>>(() => {
                 List<List<(string, string)>> array = new List<List<(string, string)>>();
-                for (int i = 0; i < ((JSONArray)sim_prototype["agent_prototypes"]).Count; i++)
+                for (int i = 0; i < agent_class_names.Count; i++)
                 {
-                    JSONObject c = (JSONObject)((JSONArray)sim_prototype["agent_prototypes"])[i];
+                    JSONObject c = (JSONObject)((JSONArray)sim_prototype["agent_prototypes"]).Linq.Where((o) => (bool)((JSONObject)o)["is_in_step"]).ElementAt(i);
                     array.Add(new List<(string, string)>());
-                    foreach (JSONObject p in c["params"] as JSONArray)
+                    foreach (JSONObject p in ((JSONArray)c["params"]))
                     {
                         array[i].Add((p["name"], p["type"]));
                     }
                 }
                 return array;
-            })();                                             // (nome_param, tipo_param) per ogni parametro per ogni classe di agente 
+            })();                                                                                                // (nome_param, tipo_param) per ogni parametro per ogni classe di agente nello step
         List<List<(string, string)>> generic_params_for_each_class =
             new Func<List<List<(string, string)>>>(() =>
             {
                 List<List<(string, string)>> array = new List<List<(string, string)>>();
-                for (int i = 0; i < ((JSONArray)sim_prototype["generic_prototypes"]).Count; i++)
+                for (int i = 0; i < generic_class_names.Count; i++)
                 {
-                    JSONObject c = (JSONObject)((JSONArray)sim_prototype["generic_prototypes"])[i];
+                    JSONObject c = (JSONObject)((JSONArray)sim_prototype["generic_prototypes"]).Linq.Where((o) => (bool)((JSONObject)o)["is_in_step"]).ElementAt(i);
                     array.Add(new List<(string, string)>());
-                    foreach (JSONObject p in c["params"] as JSONArray)
+                    foreach (JSONObject p in ((JSONArray)c["params"]))
                     {
                         array[i].Add((p["name"], p["type"]));
                     }
                 }
                 return array;
-            })();                                              // (nome_param, tipo_param) per ogni parametro per ogni classe di oggetto 
-        int n_agents_classes = ((JSONArray)sim_prototype["agent_prototypes"]).Count;                              // numero di classi di agenti aggiornati nello step
-        int[] n_agents_for_each_class = new int[n_agents_classes];                                                // numero di agenti di ogni classe presenti nello step
-        int n_generic_classes = ((JSONArray)sim_prototype["generic_prototypes"]).Count;                           // numero di classi di oggetti aggiornati nello step
-        int[] n_objects_for_each_class = new int[n_generic_classes];                                              // numero di oggetti di ogni classe presenti nello step
+            })();                                                                                                 // (nome_param, tipo_param) per ogni parametro per ogni classe di oggetto nello step
+        List<List<(string, string)>> d_agent_params_for_each_class =
+            new Func<List<List<(string, string)>>>(() => {
+                List<List<(string, string)>> array = new List<List<(string, string)>>();
+                for (int i = 0; i < agent_class_names.Count; i++)
+                {
+                    JSONObject c = (JSONObject)((JSONArray)sim_prototype["agent_prototypes"]).Linq.Where((o) => (bool)((JSONObject)o)["is_in_step"]).ElementAt(i);
+                    array.Add(new List<(string, string)>());
+                    foreach (JSONObject p in ((JSONArray)c["params"]).Linq.Where((o) => (bool)((JSONObject)o)["is_in_step"]))
+                    {
+                        array[i].Add((p["name"], p["type"]));
+                    }
+                }
+                return array;
+            })();                                                                                                // (nome_param, tipo_param) per ogni parametro nello step per ogni classe di agente nello step
+        List<List<(string, string)>> d_generic_params_for_each_class =
+            new Func<List<List<(string, string)>>>(() =>
+            {
+                List<List<(string, string)>> array = new List<List<(string, string)>>();
+                for (int i = 0; i < generic_class_names.Count; i++)
+                {
+                    JSONObject c = (JSONObject)((JSONArray)sim_prototype["generic_prototypes"]).Linq.Where((o) => (bool)((JSONObject)o)["is_in_step"]).ElementAt(i);
+                    array.Add(new List<(string, string)>());
+                    foreach (JSONObject p in ((JSONArray)c["params"]).Linq.Where((o) => (bool)((JSONObject)o)["is_in_step"]))
+                    {
+                        array[i].Add((p["name"], p["type"]));
+                    }
+                }
+                return array;
+            })();                                                                                                 // (nome_param, tipo_param) per ogni parametro nello step per ogni classe di oggetto nello step
+        int n_agents_classes = ((JSONArray)sim_prototype["agent_prototypes"]).Linq.Where((o) => (bool)((JSONObject)o)["is_in_step"]).Count();                   // numero di classi di agenti aggiornati nello step
+        int[] n_agents_for_each_class = new int[n_agents_classes];                                                                                              // numero di agenti di ogni classe presenti nello step
+        int n_generic_classes = ((JSONArray)sim_prototype["generic_prototypes"]).Linq.Where((o) => (bool)((JSONObject) o)["is_in_step"]).Count();               // numero di classi di oggetti aggiornati nello step
+        int[] n_objects_for_each_class = new int[n_generic_classes];                                                                                            // numero di oggetti di ogni classe presenti nello step
         List<char> dimensions = new Func<List<char>>(() => {
             List<char> array = new List<char>();
             foreach (JSONObject d in (JSONArray)sim_prototype["dimensions"])
             {
-                UnityEngine.Debug.Log(d["name"].ToString());
                 array.Add(d["name"].ToString()[1]);
             }
             return array;
-        })();                                                // dimensioni della sim come una lista di char (es. ['x', 'y', 'z'])
+        })();                                                                                              // dimensioni della sim come una lista di char (es. ['x', 'y', 'z'])
 
         // creo stream e reader per leggere lo step
         MemoryStream deserialize_inputStream = new MemoryStream(decompressed_step);
         BinaryReader deserialize_binaryReader = new BinaryReader(deserialize_inputStream);
 
         // estraggo l'ID
-        Id = deserialize_binaryReader.ReadInt32();
+        CurrentSimStep = BitConverter.ToInt64(deserialize_binaryReader.ReadBytes(8).Reverse().ToArray(), 0);
         // estraggo il numero di agenti per classe presenti nello step
         for (int i = 0; i < n_agents_classes; i++)
         {
-            n_agents_for_each_class[i] = deserialize_binaryReader.ReadInt32();
+            n_agents_for_each_class[i] = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
         }
         // estraggo il numero di oggetti per classe presenti nello step
         for (int i = 0; i < n_generic_classes; i++)
         {
-            n_objects_for_each_class[i] = deserialize_binaryReader.ReadInt32();
+            n_objects_for_each_class[i] = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
         }
 
         // AGENTI
         // estraggo ogni agente per classe
-        for (int i = 0; i < n_agents_classes; i++)                              // i è la classe
+        for (int i = 0; i < n_agents_classes; i++)                                                                  // i è la classe
         {
             int n_agents_of_a_class = n_agents_for_each_class[i];
 
-            if (n_agents_of_a_class == 0) { continue; }                                                            //se non ci sono elementi di quella classe è inutile continuare
+            if (n_agents_of_a_class == 0) { continue; }                                                             //se non ci sono elementi di quella classe è inutile continuare
 
-            for (int j = 0; j < n_agents_of_a_class; j++)                       // j è l'agente
+            for (int j = 0; j < n_agents_of_a_class; j++)                                                           // j è l'agente
             {
-                Agents.TryGetValue((agent_class_names[i], deserialize_binaryReader.ReadInt32()), out x);
-
-                // position
-                foreach (char d in "xyz")
+                parameters = d_agent_params_for_each_class;
+                int id = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                Agents.TryGetValue((agent_class_names[i], id), out x);                                              
+                if (x == null)                                                                                      // l'agente è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non dynamic
                 {
-                    if (dimensions.Contains(d))
-                    {
-                        coords.Add((d + "", deserialize_binaryReader.ReadSingle()));
-                    }
-                    else
-                    {
-                        coords.Add((d + "", 0f));
-                    }
-                }
-                x.UpdateParameter("position", coords);
+                    Agent_prototypes.TryGetValue(agent_class_names[i], out SimObject g);
+                    
+                    x = g.Clone();
+                    x.Type = SimObject.SimObjectType.AGENT;
+                    x.Class_name = agent_class_names[i];
+                    x.Id = id;
+                    AddAgent(x);
 
-                // other params
-                foreach ((string, string) p in agent_params_for_each_class[i])
+                    // to get all params
+                    parameters = agent_params_for_each_class;
+                }
+                
+                // all/dynamic params
+                foreach ((string, string) p in parameters[i])
                 {
                     switch (p.Item2)
                     {
+                        case "System.Position":
+                        case "System.Cells":
+                            MyList<(string, float)> coords = new MyList<(string, float)>();
+                            foreach (char d in "xyz")
+                            {
+                                if (dimensions.Contains(d))
+                                {
+                                    coords.Add((d + "", is_discrete ? BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0) : BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0)));
+                                }
+                                else
+                                {
+                                    coords.Add((d + "", 0f));
+                                }
+                            }
+                            x.UpdateParameter("position", coords);
+                            break;
                         case "System.Single":
-                            x.UpdateParameter(p.Item1, deserialize_binaryReader.ReadSingle());
+                            x.UpdateParameter(p.Item1, BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
                             break;
                         case "System.Int32":
-                            x.UpdateParameter(p.Item1, deserialize_binaryReader.ReadInt32());
+                            x.UpdateParameter(p.Item1, BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
                             break;
                         case "System.Boolean":
-                            x.UpdateParameter(p.Item1, deserialize_binaryReader.ReadBoolean());
+                            x.UpdateParameter(p.Item1, BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0));
                             break;
                         case "System.String":
-                            x.UpdateParameter(p.Item1, deserialize_binaryReader.ReadString());
+                            x.UpdateParameter(p.Item1, BitConverter.ToString(deserialize_binaryReader.ReadBytes(20).Reverse().ToArray(), 0));
                             break;
                     }
                 }
@@ -514,52 +571,72 @@ public class Simulation
 
         // OGGETTI
         // estraggo ogni oggetto per classe
-        for (int i = 0; i < n_objects_for_each_class.Length; i++)                // i è la classe
+        for (int i = 0; i < n_objects_for_each_class.Length; i++)                                                   // i è la classe
         {
             int n_objects_of_a_class = n_objects_for_each_class[i];
 
             if (n_objects_of_a_class == 0) { continue; }                                                            //se non ci sono elementi di quella classe è inutile continuare
 
-            for (int j = 0; j < n_objects_of_a_class; j++)                       // j è l'oggetto
+            for (int j = 0; j < n_objects_of_a_class; j++)                                                          // j è l'oggetto
             {
-
-                Agents.TryGetValue((generic_class_names[i], deserialize_binaryReader.ReadInt32()), out x);
-
-                // position
-                foreach (char d in "xyz")
+                parameters = d_generic_params_for_each_class;
+                int id = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                Generics.TryGetValue((generic_class_names[i], id), out x);                                          
+                if (x == null)                                                                                      // l'oggetto è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non dynamic
                 {
-                    if (dimensions.Contains(d))
-                    {
-                        coords.Add((d + "", deserialize_binaryReader.ReadSingle()));
-                    }
-                    else
-                    {
-                        coords.Add((d + "", 0f));
-                    }
-                }
-                x.UpdateParameter("position", coords);
+                    Generic_prototypes.TryGetValue(generic_class_names[i], out SimObject g);
 
-                // other params
-                foreach ((string, string) p in generic_params_for_each_class[i])
+                    x = g.Clone();
+                    x.Type = SimObject.SimObjectType.GENERIC;
+                    x.Class_name = generic_class_names[i];
+                    x.Id = id;
+                    AddGeneric(x);
+
+                    // to get all params
+                    parameters = generic_params_for_each_class;
+                }
+
+                // dynamic params
+                foreach ((string, string) p in parameters[i])
                 {
                     switch (p.Item2)
                     {
+                        case "System.Position":
+                        case "System.Cells":
+                            MyList<(string, float)> coords = new MyList<(string, float)>();
+                            foreach (char d in "xyz")
+                            {
+                                if (dimensions.Contains(d))
+                                {
+                                    coords.Add((d + "", is_discrete ? BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0) : BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0)));
+                                }
+                                else
+                                {
+                                    coords.Add((d + "", 0f));
+                                }
+                            }
+                            x.UpdateParameter("position", coords);
+                            break;
                         case "System.Single":
-                            x.UpdateParameter(p.Item1, deserialize_binaryReader.ReadSingle());
+                            x.UpdateParameter(p.Item1, BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
                             break;
                         case "System.Int32":
-                            x.UpdateParameter(p.Item1, deserialize_binaryReader.ReadInt32());
+                            x.UpdateParameter(p.Item1, BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
                             break;
                         case "System.Boolean":
-                            x.UpdateParameter(p.Item1, deserialize_binaryReader.ReadBoolean());
+                            x.UpdateParameter(p.Item1, BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0));
                             break;
                         case "System.String":
-                            x.UpdateParameter(p.Item1, deserialize_binaryReader.ReadString());
+                            x.UpdateParameter(p.Item1, BitConverter.ToString(deserialize_binaryReader.ReadBytes(20).Reverse().ToArray(), 0));
                             break;
                     }
                 }
             }
         }
+
+
+        UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP: \n" + this.ToString());
+
     }
 
     /// <summary>
@@ -655,18 +732,19 @@ public class Simulation
         return
             
             "ID: " + id + "\n" + "" +
-            "Name: " + name + "\n" +
-            "Description: " + description + "\n" +
-            "Type: " + type + "\n" +
-            "Dimensions: " + string.Join("  ", dimensions) + "\n" +
-            "Current sim step: " + currentSimStep.ToString() + "\n" +
-            "Agent Prototypes: " + string.Join("  ", Agent_prototypes) + "\n" +
-            "Generic Prototypes: " + string.Join("  ", Generic_prototypes) + "\n" +
-            "Agents: " + string.Join("  ", agents) + "\n" +
-            "Generics: " + string.Join("  ", generics) + "\n" +
-            "Obstacles: " + string.Join("  ", obstacles) + "\n" +
-            "Sim params: " + string.Join("  ", parameters) + "\n" +
-            "Editable in play: " + string.Join("  ", editableInPlay) + "\n" +
-            "Editable in pause: " + string.Join("  ", editableInPause) + "\n";
+            "NAME: " + name + "\n" +
+            "DESCRIPTION: " + description + "\n" +
+            "TYPE: " + type + "\n" +
+            "DIMENSIONS: " + string.Join("  ", dimensions) + "\n" +
+            "SIM PARAMS: \n" + string.Join("\n", parameters) + "\n" +
+            "AGENTS PROTOTYPES: \n" + string.Join("\n", Agent_prototypes) + "\n" +
+            "GENERICS PROTOTYPES: \n" + string.Join("\n", Generic_prototypes) + "\n" +
+            "editable_in_play: " + string.Join("  ", editableInPlay) + "\n" +
+            "editable_in_init: " + string.Join("  ", editableInInit) + "\n" +
+            "editable_in_pause: " + string.Join("  ", editableInPause) + "\n" + "\n" +
+            "CURRENT SIM STEP: " + currentSimStep.ToString() + "\n" +
+            "AGENTS: \n" + string.Join("\n", agents) + "\n" +
+            "GENERICS: \n" + string.Join("\n", generics) + "\n" +
+            "OBSTACLES: \n" + string.Join("\n", obstacles) + "\n";
     }
 }
