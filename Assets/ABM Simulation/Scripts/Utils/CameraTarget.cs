@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+//Muove con freccie
 public class CameraTarget : MonoBehaviour {
 
     public enum Axis {
@@ -48,15 +49,15 @@ public class CameraTarget : MonoBehaviour {
                 moveDir = new Vector3(moveX, moveY).normalized;
                 break;
         }
-        
-        //if (moveX != 0 || moveY != 0)
-        //{
-        //    // Not idle
-        //}
+
+        if (moveX != 0 || moveY != 0)
+        {
+            // Not idle
+        }
 
         if (axis == Axis.XZ)
         {
-            moveDir = UtilsClass.ApplyRotationToVectorXZ(moveDir, 30f);
+            moveDir = UtilsClass.ApplyRotationToVectorXZ(moveDir, 0f); //angolo rotazione in float +30
         }
 
         transform.position += moveDir * moveSpeed * Time.deltaTime;

@@ -88,22 +88,22 @@ public class SimulationController : MonoBehaviour
     public event EventHandler<ReceivedMessageEventArgs> OnNewAdminEventHandler;
 
     /// Responses
-    public event EventHandler<ReceivedMessageEventArgs> OnCheckStatusSuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnCheckStatusUnsuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnConnectionSuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnConnectionUnsuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnDisonnectionSuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnDisconnectionUnsuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnSimListSuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnSimListUnsuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnSimInitSuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnSimInitUnsuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnSimUpdateSuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnSimUpdateUnsuccessEventHandler; 
-    public event EventHandler<ReceivedMessageEventArgs> OnSimCommandSuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnSimCommandUnsuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnClientErrorSuccessEventHandler;
-    public event EventHandler<ReceivedMessageEventArgs> OnClientErrorUnsuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnCheckStatusSuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnCheckStatusUnsuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnConnectionSuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnConnectionUnsuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnDisonnectionSuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnDisconnectionUnsuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnSimListSuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnSimListUnsuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnSimInitSuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnSimInitUnsuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnSimUpdateSuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnSimUpdateUnsuccessEventHandler; 
+    public static event EventHandler<ReceivedMessageEventArgs> OnSimCommandSuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnSimCommandUnsuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnClientErrorSuccessEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnClientErrorUnsuccessEventHandler;
 
     /// MANAGERS ///
     ConnectionManager ConnManager;
@@ -118,8 +118,8 @@ public class SimulationController : MonoBehaviour
     /// SIM-RELATED VARIABLES ///
 
     /// State
-    private JSONArray sim_prototypes_list = new JSONArray();
-    private int sim_id = 0;
+    public static JSONArray sim_prototypes_list = new JSONArray();
+    public static int sim_id = 0;
     private Simulation simulation = new Simulation();
     private StateEnum state = StateEnum.NOT_READY;
     public enum StateEnum 
@@ -535,7 +535,7 @@ public class SimulationController : MonoBehaviour
 
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | NEW_ADMIN MESSAGE RECEIVED. | " + (nickname.Equals(new_admin) ? "You are" : new_admin + " is") + " the new room admin.");
 
-        //OnNewAdminEventHandler.Invoke(this, e);
+        OnNewAdminEventHandler?.Invoke(this, e);
     }
     private void onCheckStatusResponse(ReceivedMessageEventArgs e)
     {

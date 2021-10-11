@@ -13,6 +13,8 @@ TagManager:
   - PlayTag
   - PauseTag
   - StopTag
+  - Unselectable
+  - Environment
   layers:
   - Default
   - TransparentFX

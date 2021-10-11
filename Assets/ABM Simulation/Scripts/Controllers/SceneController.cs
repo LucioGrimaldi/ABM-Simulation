@@ -1,76 +1,70 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.UI;
 public class SceneController : MonoBehaviour
 {
+    private static int widthlenght = 10; //Default 10x10
+    private static int scaleFactor = widthlenght / 10;
+    public GameObject antEnvironment, flockerEnvironment;
+    private static bool showSimSpace, showEnvironment;
+    private GameObject simulationSpace, visualEnvironment, UIManager;
+    private UIController UIController;
+    private Button editButton;
+    private bool editButtonFlock = false;
 
-    ///// Game-related Assets ///
-    //private GameObject simSpace;
-    //private Vector3 simSpacePosition;
-    //private Quaternion simSpaceRotation;
-    //private bool AGENTS_READY = false;
 
-    //// Access Methods
+    private void Awake()
+    {
+        //FLOCKER
+        //GameObject flockEnv = Instantiate(flockerEnvironment, new Vector3(200, 0, 200), Quaternion.identity);
+        //flockEnv.transform.Rotate(0, 90, 0, Space.Self);
+        //editButton = GameObject.Find("ButtonEdit").GetComponent<Button>();
+        //editButtonFlock = true;
 
-    //// Start is called before the first frame update
-    //void Start()
-    //{
-        
-    //}
+        //ANT
+        GameObject antEnv = Instantiate(antEnvironment, transform.position, Quaternion.identity);
+        antEnv.transform.localScale = new Vector3(transform.localScale.x * scaleFactor, transform.localScale.y * scaleFactor, transform.localScale.z * scaleFactor);
+        antEnv.transform.GetChild(0).GetComponent<Renderer>().sharedMaterial.SetFloat("_GridSize", widthlenght); //setta material size griglia
 
-    //// Update is called once per frame
-    //void Update()
-    //{
-        
-    //}
+        //gridXZ.GetComponent<Renderer>().sharedMaterial.SetFloat("_GridSize", widthlenght); //setta material size griglia
+        //GameObject gridPlane = Instantiate(gridXZ, Vector3.zero, Quaternion.Euler(new Vector3(0, 180, 0)));
+        //gridPlane.transform.localScale = new Vector3(widthlenght, transform.position.y, widthlenght); //ingrandisce
+        //gridPlane.transform.position = new Vector3(5 * widthlenght, 0, 5 * widthlenght); //sposta
 
-    //private void InstantiateAgents()
-    //{
-    //    simSpacePosition = simSpace.transform.position;
-    //    simSpaceRotation = simSpace.transform.rotation;
-    //    for (int i = 0; i < flockSim.NumAgents; i++)
-    //    {
-    //        agents.Add(Instantiate(AgentPrefab, simSpacePosition, simSpaceRotation));
-    //        agents[i].transform.SetParent(simSpace.transform);
+        simulationSpace = GameObject.FindWithTag("SimulationCube");
+        visualEnvironment = GameObject.FindWithTag("Environment");
 
-    //    }
-    //    AGENTS_READY = true;
-    //    Debug.Log("Agents Instantiated.");
-    //}
+        UIManager = GameObject.Find("UIMananger");
+        UIController = UIManager.GetComponent<UIController>();
+    }
 
-    //private void DestroyAgents()
-    //{
-    //    for (int i = 0; i < flockSim.NumAgents; i++)
-    //    {
-    //        Destroy(agents[i]);
-    //    }
-    //    agents.Clear();
-    //    AGENTS_READY = false;
-    //    Debug.Log("Agents Destroyed.");
-    //}
+    // Start is called before the first frame update
+    void Start()
+    {
 
-    //private void UpdateAgents()
-    //{
-    //    if (AGENTS_READY == true)
-    //    {
-    //        long current_id = Ready_buffer.Item1;
-    //        if (current_id > CurrentSimStep)
-    //        {
-    //            for (int i = 0; i < Ready_buffer.Item2.Length; i++)
-    //            {
-    //                var old_pos = agents[i].transform.position;
-    //                agents[i].transform.localPosition = Ready_buffer.Item2[i];
-    //                Vector3 velocity = agents[i].transform.position - old_pos;
-    //                if (!velocity.Equals(Vector3.zero))
-    //                {
-    //                    agents[i].transform.rotation = Quaternion.Slerp(agents[i].transform.rotation, Quaternion.LookRotation(velocity, Vector3.up), 4 * Time.deltaTime);
-    //                }
-    //            }
-    //            CurrentSimStep = current_id;
-    //        }
-    //    }
-    //}
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if(editButtonFlock)
+            editButton.interactable = false;
+
+        showSimSpace = UIController.showSimSpace;
+        showEnvironment = UIController.showEnv;
+
+        if (showSimSpace)
+            simulationSpace.gameObject.SetActive(true);
+        else
+            simulationSpace.gameObject.SetActive(false);
+
+        if (showEnvironment)
+            visualEnvironment.gameObject.SetActive(true);
+        else
+            visualEnvironment.gameObject.SetActive(false);
+
+    }
 
 
 }
