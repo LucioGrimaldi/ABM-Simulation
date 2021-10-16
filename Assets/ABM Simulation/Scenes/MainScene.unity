@@ -2488,7 +2488,19 @@ MonoBehaviour:
   m_Group: {fileID: 0}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1895543973}
+        m_TargetAssemblyTypeName: UIController, Assembly-CSharp
+        m_MethodName: OnToggleSimSpaceChanged
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   m_IsOn: 1
 --- !u!1 &436487064
 GameObject:
@@ -4672,7 +4684,19 @@ MonoBehaviour:
   m_Group: {fileID: 0}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1895543973}
+        m_TargetAssemblyTypeName: UIController, Assembly-CSharp
+        m_MethodName: OnToggleEnvironmentChanged
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   m_IsOn: 1
 --- !u!1 &812293438
 GameObject:
@@ -7804,6 +7828,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0cb339f499c6f3f4e8e242ae12e57fe7, type: 2}
   - {fileID: 11400000, guid: b8754eefbd3a7fe46a37e357dc3952db, type: 2}
   - {fileID: 11400000, guid: 273e7e2255197a142bd0d9054fb5e737, type: 2}
+  - {fileID: 11400000, guid: 2f08711bd90467343ba6ccf1ba7be2df, type: 2}
+  - {fileID: 11400000, guid: 8ce9636025f12474cb45a97b94aa0ee3, type: 2}
+  - {fileID: 11400000, guid: aa2449836d8f6c84c9169d94f867ae23, type: 2}
 --- !u!1 &1463575962
 GameObject:
   m_ObjectHideFlags: 0
@@ -9665,6 +9692,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1628cdbeb5e31fc4f95558f60a70d837, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerPreferencesSO: {fileID: 11400000, guid: 76d13c2f71307a3458ae1c83b88c966e,
+    type: 2}
+  nickname: {fileID: 1017930861}
   panelSimButtons: {fileID: 2142324587}
   panelEditMode: {fileID: 466397189}
   panelInspector: {fileID: 860489619}
@@ -9677,7 +9707,7 @@ MonoBehaviour:
   scrollSettingsGamePrefab: {fileID: 3735147128284927678, guid: ee6ba898ba325834bbaeb462b2e1cb1e,
     type: 3}
   settingsScrollContent: {fileID: 2060526520}
-  gridToggle: {fileID: 423476520}
+  simToggle: {fileID: 423476520}
   envToggle: {fileID: 810407189}
   slider: {fileID: 1295312443}
   imgEditMode: {fileID: 2068488858}
@@ -10028,7 +10058,7 @@ PrefabInstance:
     - target: {fileID: 3151477387512568646, guid: 5c8a9800bad7f85418c4afa00acfcd4b,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3151477387512568649, guid: 5c8a9800bad7f85418c4afa00acfcd4b,
         type: 3}

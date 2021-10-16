@@ -10,6 +10,8 @@ using SimpleJSON;
 public class MenuController : MonoBehaviour
 {
 
+    [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
+
     List<int> IDs = new List<int>();
     List<string> simNames = new List<string>();
     List<string> descriptions = new List<string>();
@@ -27,15 +29,22 @@ public class MenuController : MonoBehaviour
     public TMP_Dropdown dropdownSimTypes, dropdownAgents, dropdownObjects;
     public TMP_Text simDescription, simDescription2, simTypeText;
     public Image simImage1, simImage2, agentImage;
-    public GameObject settingsAgentsMenuPrefab, settingsScrollContent, agentsScrollContent;
+    public GameObject settingsAgentsMenuPrefab, settingsScrollContent, agentsScrollContent, simToggle, envToggle;
     public InputField nicknameField;
     public Button newSimButton, joinSimButton;
     private int sim = 20, agent = 10; //simulationType = 0; //0 = Flocker, 1 = Ant, 2 = Museum
-    private string showSimSpace = "true", showEnv = "true";
+    private bool showSimSpace, showEnvironment;
 
 
     void Awake()
     {
+        nicknameField.text = playerPreferencesSO.nickname;
+        showSimSpace = playerPreferencesSO.showSimSpace;
+        showEnvironment = playerPreferencesSO.showEnvironment;
+
+        simToggle.GetComponent<Toggle>().isOn = showSimSpace;
+        envToggle.GetComponent<Toggle>().isOn = showEnvironment;
+
         SimulationController.OnSimListSuccessEventHandler += onSimListSuccess;
         SimulationController.OnSimListUnsuccessEventHandler += onSimListUnsuccess;
         SimulationController.OnSimInitSuccessEventHandler += onSimListInitSuccess;
@@ -52,11 +61,25 @@ public class MenuController : MonoBehaviour
     void Update()
     {
         CheckNickname();
+
     }
 
 
-
     //ALTRI METODI
+    public void OnToggleSimSpaceChanged(bool value)
+    {
+        if (simToggle.GetComponent<Toggle>().isOn)
+            showSimSpace = true;
+        else showSimSpace = false;
+
+    }
+
+    public void OnToggleEnvironmentChanged(bool value)
+    {
+        if (envToggle.GetComponent<Toggle>().isOn)
+            showEnvironment = true;
+        else showEnvironment = false;
+    }
 
     private void LoadSimNames(JSONArray simList)
     {
@@ -235,6 +258,7 @@ public class MenuController : MonoBehaviour
 
     public void StartSimulation()
     {
+        StoreDataPreferences(nicknameField.text, showSimSpace, showEnvironment);
         SceneManager.LoadScene("MainScene");
     }
 
@@ -243,7 +267,13 @@ public class MenuController : MonoBehaviour
         Application.Quit();
     }
 
+    public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
+    {
+        playerPreferencesSO.nickname = nameString;
+        playerPreferencesSO.showSimSpace = toggleSimSpace;
+        playerPreferencesSO.showEnvironment = toggleEnvironment;
 
+    }
 
 
     //BUTTONS CALLBACKS
@@ -258,7 +288,6 @@ public class MenuController : MonoBehaviour
     {
 
     }
-
 
 
 

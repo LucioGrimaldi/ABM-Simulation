@@ -2,31 +2,44 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 //using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
 using GerardoUtils;
 
 public class UIController : MonoBehaviour
 {
+
+    [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
+
+    public TMP_Text nickname;
     private int counter1 = 0, counter2 = 1, counter3 = 1, counter4 = 1, counter5 = 1;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSettings, panelBackToMenu, panelFPS, 
-        scrollParamsPrefab, paramsScrollContent,scrollSettingsGamePrefab, settingsScrollContent, gridToggle, envToggle;
+        scrollParamsPrefab, paramsScrollContent,scrollSettingsGamePrefab, settingsScrollContent, simToggle, envToggle;
     public Slider slider;
     public Image imgEditMode, imgSimState, imgContour;
     public Button buttonEdit;
     public Sprite[] spriteArray; //0 pause, 1 play, 2 stop
-    public static bool showSimSpace = true, showEnv = true;
-
+    public static bool showSimSpace, showEnvironment;
+    
 
     private void Awake()
     {
+        nickname.text = playerPreferencesSO.nickname;
+        showSimSpace = playerPreferencesSO.showSimSpace;
+        showEnvironment = playerPreferencesSO.showEnvironment;
 
+        Debug.Log("sim space: " + showSimSpace + " env: " + showEnvironment);
+
+        simToggle.GetComponent<Toggle>().isOn = showSimSpace;
+        envToggle.GetComponent<Toggle>().isOn = showEnvironment;
     }
 
     void Start()
     {
         slider.onValueChanged.AddListener(delegate { MoveSlider(); });
         //grid = new Grid2DGeneric<bool>(5,4, 10f, new Vector3(10,0,0), (Grid2DGeneric<bool> g, int x, int z) => new bool());
+
 
         LoadParamsSettings(10);
         LoadGameSettings(10);
@@ -36,14 +49,15 @@ public class UIController : MonoBehaviour
 
     void Update()
     {
-        if (gridToggle.GetComponent<Toggle>().isOn)
+        if (simToggle.GetComponent<Toggle>().isOn == true)
             showSimSpace = true;
         else showSimSpace = false;
 
-        if (envToggle.GetComponent<Toggle>().isOn)
-            showEnv = true;
-        else showEnv = false;
+        if (envToggle.GetComponent<Toggle>().isOn == true)
+            showEnvironment = true;
+        else showEnvironment = false;
 
+        //Debug.Log("Grid toggle: " + gridToggle.GetComponent<Toggle>().isOn);
 
         //if (Input.GetMouseButtonDown(0))
         //{
@@ -57,6 +71,21 @@ public class UIController : MonoBehaviour
 
 
     //ALTRI METODI
+    
+    public void OnToggleSimSpaceChanged(bool value)
+    {
+        if (simToggle.GetComponent<Toggle>().isOn)
+            showSimSpace = true;
+        else showSimSpace = false;
+    }
+
+    public void OnToggleEnvironmentChanged(bool value)
+    {
+        if (envToggle.GetComponent<Toggle>().isOn)
+            showEnvironment = true;
+        else showEnvironment = false;
+    }
+
     public void MoveSlider()
     {
         if (slider.value == 0)
@@ -87,7 +116,6 @@ public class UIController : MonoBehaviour
 
     }
 
-
     public void PlaySimulation()
     {
         imgSimState.GetComponent<Image>().color = Color.green;
@@ -95,7 +123,6 @@ public class UIController : MonoBehaviour
         buttonEdit.interactable = false;
         Debug.Log("PLAY SIM");
     }
-
 
     public void PauseSimulation()
     {
@@ -105,7 +132,6 @@ public class UIController : MonoBehaviour
         Debug.Log("PAUSE SIM");
     }
 
-
     public void StopSimulation()
     {
         imgSimState.GetComponent<Image>().color = Color.red;
@@ -113,7 +139,6 @@ public class UIController : MonoBehaviour
         buttonEdit.interactable = true;
         Debug.Log("STOP SIM");
     }
-
 
     public void ApplySettings()
     {
@@ -125,8 +150,9 @@ public class UIController : MonoBehaviour
         //INVIA PARAMETRI A MASON
     }
 
-    public void BackToMenu()
+    public void BackToMenu()    //distruggi settaggi prima di uscire
     {
+        StoreDataPreferences(nickname.text, showSimSpace, showEnvironment);
         //foreach (Transform child in settingsScrollContent.transform)
         //    GameObject.Destroy(child.gameObject);
         //foreach (Transform child in paramsScrollContent.transform)
@@ -135,6 +161,13 @@ public class UIController : MonoBehaviour
         SceneManager.LoadScene("MenuScene");
     }
 
+    public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
+    {
+        playerPreferencesSO.nickname = nameString;
+        playerPreferencesSO.showSimSpace = toggleSimSpace;
+        playerPreferencesSO.showEnvironment = toggleEnvironment;
+
+    }
 
     void LoadParamsSettings(int parameters)
     {
@@ -203,7 +236,6 @@ public class UIController : MonoBehaviour
 
     }
 
-
     public void ShowHideInfoPanel()
     {
         counter3++;
@@ -213,7 +245,6 @@ public class UIController : MonoBehaviour
             panelFPS.gameObject.SetActive(true);
 
     }
-
 
     public void ShowHidePanelQuit()
     {

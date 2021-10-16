@@ -11,7 +11,7 @@ public class SceneController : MonoBehaviour
     private GameObject simulationSpace, visualEnvironment, UIManager;
     private UIController UIController;
     private Button editButton;
-    private bool editButtonFlock = false;
+    private bool canInteractSimSpace = true; //sim = ant
 
 
     private void Awake()
@@ -20,7 +20,7 @@ public class SceneController : MonoBehaviour
         //GameObject flockEnv = Instantiate(flockerEnvironment, new Vector3(200, 0, 200), Quaternion.identity);
         //flockEnv.transform.Rotate(0, 90, 0, Space.Self);
         //editButton = GameObject.Find("ButtonEdit").GetComponent<Button>();
-        //editButtonFlock = true;
+        //editButtonFlock = false;
 
         //ANT
         GameObject antEnv = Instantiate(antEnvironment, transform.position, Quaternion.identity);
@@ -48,11 +48,29 @@ public class SceneController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(editButtonFlock)
-            editButton.interactable = false;
+        CanInteractSimSpace(); //solo ant
+        ShowHideSimEnvironment();
 
+    }
+
+
+    //OTHER METHODS
+    void CanInteractSimSpace()
+    {
+        if (!canInteractSimSpace)
+            editButton.interactable = false;
+    }
+
+    //metodo dei 2 toggle
+
+    //
+
+    //
+
+    void ShowHideSimEnvironment()
+    {
         showSimSpace = UIController.showSimSpace;
-        showEnvironment = UIController.showEnv;
+        showEnvironment = UIController.showEnvironment;
 
         if (showSimSpace)
             simulationSpace.gameObject.SetActive(true);
@@ -63,8 +81,6 @@ public class SceneController : MonoBehaviour
             visualEnvironment.gameObject.SetActive(true);
         else
             visualEnvironment.gameObject.SetActive(false);
-
     }
-
 
 }
