@@ -8,6 +8,7 @@ using uPLibrary.Networking.M2Mqtt;
 using uPLibrary.Networking.M2Mqtt.Messages;
 using System.Text;
 using System.Linq;
+using System.Collections.Generic;
 
 public class MQTTControlClient
 {
@@ -21,7 +22,7 @@ public class MQTTControlClient
     [Tooltip("Topic where Unity send control/settings messages")]
     private string controlTopic = "all_to_mason";
     [Tooltip("Topic where Unity receives response messages")]
-    private string[] responseTopics = { "mason_to_all" };
+    private List<string> responseTopics = new List<string>(){ "mason_to_all" };
     [Header("Connection parameters")]
     [Tooltip("Connection to the broker is delayed by the the given milliseconds")]
     public int connectionDelay = 500;
@@ -33,12 +34,12 @@ public class MQTTControlClient
 
     /// Settings
     public int timeoutOnConnection = MqttSettings.MQTT_CONNECT_TIMEOUT;
-    private bool mqttClientConnectionClosed = false;
-    private bool mqttClientConnected = false;
+    public Boolean mqttClientConnectionClosed = false;
+    public Boolean mqttClientConnected = false;
     /// MQTT Queue
     public ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
     
-    /// Sim-related variables///
+    /// Action Events ///
 
     /// <summary>
     /// Event fired when a connection is successfully estabilished
@@ -49,6 +50,13 @@ public class MQTTControlClient
     /// Event fired when failing to connect
     /// </summary>
     public event Action ConnectionFailed;
+
+    /// <summary>
+    /// Event fired when disconnected properly
+    /// </summary>
+    public event Action DisconnectionSucceeded;
+
+    /// Methods ///
 
     /// <summary>
     /// Send a command to MASON
@@ -63,14 +71,13 @@ public class MQTTControlClient
     /// <summary>
     /// Connect to the broker and get Queue ref.
     /// </summary>
-    public virtual void Connect(ref ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue, out bool ready)
+    public virtual void Connect(ref ConcurrentQueue<MqttMsgPublishEventArgs> responseMessageQueue)
     {
         responseMessageQueue = this.responseMessageQueue;
         if (client == null || !client.IsConnected)
         {
             DoConnect();
         }
-        ready = client.IsConnected;
     }
 
     /// <summary>
@@ -117,27 +124,37 @@ public class MQTTControlClient
     /// </summary>
     protected virtual void SubscribeTopics()
     {
-        byte[] qoss = Enumerable.Repeat(MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE, responseTopics.Length).ToArray();
-        client.Subscribe(responseTopics, qoss);
+        byte[] qoss = Enumerable.Repeat(MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE, responseTopics.Count).ToArray();
+        client.Subscribe(responseTopics.ToArray(), qoss);
         OnSubscribe();
     }
-
-    /// <summary>
-    /// Subscribe to nickname topic.
-    /// </summary>
-    public virtual void SubscribeTopic(string topic)
-    {
-        responseTopics = responseTopics.Append(topic).ToArray();
-        client.Subscribe(new string[] { topic }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
-        OnSubscribe();
-    }
-
     /// <summary>
     /// Unsubscribe from "responseTopics".
     /// </summary>
     protected virtual void UnsubscribeTopics()
     {
-        client.Unsubscribe(responseTopics);
+        client.Unsubscribe(responseTopics.ToArray());
+        responseTopics.Clear();
+        OnUnsubscribe();
+    }
+    /// <summary>
+    /// Subscribe to nickname topic.
+    /// </summary>
+    public virtual void SubscribeTopic(string topic)
+    {
+        responseTopics.Add(topic);
+        client.Subscribe(new string[] { topic }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+        OnSubscribe(topic);
+    }
+
+    /// <summary>
+    /// Unsubscribe from nickname topic.
+    /// </summary>
+    public virtual void UnsubscribeTopic(string topic)
+    {
+        responseTopics.Remove(topic);
+        client.Unsubscribe(new string[] { topic });
+        OnUnsubscribe(topic);
     }
 
     /// <summary>
@@ -170,7 +187,19 @@ public class MQTTControlClient
 
     protected virtual void OnSubscribe()
     {
-        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Subscribed to topic: " + String.Join(" ", responseTopics));
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Now subscribed to topics: " + String.Join(" ", responseTopics));
+    }
+    protected virtual void OnSubscribe(string topic)
+    {
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Subscribed to topic: " + topic);
+    }
+    protected virtual void OnUnsubscribe()
+    {
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Now subscribed to topics: " + String.Join(" ", responseTopics));
+    }
+    protected virtual void OnUnsubscribe(string topic)
+    {
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Unsubscribed from topic: " + topic);
     }
 
     /// <summary>
@@ -179,6 +208,7 @@ public class MQTTControlClient
     protected virtual void OnDisconnected()
     {
         Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Disconnected.");
+        DisconnectionSucceeded?.Invoke();
     }
 
     /// <summary>

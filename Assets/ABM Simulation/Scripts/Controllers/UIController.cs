@@ -3,19 +3,24 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-//using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
 using GerardoUtils;
+using System;
 
 public class UIController : MonoBehaviour
 {
 
     [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
 
+
+    // UI Events
+    public static event EventHandler<EventArgs> OnLoadMainSceneEventHandler;
+
+    // Variables
     public TMP_Text nickname;
     private int counter1 = 0, counter2 = 1, counter3 = 1, counter4 = 1, counter5 = 1;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSettings, panelBackToMenu, panelFPS, 
-        scrollParamsPrefab, paramsScrollContent,scrollSettingsGamePrefab, settingsScrollContent, simToggle, envToggle;
+                scrollParamsPrefab, paramsScrollContent,scrollSettingsGamePrefab, settingsScrollContent, simToggle, envToggle;
     public Slider slider;
     public Image imgEditMode, imgSimState, imgContour;
     public Button buttonEdit;
@@ -34,19 +39,19 @@ public class UIController : MonoBehaviour
         simToggle.GetComponent<Toggle>().isOn = showSimSpace;
         envToggle.GetComponent<Toggle>().isOn = showEnvironment;
     }
-
-    void Start()
+    /// <summary>
+    /// onEnable routine (Unity Process)
+    /// </summary>
+    private void OnEnable()
     {
         slider.onValueChanged.AddListener(delegate { MoveSlider(); });
-        //grid = new Grid2DGeneric<bool>(5,4, 10f, new Vector3(10,0,0), (Grid2DGeneric<bool> g, int x, int z) => new bool());
-
-
+    }
+    void Start()
+    {
+        OnLoadMainSceneEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
         LoadParamsSettings(10);
         LoadGameSettings(10);
-
     }
-
-
     void Update()
     {
         if (simToggle.GetComponent<Toggle>().isOn == true)
@@ -68,17 +73,30 @@ public class UIController : MonoBehaviour
         //    Debug.Log(grid.GetValue(UtilsClass.GetMouseWorldPosition()));
         //}
     }
+    /// <summary>
+    /// onApplicationQuit routine (Unity Process)
+    /// </summary>
+    void OnApplicationQuit()
+    {
 
+    }
+    /// <summary>
+    /// onDisable routine (Unity Process)
+    /// </summary>
+    private void OnDisable()
+    {
+        slider.onValueChanged.RemoveAllListeners();
+
+    }
 
     //ALTRI METODI
-    
+
     public void OnToggleSimSpaceChanged(bool value)
     {
         if (simToggle.GetComponent<Toggle>().isOn)
             showSimSpace = true;
         else showSimSpace = false;
     }
-
     public void OnToggleEnvironmentChanged(bool value)
     {
         if (envToggle.GetComponent<Toggle>().isOn)
@@ -123,7 +141,6 @@ public class UIController : MonoBehaviour
         buttonEdit.interactable = false;
         Debug.Log("PLAY SIM");
     }
-
     public void PauseSimulation()
     {
         imgSimState.GetComponent<Image>().color = Color.yellow;
@@ -131,7 +148,6 @@ public class UIController : MonoBehaviour
         buttonEdit.interactable = true;
         Debug.Log("PAUSE SIM");
     }
-
     public void StopSimulation()
     {
         imgSimState.GetComponent<Image>().color = Color.red;
@@ -144,7 +160,6 @@ public class UIController : MonoBehaviour
     {
         //INVIA SETTAGGI A MASON
     }
-
     public void ApplyParameters()
     {
         //INVIA PARAMETRI A MASON
@@ -160,7 +175,6 @@ public class UIController : MonoBehaviour
 
         SceneManager.LoadScene("MenuScene");
     }
-
     public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
     {
         playerPreferencesSO.nickname = nameString;
@@ -178,7 +192,6 @@ public class UIController : MonoBehaviour
             paramsSettings.transform.SetParent(paramsScrollContent.transform);
         }
     }
-
     void LoadGameSettings(int settings)
     {
         //int[] settingsArray = new int[3];
@@ -225,7 +238,6 @@ public class UIController : MonoBehaviour
         }
 
     }
-
     public void ShowHidePanelSettings()
     {
         counter2++;
@@ -235,7 +247,6 @@ public class UIController : MonoBehaviour
             panelSettings.gameObject.SetActive(true);
 
     }
-
     public void ShowHideInfoPanel()
     {
         counter3++;
@@ -245,7 +256,6 @@ public class UIController : MonoBehaviour
             panelFPS.gameObject.SetActive(true);
 
     }
-
     public void ShowHidePanelQuit()
     {
         counter4++;
@@ -255,7 +265,6 @@ public class UIController : MonoBehaviour
             panelBackToMenu.gameObject.SetActive(true);
 
     }
-
     public void ShowHidePanelInspector()
     {
         counter5++;

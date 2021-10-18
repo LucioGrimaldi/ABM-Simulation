@@ -7,6 +7,12 @@ using System;
 
 public class CommunicationController
 {
+    /// Communication Events ///
+    public static event EventHandler<EventArgs> OnControlClientConnectedHandler;
+    public static event EventHandler<EventArgs> OnSimClientConnectedHandler;
+    public static event EventHandler<EventArgs> OnControlClientDisconnectedHandler;
+    public static event EventHandler<EventArgs> OnSimClientDisconnectedHandler;
+
     /// QUEUES ///
     public ConcurrentQueue<MqttMsgPublishEventArgs> messageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
     public ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
@@ -15,7 +21,7 @@ public class CommunicationController
     /// MQTT CLIENTS ///
     private MQTTControlClient controlClient = new MQTTControlClient();
     private MQTTSimClient simClient = new MQTTSimClient();
-    private bool sim_client_ready, control_client_ready;
+    private static Boolean sim_client_ready = false, control_client_ready = false;
 
     /// THREADS ///
     private Thread controlClientThread;
@@ -25,8 +31,8 @@ public class CommunicationController
     public ConcurrentQueue<MqttMsgPublishEventArgs> MessageQueue { get => messageQueue; set => messageQueue = value; }
     public ConcurrentQueue<MqttMsgPublishEventArgs> SimMessageQueue { get => simMessageQueue; set => simMessageQueue = value; }
     public SortedList<long, byte[]> SecondaryQueue { get => secondaryQueue; set => secondaryQueue = value; }
-    public bool SIM_CLIENT_READY { get => sim_client_ready; set => sim_client_ready = value; }
-    public bool CONTROL_CLIENT_READY { get => control_client_ready; set => control_client_ready = value; }
+    public static Boolean SIM_CLIENT_READY { get => sim_client_ready; set => sim_client_ready = value; }
+    public static Boolean CONTROL_CLIENT_READY { get => control_client_ready; set => control_client_ready = value; }
     
     /// METHODS ///
     
@@ -37,7 +43,9 @@ public class CommunicationController
     /// </summary>
     public void StartSimulationClient()
     {
-        simClientThread = new Thread(() => simClient.Connect(ref simMessageQueue, out sim_client_ready));
+        simClient.ConnectionSucceeded += OnSimClientConnected;
+        //simClient.ConnectionFailed +=
+        simClientThread = new Thread(() => simClient.Connect(ref simMessageQueue));
         simClientThread.Start();
     }
     
@@ -46,8 +54,9 @@ public class CommunicationController
     /// </summary>
     public void StartControlClient()
     {
-        // Start MQTT Clients
-        controlClientThread = new Thread(() => controlClient.Connect(ref messageQueue, out control_client_ready));
+        controlClient.ConnectionSucceeded += OnControlClientConnected;
+        //controlClient.ConnectionFailed +=
+        controlClientThread = new Thread(() => controlClient.Connect(ref messageQueue));
         controlClientThread.Start();
     }
 
@@ -56,6 +65,7 @@ public class CommunicationController
     /// </summary>
     public void DisconnectSimulationClient()
     {
+        simClient.DisconnectionSucceeded += OnSimClientDisconnected;
         simClient.Disconnect();
         simClientThread.Abort();
     }
@@ -65,6 +75,7 @@ public class CommunicationController
     /// </summary>
     public void DisconnectControlClient()
     {
+        controlClient.DisconnectionSucceeded += OnControlClientDisconnected;
         controlClient.Disconnect();
         controlClientThread.Abort();
     }
@@ -86,6 +97,14 @@ public class CommunicationController
     }
 
     /// <summary>
+    /// UnsubscribeTopic Wrapper
+    /// </summary>
+    public void UnsubscribeTopic(string nickname)
+    {
+        controlClient.UnsubscribeTopic(nickname);
+    }
+
+    /// <summary>
     /// UnsubscribeTopics Wrapper
     /// </summary>
     public void UnsubscribeTopics(int[] topics)
@@ -93,9 +112,30 @@ public class CommunicationController
         simClient.UnsubscribeTopics(topics);
     }
 
+    /// OnEvent Methods ///
+    private void OnSimClientConnected()
+    {
+        SIM_CLIENT_READY = true;
+        OnSimClientConnectedHandler?.BeginInvoke(null, EventArgs.Empty, null, null);
+    }
+    private void OnControlClientConnected()
+    {
+        CONTROL_CLIENT_READY = true;
+        OnControlClientConnectedHandler?.BeginInvoke(null, EventArgs.Empty, null, null);
+    }
+    private void OnSimClientDisconnected()
+    {
+        SIM_CLIENT_READY = false;
+        OnSimClientDisconnectedHandler?.BeginInvoke(null, EventArgs.Empty, null, null);
+    }
+    private void OnControlClientDisconnected()
+    {
+        CONTROL_CLIENT_READY = false;
+        OnControlClientDisconnectedHandler?.BeginInvoke(null, EventArgs.Empty, null, null);
+    }
 
-    // Utilities //
-    
+    /// Utilities ///
+
     /// <summary>
     /// Send message to MASON
     /// </summary>
@@ -105,7 +145,7 @@ public class CommunicationController
         msg.Add("sender", sender);
         msg.Add("op", op);
         msg.Add("payload", payload);
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Trying sending message...");
+        //UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Trying sending message...");
         controlClient.SendMessage(msg);
     }
 
@@ -118,4 +158,11 @@ public class CommunicationController
         SecondaryQueue.Clear();
     }
 
+    public void Quit()
+    {
+        simClient.ConnectionSucceeded -= OnSimClientConnected;
+        controlClient.ConnectionSucceeded -= OnControlClientConnected;
+        simClient.DisconnectionSucceeded -= OnSimClientDisconnected;
+        controlClient.DisconnectionSucceeded -= OnControlClientDisconnected;
+    }
 }

@@ -1,17 +1,30 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-using UnityEngine.SceneManagement;
-using System;
+using Fixed;
 using SimpleJSON;
+using System;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MenuController : MonoBehaviour
 {
-
+    // Player Preferences
     [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
 
+    // Menu State
+    public enum MenuState
+    {
+        MAIN,
+        SETTINGS,
+        NEWSIM,
+        SIM_SETTINGS,
+        AGENTS_SETTINGS,
+        OBJECTS_SETTINGS
+    }
+    public MenuState menuState = MenuState.MAIN;
+
+    // Sim Infos
     List<int> IDs = new List<int>();
     List<string> simNames = new List<string>();
     List<string> descriptions = new List<string>();
@@ -23,66 +36,215 @@ public class MenuController : MonoBehaviour
     List<List<Sprite>> agentsSprites = new List<List<Sprite>>();
     List<List<Sprite>> objectsSprites = new List<List<Sprite>>();
 
-
+    // UI Events
     public static event EventHandler<NicknameEnterEventArgs> OnNicknameEnterEventHandler;
+    public static event EventHandler<SimPrototypeConfirmedEventArgs> OnSimPrototypeConfirmedEventHandler;
+    public static event EventHandler<EventArgs> OnLoadMainMenuHandler;
+    public static event EventHandler<EventArgs> OnLoadNewSimScreenHandler;
 
+    // UI Action Queue
+    public static readonly ConcurrentQueue<Action> MenuMainThreadQueue = new ConcurrentQueue<Action>();
+
+    // Variables
+    public static JSONArray sim_list_editable;
     public TMP_Dropdown dropdownSimTypes, dropdownAgents, dropdownObjects;
-    public TMP_Text simDescription, simDescription2, simTypeText;
+    public TMP_Text simDescription, simDescription2, simName, emptyScrollText;
     public Image simImage1, simImage2, agentImage;
-    public GameObject settingsAgentsMenuPrefab, settingsScrollContent, agentsScrollContent, simToggle, envToggle;
+    public GameObject nickCheckSign, inMenuParamPrefab, settingsScrollContent, agentsScrollContent, objectsScrollContent, simToggle, envToggle;
     public InputField nicknameField;
-    public Button newSimButton, joinSimButton;
-    private int sim = 20, agent = 10; //simulationType = 0; //0 = Flocker, 1 = Ant, 2 = Museum
+    public Button newSimButton, joinSimButton, simSettingsButton, agentsSettingsButton, objectsSettingsButton;
     private bool showSimSpace, showEnvironment;
 
-
-    void Awake()
-    {
+    // UNITY LOOP METHODS
+    private void Awake()
+    {  
         nicknameField.text = playerPreferencesSO.nickname;
         showSimSpace = playerPreferencesSO.showSimSpace;
         showEnvironment = playerPreferencesSO.showEnvironment;
 
+        if (nicknameField.text.Length > 0) SavePlayerName();
+
         simToggle.GetComponent<Toggle>().isOn = showSimSpace;
         envToggle.GetComponent<Toggle>().isOn = showEnvironment;
 
+    }
+    /// <summary>
+    /// onEnable routine (Unity Process)
+    /// </summary>
+    private void OnEnable()
+    {
+        // Register to EventHandlers
+        CommunicationController.OnControlClientConnectedHandler += onControlClientConnected;
+        SimulationController.OnCheckStatusSuccessEventHandler += onCheckStatusSuccess;
+        SimulationController.OnCheckStatusUnsuccessEventHandler += onCheckStatusUnsuccess;
         SimulationController.OnSimListSuccessEventHandler += onSimListSuccess;
         SimulationController.OnSimListUnsuccessEventHandler += onSimListUnsuccess;
-        SimulationController.OnSimInitSuccessEventHandler += onSimListInitSuccess;
-        SimulationController.OnSimInitUnsuccessEventHandler += onSimListInitUnsuccess;
+        SimulationController.OnSimInitSuccessEventHandler += onSimInitSuccess;
+        SimulationController.OnSimInitUnsuccessEventHandler += onSimInitUnsuccess;
+    }
+    private void Start()
+    {  
 
     }
-
-    void Start()
+    private void Update()
     {
-        LoadSimSettings(sim); //spawna primi settaggi per la simulazione flocker
-        LoadAgentSettings(agent); //spawna primi settaggi per gli agenti flocker
+        if (!MenuMainThreadQueue.IsEmpty)
+        {
+            while (MenuMainThreadQueue.TryDequeue(out var action))
+            {
+                action?.Invoke();
+            }
+        }
     }
-
-    void Update()
+    /// <summary>
+    /// onApplicationQuit routine (Unity Process)
+    /// </summary>
+    void OnApplicationQuit()
     {
-        CheckNickname();
-
+        while(MenuMainThreadQueue.TryDequeue(out _));
+    }
+    /// <summary>
+    /// onDisable routine (Unity Process)
+    /// </summary>
+    private void OnDisable()
+    {
+        // Unregister to EventHandlers
+        CommunicationController.OnControlClientConnectedHandler -= onControlClientConnected;
+        SimulationController.OnCheckStatusSuccessEventHandler -= onCheckStatusSuccess;
+        SimulationController.OnCheckStatusUnsuccessEventHandler -= onCheckStatusUnsuccess;
+        SimulationController.OnSimListSuccessEventHandler -= onSimListSuccess;
+        SimulationController.OnSimListUnsuccessEventHandler -= onSimListUnsuccess;
+        SimulationController.OnSimInitSuccessEventHandler -= onSimInitSuccess;
+        SimulationController.OnSimInitUnsuccessEventHandler -= onSimInitUnsuccess;
     }
 
+ 
+    // Button Callbacks
+
+
+    // Event Callbacks (NOT ON MAIN THREAD!)
+
+    private void onControlClientConnected(object sender, EventArgs e)
+    {
+        OnLoadMainMenuHandler?.BeginInvoke(sender, e, EndInvoke, null);
+    }
+    private void onCheckStatusSuccess(object sender, ReceivedMessageEventArgs e)
+    {
+        if (e.Payload["payload_data"]["state"].Equals(-1))
+        {
+            if (menuState.Equals(MenuState.MAIN))
+                {
+                    MenuMainThreadQueue.Enqueue(() => { SetSimButton(true);});
+                }
+
+        }
+        else
+        {
+            if (menuState.Equals(MenuState.MAIN))
+            {
+                MenuMainThreadQueue.Enqueue(() => { SetSimButton(false); });
+            }
+        }
+    }
+    private void onCheckStatusUnsuccess(object sender, ReceivedMessageEventArgs e)
+    {
+        // TODO
+    }
+    private void onSimListSuccess(object sender, ReceivedMessageEventArgs e)
+    {
+        sim_list_editable = (JSONArray)e.Payload["payload_data"]["list"];
+        MenuMainThreadQueue.Enqueue(() => { LoadSimNames(sim_list_editable); });
+        MenuMainThreadQueue.Enqueue(() => { PopulateSimListDropdown(); });
+        MenuMainThreadQueue.Enqueue(() => { LoadSprites(); });
+    }
+    private void onSimListUnsuccess(object sender, ReceivedMessageEventArgs e)
+    {
+        // TODO
+    }
+    private void onSimInitSuccess(object sender, ReceivedMessageEventArgs e)
+    {
+        MenuMainThreadQueue.Enqueue(() => { SceneManager.LoadScene("MainScene"); });
+    }
+    private void onSimInitUnsuccess(object sender, ReceivedMessageEventArgs e)
+    {
+        // TODO
+    }
+    private void EndInvoke(IAsyncResult result)
+    {
+        OnLoadMainMenuHandler?.EndInvoke(result);
+    }
 
     //ALTRI METODI
-    public void OnToggleSimSpaceChanged(bool value)
+
+    public void CheckNickname()
     {
-        if (simToggle.GetComponent<Toggle>().isOn)
-            showSimSpace = true;
-        else showSimSpace = false;
+        bool nickAvail = true;
+        if (nicknameField.text.Length > 0 && nicknameField.text.Length < 16 && !nicknameField.text.Contains(" ") && nickAvail)
+        {
+            nickCheckSign.SetActive(true);
+            newSimButton.interactable = true;
+            joinSimButton.interactable = true;
+        }
+        else
+        {
+            nickCheckSign.SetActive(false);
+            newSimButton.interactable = false;
+            joinSimButton.interactable = false;
+        }
+    }
+    public void SavePlayerName()
+    {
+        NicknameEnterEventArgs e = new NicknameEnterEventArgs();
+        e.nickname = nicknameField.text;
+        OnNicknameEnterEventHandler?.BeginInvoke(this, e, null, null);
+    }
+    public void ConfirmEditedPrototype()
+    {
+        SimPrototypeConfirmedEventArgs e = new SimPrototypeConfirmedEventArgs();
+        e.sim_prototype = (JSONObject)sim_list_editable[SimulationController.sim_id];
+        OnSimPrototypeConfirmedEventHandler?.BeginInvoke(this, e, null, null);
+    }
+    public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
+    {
+        playerPreferencesSO.nickname = nameString;
+        playerPreferencesSO.showSimSpace = toggleSimSpace;
+        playerPreferencesSO.showEnvironment = toggleEnvironment;
 
     }
-
-    public void OnToggleEnvironmentChanged(bool value)
+    public void ChangeMenuState()
     {
-        if (envToggle.GetComponent<Toggle>().isOn)
-            showEnvironment = true;
-        else showEnvironment = false;
+        GameObject selected = new GameObject();
+        foreach (GameObject c in GameObject.FindGameObjectsWithTag("Menu")) if (c.activeSelf) selected = c;
+        switch (selected.name)
+        {
+            case "MainMenu":
+                menuState = MenuState.MAIN;
+                break;
+            case "SettingsMenu":
+                menuState = MenuState.SETTINGS;
+                break;
+            case "NewSimScreen":
+                menuState = MenuState.NEWSIM;
+                break;
+            case "SimSettingsScreen":
+                menuState = MenuState.SIM_SETTINGS;
+                break;
+            case "AgentsSettingsScreen":
+                menuState = MenuState.AGENTS_SETTINGS;
+                break;
+            case "ObjectsSettingsScreen":
+                menuState = MenuState.OBJECTS_SETTINGS;
+                break;
+        }
     }
+
 
     private void LoadSimNames(JSONArray simList)
     {
+        simNames.Clear();
+        agents.Clear();
+        generics.Clear();
+
         foreach (JSONObject s in simList)
         {
             IDs.Add(s["id"]);
@@ -91,23 +253,22 @@ public class MenuController : MonoBehaviour
             types.Add(s["type"]);
             dimensions.Add(((JSONArray)s["dimensions"]).Count);
 
-            List<string> list = new List<string>();
+            List<string> a_list = new List<string>();
+            List<string> g_list = new List<string>();
             foreach (JSONObject a in (JSONArray)s["agent_prototypes"])
-                list.Add(a["class"]);
-            agents.Add(list);
+                a_list.Add(a["class"]);
+            agents.Add(a_list);
 
             foreach (JSONObject a in (JSONArray)s["generic_prototypes"])
-                list.Add(a["class"]);
-            generics.Add(list);
+                g_list.Add(a["class"]);
+            generics.Add(g_list);
         }
     }
-
     private void LoadSimInfos(JSONObject sim)
     {
         simDescription.SetText(sim["description"] + "\n" + sim["type"]);
         simDescription2.SetText(simDescription.text);
     }
-
     private void LoadSprites()
     {
         List<Sprite> aSprites = new List<Sprite>();
@@ -130,190 +291,170 @@ public class MenuController : MonoBehaviour
             objectsSprites.Add(oSprites);
         }
     }
+    public void LoadParams(GameObject scrollContent, GameObject itemPrefab, JSONArray parameters)
+    {
+        emptyScrollText.gameObject.SetActive(false);
+        foreach (JSONObject p in parameters)
+        {
+            if(p.HasKey("editable_in_init") && p["editable_in_init"].Equals(true) || !p.HasKey("editable_in_init"))
+            {
+                GameObject param = Instantiate(itemPrefab);
+                param.transform.SetParent(scrollContent.transform);
+                param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
+                param.GetComponentInChildren<InputField>().characterLimit = 20;
+
+                switch ((string)p["type"])
+                {
+                    case "System.Single":
+                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
+                        break;
+                    case "System.Int32":
+                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
+                        break;
+                    case "System.Boolean":
+                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Custom;
+                        break;
+                    case "System.String":
+                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
+                        break;
+                }
+                param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
+                param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+            }
+        }
+        if(scrollContent.transform.childCount == 0)
+        {
+            emptyScrollText.text = "No params available for this " + (scrollContent.name.Equals("ContentSettings") ? "Simulation" : (scrollContent.name.Equals("ContentAgents") ? "Agent" : "Object"));
+            emptyScrollText.gameObject.SetActive(true);
+        }
+    }
+    public void OnToggleSimSpaceChanged(bool value)
+    {
+        if (simToggle.GetComponent<Toggle>().isOn)
+            showSimSpace = true;
+        else showSimSpace = false;
+
+    }
+    public void OnToggleEnvironmentChanged(bool value)
+    {
+        if (envToggle.GetComponent<Toggle>().isOn)
+            showEnvironment = true;
+        else showEnvironment = false;
+    }
+
+    public void SetSimButton(Boolean is_new)
+    {
+        if (is_new)
+        {
+            newSimButton.gameObject.SetActive(true);
+        }
+        else
+        {
+            joinSimButton.gameObject.SetActive(true);
+        }
+    }
+    public void SetButtonsInteractivity()
+    {
+        if (((JSONArray)((JSONObject)SimulationController.sim_prototypes_list[SimulationController.sim_id])["sim_params"]).Count > 0)
+        {
+            simSettingsButton.interactable = true;
+        }
+        else { simSettingsButton.interactable = false; }
+        if (((JSONArray)((JSONObject)SimulationController.sim_prototypes_list[SimulationController.sim_id])["agent_prototypes"]).Count > 0)
+        {
+            agentsSettingsButton.interactable = true;
+        }
+        else { agentsSettingsButton.interactable = false; }
+        if (((JSONArray)((JSONObject)SimulationController.sim_prototypes_list[SimulationController.sim_id])["generic_prototypes"]).Count > 0)
+        {
+            objectsSettingsButton.interactable = true;
+        }
+        else { objectsSettingsButton.interactable = false; }
+    }
 
     public void PopulateSimListDropdown()
     {
+        dropdownSimTypes.ClearOptions();
         dropdownSimTypes.AddOptions(simNames);
+        dropdownSimTypes.onValueChanged.Invoke(0);
     }
-
     public void PopulateAgentsListDropdown()
     {
+        dropdownAgents.ClearOptions();
         dropdownAgents.AddOptions(agents[dropdownSimTypes.value]);
+        dropdownAgents.onValueChanged.Invoke(0);
     }
-
     public void PopulateObjectsListDropdown()
     {
+        dropdownObjects.ClearOptions();
         dropdownObjects.AddOptions(generics[dropdownSimTypes.value]);
-    }
-
-    void LoadSimSettings(int sim)
-    {
-        for (int i = 0; i < sim; i++)
-        {
-            GameObject simSettings = Instantiate(settingsAgentsMenuPrefab);
-            simSettings.transform.SetParent(settingsScrollContent.transform);
-        }
-    }
-
-    void LoadAgentSettings(int agent)
-    {
-        for (int i = 0; i < agent; i++)
-        {
-            GameObject agentSettings = Instantiate(settingsAgentsMenuPrefab);
-            agentSettings.transform.SetParent(agentsScrollContent.transform);
-        }
+        dropdownObjects.onValueChanged.Invoke(0);
     }
 
     public void Dropdown_SimChanged(int index)
     {
-        foreach (Transform child in settingsScrollContent.transform) //distruggi i settaggi se cambi simulazione e ricreali
+        foreach (Transform child in settingsScrollContent.transform)
+        {
             GameObject.Destroy(child.gameObject);
+            settingsScrollContent.transform.DetachChildren();
+        }
+        foreach (Transform child in agentsScrollContent.transform)
+        {
+            GameObject.Destroy(child.gameObject);
+            agentsScrollContent.transform.DetachChildren();
+        }
+        
+        SimulationController.sim_id = index;
+        LoadSimInfos((JSONObject)sim_list_editable[index]);
+        LoadParams(settingsScrollContent, inMenuParamPrefab, (JSONArray)sim_list_editable[index]["sim_params"]);
 
-        //LoadSimInfos();
+        // set Buttons interactable
+        SetButtonsInteractivity();
+
         //simImage1.sprite = spriteSimFlocker;
-        simTypeText.text = simNames[index];
+
+        simName.text = simNames[index];
+
         simImage2.sprite = simImage1.sprite;
     }
-
-    public void Dropdown_AgentsChanged(int index)
+    public void Dropdown_AgentChanged(int index)
     {
-        if (index == 0)
+        // save params in sim_editable
+
+        foreach (Transform child in agentsScrollContent.transform)
         {
-            foreach (Transform child in agentsScrollContent.transform) //distruggi i settaggi degli agenti se cambi modello di agente e ricreali
-                GameObject.Destroy(child.gameObject);
-
-            LoadAgentSettings(4);
-            //agentImage.sprite = spriteBirdModel;
-            //SCARICA SETTAGGI AGENTE DA MASON E VISUALIZZALI
+            GameObject.Destroy(child.gameObject);
+            agentsScrollContent.transform.DetachChildren();
         }
-        if (index == 1)
-        {
-            foreach (Transform child in agentsScrollContent.transform) 
-                GameObject.Destroy(child.gameObject);
 
-            LoadAgentSettings(3);
-            //agentImage.sprite = spriteSheepModel;
-            //
+        LoadParams(agentsScrollContent, inMenuParamPrefab, (JSONArray)((JSONObject)((JSONArray)((JSONObject)sim_list_editable[SimulationController.sim_id])["agent_prototypes"])[index])["params"]);
 
-        }
-        if (index == 2)
-        {
-            foreach (Transform child in agentsScrollContent.transform) 
-                GameObject.Destroy(child.gameObject);
+        //agentImage.sprite = spriteBirdModel;
 
-            LoadAgentSettings(2);
-            //agentImage.sprite = spriteWolfModel;
-            //
-        }
-        if (index == 3)
-        {
-            foreach (Transform child in agentsScrollContent.transform) 
-                GameObject.Destroy(child.gameObject);
-
-            LoadAgentSettings(8);
-            //agentImage.sprite = spriteAntModel;
-            //
-        }
     }
-
-
-    public void CheckPlayerName()
+    public void Dropdown_ObjectChanged(int index)
     {
-        NicknameEnterEventArgs e = new NicknameEnterEventArgs();
-        //e.nickname = nicknameField.text.Equals("")? "Player" : nicknameField.text;
-        e.nickname = nicknameField.text;
-        OnNicknameEnterEventHandler?.Invoke(this, e);
-    }
+        // save params in sim_editable
 
-    void CheckNickname()
-    {
-        bool nickAvail = true;
-        if (nicknameField.text.Length > 0 && nicknameField.text.Length < 16 && !nicknameField.text.Contains(" ") && nickAvail)
+        foreach (Transform child in objectsScrollContent.transform)
         {
-            if (nickAvail)//Room already exists
-            {
-                //newSimButton.GetComponentInChildren<TextMeshProUGUI>().text = "Join Simulation";
-
-                newSimButton.gameObject.SetActive(false); 
-                joinSimButton.gameObject.SetActive(true);
-                joinSimButton.interactable = true;
-                
-            }
-            else
-            {
-                //newSimButton.GetComponentInChildren<TextMeshProUGUI>().text = "New Simulation";
-                joinSimButton.gameObject.SetActive(false);
-                newSimButton.gameObject.SetActive(true);
-                newSimButton.interactable = true;
-
-            }
+            GameObject.Destroy(child.gameObject);
+            objectsScrollContent.transform.DetachChildren();
         }
-        else
-        {
-            newSimButton.interactable = false;
-            joinSimButton.interactable = false;
-        }
+
+        LoadParams(objectsScrollContent, inMenuParamPrefab, (JSONArray)((JSONObject)((JSONArray)((JSONObject)sim_list_editable[SimulationController.sim_id])["generic_prototypes"])[index])["params"]);
+
+        //agentImage.sprite = spriteBirdModel;
 
     }
 
-    public void StartSimulation()
+    public void OnLoadSimulationScene()
     {
+        ConfirmEditedPrototype();
         StoreDataPreferences(nicknameField.text, showSimSpace, showEnvironment);
-        SceneManager.LoadScene("MainScene");
     }
-
-    public void QuitGame()
+    public void Quit()
     {
         Application.Quit();
     }
-
-    public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
-    {
-        playerPreferencesSO.nickname = nameString;
-        playerPreferencesSO.showSimSpace = toggleSimSpace;
-        playerPreferencesSO.showEnvironment = toggleEnvironment;
-
-    }
-
-
-    //BUTTONS CALLBACKS
-
-    public void OnNewSimCallback()
-    {
-        PopulateSimListDropdown();
-
-    }
-
-    public void OnJoinSimCallback()
-    {
-
-    }
-
-
-
-    //EVENT METHODS
-
-
-    private void onSimListSuccess(object sender, ReceivedMessageEventArgs e)
-    {
-        LoadSimNames((JSONArray) e.Payload["list"]);
-        LoadSprites();
-    }
-
-    private void onSimListUnsuccess(object sender, ReceivedMessageEventArgs e)
-    {
-
-    }
-
-    private void onSimListInitSuccess(object sender, ReceivedMessageEventArgs e)
-    {
-
-    }
-
-    private void onSimListInitUnsuccess(object sender, ReceivedMessageEventArgs e)
-    {
-
-    }
-
-
 }

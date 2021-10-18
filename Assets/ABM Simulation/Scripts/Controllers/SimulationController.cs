@@ -6,8 +6,6 @@ using System.Linq;
 using Newtonsoft.Json;
 using System.Threading;
 using uPLibrary.Networking.M2Mqtt.Messages;
-using UnityEditor.UI;
-using UnityEngine.UI;
 
 
 //#### OPERATIONS_LIST ####
@@ -142,8 +140,10 @@ public class SimulationController : MonoBehaviour
     private Dictionary<(string op, (SimObject.SimObjectType type, string class_name, int id) obj), SimObject> uncommitted_updates = new Dictionary<(string, (SimObject.SimObjectType, string, int)), SimObject>();
 
     /// Support variables
+    long start_millis = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+    private static System.Random random = new System.Random();
     private long latestSimStepArrived = 0;
-    private string nickname = "";
+    private string nickname = RandomString(10);
 
     /// Threads
     private Thread StepQueueHandlerThread;
@@ -154,20 +154,18 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// We use Awake to bootstrap App
     /// </summary>
-    protected virtual void Awake()
+    private void Awake()
     {
+        // DONT DESTROY ON LOAD
+        DontDestroyOnLoad(this.gameObject);
+
         // Retrieve Controllers
         //UIController = GameObject.Find("UIController").GetComponent<UIController>();
-        //GameController = GameObject.Find("GameController").GetComponent<GameController>();
+        //SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
         CommController = new CommunicationController();
-        //MenuController = GameObject.Find("MenuController").GetComponent<MenuController>();
+        MenuController = GameObject.Find("MenuController").GetComponent<MenuController>();
         PerfManager = new PerformanceManger();
         //ConnManager = new ConnectionManager(CommController, Nickname);
-
-        // Register to EventHandlers
-        //MenuController.OnNicknameEnterEventHandler += onNicknameEnter;
-        MessageEventHandler += onMessageReceived;
-        StepMessageEventHandler += onStepMessageReceived;
 
         // Bootstrack background tasks
         BootstrapBackgroundTasks();
@@ -175,30 +173,72 @@ public class SimulationController : MonoBehaviour
         state = StateEnum.READY;
     }
     /// <summary>
+    /// onEnable routine (Unity Process)
+    /// </summary>
+    private void OnEnable()
+    {
+        // Register to EventHandlers
+        MenuController.OnNicknameEnterEventHandler += onNicknameEnter;
+        MenuController.OnLoadMainMenuHandler += onLoadMainMenu;
+        MenuController.OnSimPrototypeConfirmedEventHandler += onSimPrototypeConfirmed;
+        UIController.OnLoadMainSceneEventHandler += onLoadMainScene;
+        MessageEventHandler += onMessageReceived;
+        StepMessageEventHandler += onStepMessageReceived;
+    }
+    /// <summary>
     /// Start routine (Unity Process)
     /// </summary>
     private void Start()
     {
-
-        nickname = "Gandalfo";
-        CommController.SubscribeTopic(nickname);
-
-        Thread.SpinWait(1000);
-
         SendCheckStatus();
-        SendConnect();
-        SendSimListRequest();
-
-
     }
     /// <summary>
     /// Update routine (Unity Process)
     /// </summary>
     private void Update()
     {
+        //long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+        //if (now - start_millis > 1000) { SendCheckStatus(); }
+    }
+    /// <summary>
+    /// onApplicationQuit routine (Unity Process)
+    /// </summary>
+    void OnApplicationQuit()
+    {
+        // do other stuff
+        SendDisconnect();
+        CommController.DisconnectControlClient();
+        CommController.DisconnectSimulationClient();
+        CommController.EmptyQueues();
+        CommController.Quit();
+        StopMessageQueueHandlerThread();
+        StopStepQueueHandlerThread();
+        CommController = null;
+        MenuController = null;
+        PerfManager = null;
+        // Stop Performance Thread
+    }
+    /// <summary>
+    /// onDisable routine (Unity Process)
+    /// </summary>
+    private void OnDisable()
+    {
+        // Unregister to EventHandlers
+        MenuController.OnNicknameEnterEventHandler -= onNicknameEnter;
+        MenuController.OnLoadMainMenuHandler -= onLoadMainMenu;
+        MenuController.OnSimPrototypeConfirmedEventHandler -= onSimPrototypeConfirmed;
+        UIController.OnLoadMainSceneEventHandler -= onLoadMainScene;
+        MessageEventHandler -= onMessageReceived;
+        StepMessageEventHandler -= onStepMessageReceived;
     }
 
     /// UTILS ///
+    public static string RandomString(int length)
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        return new string(Enumerable.Repeat(chars, length)
+          .Select(s => s[random.Next(s.Length)]).ToArray());
+    }
 
     /// <summary>
     /// Bootstrap background tasks
@@ -313,7 +353,7 @@ public class SimulationController : MonoBehaviour
         JSONObject json_response, payload;
         MqttMsgPublishEventArgs msg;
         string sender, op;
-        while (CommController.messageQueue == null) { }
+        while (CommController.messageQueue == null) {;}
         while (true)
         {
             if (CommController.messageQueue.TryDequeue(out msg))
@@ -329,7 +369,7 @@ public class SimulationController : MonoBehaviour
                 e.Op = op;
                 e.Payload = payload;
 
-                MessageEventHandler.Invoke(this, e);
+                MessageEventHandler.BeginInvoke(this, e, null, null);
             }
         }
     }
@@ -422,24 +462,35 @@ public class SimulationController : MonoBehaviour
     /// onEvent Methods
 
     /// <summary>
-    /// Internal Event Handles
+    /// MenuController Event Handles
     /// </summary>
+    private void onCheckStatus(object sender, EventArgs e)
+    {
+        SendCheckStatus();
+    }
+    private void onLoadMainMenu(object sender, EventArgs e)
+    {
+        CommController.SubscribeTopic(nickname);
+    }
     private void onNicknameEnter(object sender, NicknameEnterEventArgs e)
     {
-
+        CommController.UnsubscribeTopic(nickname);
         nickname = e.nickname;
-        Debug.Log(nickname);
         CommController.SubscribeTopic(nickname);
 
-        Thread.SpinWait(1000);
-
-        SendCheckStatus();
-        SendConnect();
-
+        // TODO Check nick uniqueness
     }
     private void onSimPrototypeConfirmed(object sender, SimPrototypeConfirmedEventArgs e)
     {
-        simulation.InitSimulationFromPrototype(e.sim_prototype);
+        SendSimInitialize(e.sim_prototype);
+    }
+
+    /// <summary>
+    /// UIController Event Handles
+    /// </summary>
+    private void onLoadMainScene(object sender, EventArgs e)
+    {
+        Step();
     }
     private void onSimParamModify(object sender, SimParamUpdateEventArgs e)
     {
@@ -546,8 +597,8 @@ public class SimulationController : MonoBehaviour
 
         Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Server status checked: " + simulation.State + " .");
 
-        if (result) OnCheckStatusSuccessEventHandler?.Invoke(this, e);
-        else OnCheckStatusUnsuccessEventHandler?.Invoke(this, e);
+        if (result) OnCheckStatusSuccessEventHandler?.Invoke(null, e);
+        else OnCheckStatusUnsuccessEventHandler?.Invoke(null, e);
 
     }
     private void onConnectionResponse(ReceivedMessageEventArgs e)
@@ -579,44 +630,22 @@ public class SimulationController : MonoBehaviour
         if(result) sim_prototypes_list = result ? (JSONArray)((JSONObject)e.Payload["payload_data"])["list"] : new JSONArray();
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Prototypes list " + (result ? "successfully" : "unsuccessfully") + " received from " + e.Sender + ".");
 
-        SendSimInitialize((JSONObject)sim_prototypes_list[sim_id]);              // DA CANCELLARE
-
         if (result) OnSimListSuccessEventHandler?.Invoke(this, e);
         else OnSimListUnsuccessEventHandler?.Invoke(this, e);
-
     }
     private void onSimInitResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
-        if (result) { }
+        if (result) {
+            
+            if (e.Msg.Topic.Equals(nickname)) simulation.InitSimulationFromPrototype((JSONObject)MenuController.sim_list_editable[sim_id]);
+            else simulation.InitSimulationFromPrototype((JSONObject)e.Payload["payload_data"]);
 
-        // TODO MOMENTANEO
-        simulation.InitSimulationFromPrototype((JSONObject) sim_prototypes_list[sim_id]);
+            UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
 
-        while(simulation.state != Simulation.StateEnum.READY) { }
-
-        Play();
-
-        simulation.state = Simulation.StateEnum.PLAY;
-
-        //Pause();
-
-        //simulation.state = Simulation.StateEnum.PAUSE;
-
-        //Stop();
-
-        //simulation.state = Simulation.StateEnum.READY;
-
-        //Play();
-
-        //simulation.state = Simulation.StateEnum.PLAY;
-
-        //Pause();
-
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
-
-        if (result) OnSimInitSuccessEventHandler?.Invoke(this, e);
+            OnSimInitSuccessEventHandler?.Invoke(this, e);
+        }
         else OnSimInitUnsuccessEventHandler?.Invoke(this, e);
     }
     private void onSimUpdateResponse(ReceivedMessageEventArgs e)
@@ -1017,21 +1046,6 @@ public class SimulationController : MonoBehaviour
         // Send command
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CLIENT_ERROR to MASON...");
         CommController.SendMessage(nickname, "999", payload);
-    }
-
-    /// <summary>
-    /// onApplicationQuit routine
-    /// </summary>
-    void OnApplicationQuit()
-    {
-        // do other stuff
-        Stop();
-        SendDisconnect();
-        CommController.DisconnectControlClient();
-        CommController.DisconnectSimulationClient();
-        StopMessageQueueHandlerThread();
-        StopStepQueueHandlerThread();
-        // Stop Performance Thread
     }
 
 }

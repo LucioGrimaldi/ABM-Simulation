@@ -11,7 +11,7 @@ public class SceneController : MonoBehaviour
     private GameObject simulationSpace, visualEnvironment, UIManager;
     private UIController UIController;
     private Button editButton;
-    private bool canInteractSimSpace = true; //sim = ant
+    private bool canInteractSimSpace = true;
 
 
     private void Awake()
@@ -35,8 +35,7 @@ public class SceneController : MonoBehaviour
         simulationSpace = GameObject.FindWithTag("SimulationCube");
         visualEnvironment = GameObject.FindWithTag("Environment");
 
-        UIManager = GameObject.Find("UIMananger");
-        UIController = UIManager.GetComponent<UIController>();
+        UIController = GameObject.Find("UIController").GetComponent<UIController>();
     }
 
     // Start is called before the first frame update

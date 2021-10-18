@@ -15,6 +15,7 @@ TagManager:
   - StopTag
   - Unselectable
   - Environment
+  - Menu
   layers:
   - Default
   - TransparentFX

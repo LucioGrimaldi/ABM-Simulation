@@ -31,11 +31,13 @@ public class MQTTSimClient
 
     /// Settings
     public int timeoutOnConnection = MqttSettings.MQTT_CONNECT_TIMEOUT;    
-    private bool mqttClientConnectionClosed = false;
-    private bool mqttClientConnected = false;
+    public Boolean mqttClientConnectionClosed = false;
+    public Boolean mqttClientConnected = false;
 
     /// MQTT Queues
     private ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
+
+    /// Action Events ///
 
     /// <summary>
     /// Event fired when a connection is successfully estabilished
@@ -48,16 +50,22 @@ public class MQTTSimClient
     public event Action ConnectionFailed;
 
     /// <summary>
+    /// Event fired when disconnected properly
+    /// </summary>
+    public event Action DisconnectionSucceeded;
+
+    /// Methods ///
+
+    /// <summary>
     /// Connect to the broker and get Queue ref.
     /// </summary>
-    public virtual void Connect(ref ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue, out bool ready)
+    public virtual void Connect(ref ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue)
     {
         simMessageQueue = this.simMessageQueue;
         if (client == null || !client.IsConnected)
         {
             DoConnect();
         }
-        ready = client.IsConnected;
     }
 
     /// <summary>
@@ -194,6 +202,7 @@ public class MQTTSimClient
     protected virtual void OnDisconnected()
     {
         Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Disconnected.");
+        DisconnectionSucceeded?.Invoke();
     }
 
     /// <summary>
