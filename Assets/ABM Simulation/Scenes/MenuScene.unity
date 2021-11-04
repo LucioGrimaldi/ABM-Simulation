@@ -2496,6 +2496,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ee04c2ce0874b74dba2e44aa0fd065f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerPreferencesSO: {fileID: 11400000, guid: 5e8f8baebfb8c704893075b20959fb7a,
+    type: 2}
+  steps_to_consume: 0
 --- !u!4 &250028490
 Transform:
   m_ObjectHideFlags: 0
@@ -3684,7 +3687,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 445768728}
         m_TargetAssemblyTypeName: MenuController, Assembly-CSharp
-        m_MethodName: QuitGame
+        m_MethodName: Quit
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4069,7 +4072,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f742706504131914082b4e71ed3fd265, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerPreferencesSO: {fileID: 11400000, guid: 29295040248b27a4893794ddead7b5a4,
+  playerPreferencesSO: {fileID: 11400000, guid: 5e8f8baebfb8c704893075b20959fb7a,
     type: 2}
   menuState: 0
   dropdownSimTypes: {fileID: 1891620617}
@@ -5279,131 +5282,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 663945095}
   m_CullTransparentMesh: 1
---- !u!1001 &667561239
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    m_TransformParent: {fileID: 1459549789}
-    m_Modifications:
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_Pivot.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_Pivot.y
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_RootOrder
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_AnchorMin.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 783.89
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 52.968
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: -26.484
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6290731597529576195, guid: 7ee79d54921346e459096945bf3e17ce,
-        type: 3}
-      propertyPath: m_Name
-      value: InMenuToggleParam_Prefab
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 7ee79d54921346e459096945bf3e17ce, type: 3}
---- !u!224 &667561240 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 6290731596221680196, guid: 7ee79d54921346e459096945bf3e17ce,
-    type: 3}
-  m_PrefabInstance: {fileID: 667561239}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &667688396
 GameObject:
   m_ObjectHideFlags: 0
@@ -7657,6 +7535,36 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1005059750}
   m_CullTransparentMesh: 1
+--- !u!1 &1010821443
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1010821444}
+  m_Layer: 0
+  m_Name: InMenuToggleParam_Prefab (Missing Prefab)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1010821444
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1010821443}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1459549789}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1081566836
 GameObject:
   m_ObjectHideFlags: 0
@@ -10086,7 +9994,8 @@ RectTransform:
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
+  m_Children:
+  - {fileID: 1010821444}
   m_Father: {fileID: 1229253772}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -11719,11 +11628,11 @@ MonoBehaviour:
     to the nest and to the food source respectively. The pheromones evaporate as
     well. You can change some of these constants.
 
-    
 
-    A two-pheromone model
-    is likely not biological, but this model is based on a series of papers we did
-    showing a strong relationship between ant pheromone algorithms and dynamic programming.'
+
+    A two-pheromone model is
+    likely not biological, but this model is based on a series of papers we did showing
+    a strong relationship between ant pheromone algorithms and dynamic programming.'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8a89fa14b10d46a99122fd4f73fca9a2, type: 2}
   m_sharedMaterial: {fileID: 2140474, guid: 8a89fa14b10d46a99122fd4f73fca9a2, type: 2}

@@ -60,9 +60,9 @@ namespace GerardoUtils
 
 
         // Create a Text Popup in the World, no parent
-        public static void CreateWorldTextPopup(string text, Vector3 localPosition, Color color)
+        public static void CreateWorldTextPopup(string text, Vector3 localPosition, int fontSize, Color color)
         {
-            CreateWorldTextPopup(null, text, localPosition, 50, color, localPosition + new Vector3(0, 10), 2f);
+            CreateWorldTextPopup(null, text, localPosition, fontSize, color, localPosition + new Vector3(0, 10), 2f);
         }
 
         // Create a Text Popup in the World

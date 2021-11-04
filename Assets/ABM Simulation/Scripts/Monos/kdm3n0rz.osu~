@@ -1,0 +1,249 @@
+using System.Collections.Generic;
+using UnityEngine;
+using GerardoUtils;
+
+
+public class GridSystem : MonoBehaviour, SimSpaceSystem
+{
+    public PlaceableObject selectedPlaceableObject = null;
+    public static GridSystem Instance { get; private set; }
+    public Grid3D<GridObject> grid;
+
+    public GridSystem()
+    {
+        Instance = this;
+    }
+
+    public class GridObject
+    {
+        private Grid3D<GridObject> grid;
+        private int x;
+        private int y;
+        private int z;
+        private PlaceableObject placedObject = null;
+
+        public GridObject(Grid3D<GridObject> grid, int x, int y, int z)
+        {
+            this.grid = grid;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        //Set e Get transform
+        public void SetPlacedObject(PlaceableObject placedObject)
+        {
+            this.placedObject = placedObject;
+            grid.TriggerGridObjectChanged(x, y, z); //aggiorno ToString se c'è modifica
+        }
+
+        public void ClearPlacedObject()
+        {
+            placedObject = null;
+            grid.TriggerGridObjectChanged(x, y, z);
+        }
+
+        public PlaceableObject GetPlacedObject()
+        {
+            if (placedObject != null)
+                return placedObject;
+            else return null;
+        }
+
+        public bool CanBuild()
+        {
+            return placedObject == null;   //se è null posso costruire, altrimenti no
+
+        }
+
+        public override string ToString()
+        {
+            return x + "," + y + "," + z + "\n" + placedObject;
+        }
+
+    }
+
+
+    /// <summary>
+    /// We use Awake to bootstrap App
+    /// </summary>
+    private void Awake()
+    {
+       
+    }
+    /// <summary>
+    /// onEnable routine (Unity Process)
+    /// </summary>
+    private void OnEnable()
+    {
+        // Register to EventHandlers
+       SceneController.OnSelectChangedEventHandler += OnSelectedChanged;
+    }
+    /// <summary>
+    /// Start routine (Unity Process)
+    /// </summary>
+    private void Start()
+    {
+
+    }
+    /// <summary>
+    /// Update routine (Unity Process)
+    /// </summary>
+    private void Update()
+    {
+        
+    }
+    /// <summary>
+    /// onApplicationQuit routine (Unity Process)
+    /// </summary>
+    private void OnApplicationQuit()
+    {
+
+    }
+    /// <summary>
+    /// onDisable routine (Unity Process)
+    /// </summary>
+    private void OnDisable()
+    {
+        // Unregister to EventHandlers
+       SceneController.OnSelectChangedEventHandler -= OnSelectedChanged;
+    }
+
+
+
+
+    // Interface Methods
+    public bool IsGhostSelected()
+    {
+        return selectedPlaceableObject != null && selectedPlaceableObject.isGhost;
+    }
+    public void SpawnGhost(SelectChangedEventArgs e)
+    {
+        selectedPlaceableObject = new PlaceableObject(e.type, e.class_name, e.so);
+        selectedPlaceableObject.SetScale(grid.CellSize);
+        selectedPlaceableObject.SpawnVisual(Vector3.zero, true);
+        selectedPlaceableObject.SetMovable(true);
+        SetLayerRecursive(selectedPlaceableObject.Obj.ghost.gameObject, 10);
+    }
+    public void RemoveGhost()
+    {
+        if (selectedPlaceableObject != null)
+        {
+            selectedPlaceableObject.DestroyVisual();
+            selectedPlaceableObject.Destroy();
+            selectedPlaceableObject = null;
+        }
+    }    
+    public PlaceableObject CreateSimObjectRender()
+    {   
+        bool canBuild = true;
+        if (!Vector3.zero.Equals(Mouse3DPosition.GetMouseWorldPosition()))
+        {
+            List<Vector3Int> gridPositionList = ((SimObjectDiscreteSO)selectedPlaceableObject.Obj).GetNeededGridPositions(selectedPlaceableObject.Position, selectedPlaceableObject.Direction);
+            foreach (Vector3Int gridPosition in gridPositionList)
+            {
+
+                if (!(gridPosition.x < grid.Width && gridPosition.y < grid.Height && gridPosition.z < grid.Lenght
+                        && gridPosition.x >= 0 && gridPosition.y >= 0 && gridPosition.z >= 0))
+                {
+                    canBuild = false;
+                    UtilsClass.CreateWorldTextPopup("Out of grid Bounds!", Mouse3DPosition.GetMouseWorldPosition(), (int)(grid.CellSize / 10 * 40), Color.red);
+                    break;
+                }
+                else
+                {
+                    if (!grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).CanBuild())
+                    {
+                        canBuild = false;
+                        UtilsClass.CreateWorldTextPopup("Cannot build here!", Mouse3DPosition.GetMouseWorldPosition(), (int)(grid.CellSize / 10 * 40), Color.yellow);
+                        break;
+                    }
+                }
+            }
+            if (canBuild)
+            {
+                selectedPlaceableObject.DestroyVisual();
+                selectedPlaceableObject.SpawnVisual(selectedPlaceableObject.Position, false);
+                selectedPlaceableObject.SetMovable(false);
+                foreach (Vector3Int gridPosition in gridPositionList)
+                {
+                    grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).SetPlacedObject(selectedPlaceableObject);
+                }
+                return selectedPlaceableObject;
+            }
+        }
+        return null;
+    }
+    public void DeleteSimObjectRender(PlaceableObject toDelete)
+    {
+        toDelete.DestroyVisual();
+        toDelete.Destroy();
+        foreach (Vector3Int p in ((List<Vector3Int>)toDelete.GetPosition()))
+        {
+            grid.GetGridObject(p.x, p.y, p.z).ClearPlacedObject();
+        }
+}
+    public void RotateSelectedSimObject()
+    {
+        if (selectedPlaceableObject != null && selectedPlaceableObject.isMovable)  UtilsClass.CreateWorldTextPopup("" + selectedPlaceableObject.Rotate(), Mouse3DPosition.GetMouseWorldPosition(), (int)(grid.CellSize/10*40), Color.green);
+    }
+    public PlaceableObject GetSelectedSimObject()
+    {
+        return selectedPlaceableObject;
+    }
+    public Vector3 GetTargetPosition()
+    {
+        return GetMouseWorldSnappedPosition();
+    }
+    public Quaternion GetTargetRotation()
+    {
+        return GetSelectedSimObjectRotation();
+    }
+
+
+    private void OnSelectedChanged(object sender, SelectChangedEventArgs e)
+    {
+        RefreshSelectedSimObject(e);
+    }
+    public void RefreshSelectedSimObject(SelectChangedEventArgs e)
+    {
+        RemoveGhost();
+        SpawnGhost(e);
+    }
+    public Quaternion GetSelectedSimObjectRotation()
+    {
+        if (selectedPlaceableObject != null)
+        {
+            return Quaternion.Euler(0, selectedPlaceableObject.GetRotationAngle(selectedPlaceableObject.Direction), 0);
+        }
+        else
+        {
+            return Quaternion.identity;
+        }
+    }
+    public Vector3 GetMouseWorldSnappedPosition()
+    {
+        Vector3 mousePosition = Mouse3DPosition.GetMouseWorldPosition();
+        grid.GetXYZ(mousePosition, out int x, out int y, out int z);
+
+        if (selectedPlaceableObject != null)
+        {
+            Vector3Int rotationOffset = ((SimObjectDiscreteSO)selectedPlaceableObject.Obj).GetRotationOffset(selectedPlaceableObject.Direction);    //prendo offset rotazione
+            Vector3 placedObjectWorldPosition = grid.GetWorldPosition(x, y, z) + new Vector3(rotationOffset.x, 0, rotationOffset.z) * grid.CellSize; //applico offset
+            return placedObjectWorldPosition;
+        }
+        else
+        {
+            return mousePosition;
+        }
+    }
+    private void SetLayerRecursive(GameObject targetGameObject, int layer)
+    {
+        targetGameObject.layer = layer;
+        foreach (Transform child in targetGameObject.transform)
+        {
+            SetLayerRecursive(child.gameObject, layer); //setto il layer ghost a tutte le visual
+        }
+    }
+   
+}

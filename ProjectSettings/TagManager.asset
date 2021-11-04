@@ -16,6 +16,7 @@ TagManager:
   - Unselectable
   - Environment
   - Menu
+  - UI
   layers:
   - Default
   - TransparentFX
@@ -26,8 +27,8 @@ TagManager:
   - 
   - 
   - 
-  - 
-  - 
+  - Sim Objects
+  - Ghost
   - 
   - 
   - 

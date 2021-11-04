@@ -1,30 +1,35 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
-using GerardoUtils;
 using System;
 
 public class UIController : MonoBehaviour
 {
-
     [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
-
 
     // UI Events
     public static event EventHandler<EventArgs> OnLoadMainSceneEventHandler;
+    public static event EventHandler<EventArgs> OnPlayEventHandler;
+    public static event EventHandler<EventArgs> OnPauseEventHandler;
+    public static event EventHandler<EventArgs> OnStopEventHandler;
+
+    // Controllers
+    private SceneController SceneController;
+
+    // Sprites Collection
+    public SOCollection SimObjectsData;
 
     // Variables
     public TMP_Text nickname;
     private int counter1 = 0, counter2 = 1, counter3 = 1, counter4 = 1, counter5 = 1;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSettings, panelBackToMenu, panelFPS, 
-                scrollParamsPrefab, paramsScrollContent,scrollSettingsGamePrefab, settingsScrollContent, simToggle, envToggle;
+        scrollParamsPrefab, paramsScrollContent,scrollSettingsGamePrefab, settingsScrollContent,
+        simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab;
     public Slider slider;
     public Image imgEditMode, imgSimState, imgContour;
     public Button buttonEdit;
-    public Sprite[] spriteArray; //0 pause, 1 play, 2 stop
+    public Sprite[] commandSprites;
     public static bool showSimSpace, showEnvironment;
     
 
@@ -33,6 +38,10 @@ public class UIController : MonoBehaviour
         nickname.text = playerPreferencesSO.nickname;
         showSimSpace = playerPreferencesSO.showSimSpace;
         showEnvironment = playerPreferencesSO.showEnvironment;
+
+        // Bind Controllers
+        SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
+        SimObjectsData = SceneController.SimObjectsData;
 
         Debug.Log("sim space: " + showSimSpace + " env: " + showEnvironment);
 
@@ -46,12 +55,20 @@ public class UIController : MonoBehaviour
     {
         slider.onValueChanged.AddListener(delegate { MoveSlider(); });
     }
+    /// <summary>
+    /// Start routine (Unity Process)
+    /// </summary>
     void Start()
     {
         OnLoadMainSceneEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
+
+        LoadEditPanel();
         LoadParamsSettings(10);
         LoadGameSettings(10);
     }
+    /// <summary>
+    /// Update routine (Unity Process)
+    /// </summary>
     void Update()
     {
         if (simToggle.GetComponent<Toggle>().isOn == true)
@@ -62,16 +79,6 @@ public class UIController : MonoBehaviour
             showEnvironment = true;
         else showEnvironment = false;
 
-        //Debug.Log("Grid toggle: " + gridToggle.GetComponent<Toggle>().isOn);
-
-        //if (Input.GetMouseButtonDown(0))
-        //{
-        //    grid.SetValue(UtilsClass.GetMouseWorldPosition(), 50);
-        //}
-        //if (Input.GetMouseButtonDown(1))
-        //{
-        //    Debug.Log(grid.GetValue(UtilsClass.GetMouseWorldPosition()));
-        //}
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -137,23 +144,23 @@ public class UIController : MonoBehaviour
     public void PlaySimulation()
     {
         imgSimState.GetComponent<Image>().color = Color.green;
-        imgSimState.GetComponent<Image>().sprite = spriteArray[1];
+        imgSimState.GetComponent<Image>().sprite = commandSprites[1];
         buttonEdit.interactable = false;
-        Debug.Log("PLAY SIM");
+        OnPlayEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
     }
     public void PauseSimulation()
     {
         imgSimState.GetComponent<Image>().color = Color.yellow;
-        imgSimState.GetComponent<Image>().sprite = spriteArray[0];
+        imgSimState.GetComponent<Image>().sprite = commandSprites[0];
         buttonEdit.interactable = true;
-        Debug.Log("PAUSE SIM");
+        OnPauseEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
     }
     public void StopSimulation()
     {
         imgSimState.GetComponent<Image>().color = Color.red;
-        imgSimState.GetComponent<Image>().sprite = spriteArray[2];
+        imgSimState.GetComponent<Image>().sprite = commandSprites[2];
         buttonEdit.interactable = true;
-        Debug.Log("STOP SIM");
+        OnStopEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
     }
 
     public void ApplySettings()
@@ -183,6 +190,39 @@ public class UIController : MonoBehaviour
 
     }
 
+    void LoadEditPanel()
+    {
+        foreach (SimObjectSO so in SimObjectsData.agents)
+        {
+            Sprite s = so.sprite;
+            GameObject o = Instantiate(editPanelSimObject_prefab, contentAgents.transform);
+            o.GetComponent<Image>().sprite = s;
+            o.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                SceneController.SelectPlaceableSimObject(0, o.transform.GetSiblingIndex());
+            });
+        }
+        foreach (SimObjectSO so in SimObjectsData.generics)
+        {
+            Sprite s = so.sprite;
+            GameObject o = Instantiate(editPanelSimObject_prefab, contentGenerics.transform);
+            o.GetComponent<Image>().sprite = s;
+            o.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                SceneController.SelectPlaceableSimObject(1, o.transform.GetSiblingIndex());
+            });
+        }
+        foreach (SimObjectSO so in SimObjectsData.obstacles)
+        {
+            Sprite s = so.sprite;
+            GameObject o = Instantiate(editPanelSimObject_prefab, contentObstacles.transform);
+            o.GetComponent<Image>().sprite = s;
+            o.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                SceneController.SelectPlaceableSimObject(2, o.transform.GetSiblingIndex());
+            });
+        }
+    }
     void LoadParamsSettings(int parameters)
     {
 

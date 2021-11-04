@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40b96de2923ee8b4196275f935d3648c, type: 3}
+  m_Name: AntsForageCollection
+  m_EditorClassIdentifier: 
+  agents:
+  - {fileID: 11400000, guid: 7cf67ed2353b115409e09eb4a702bd48, type: 2}
+  generics:
+  - {fileID: 11400000, guid: 8955316726617e9469227f4b47a311ba, type: 2}
+  - {fileID: 11400000, guid: 5a5160f7b8595104bb17c7368c28aa8f, type: 2}
+  - {fileID: 11400000, guid: 1b7af8ee9d1705d4a99178ffd135abbf, type: 2}
+  obstacles:
+  - {fileID: 11400000, guid: 42ffce385678d7344898cf776856fbe0, type: 2}
+  - {fileID: 11400000, guid: c56f7421957c0c74dac3905a45646937, type: 2}
+  - {fileID: 11400000, guid: f910c1eeadff78b41b5f2a0800cc681f, type: 2}
+  - {fileID: 11400000, guid: cebc3fcd5d5e7834cab16de5e4f6ace2, type: 2}
+  - {fileID: 11400000, guid: 121c99b89db61d94a8ab4a87355a5199, type: 2}
+  - {fileID: 11400000, guid: 0cb339f499c6f3f4e8e242ae12e57fe7, type: 2}
+  - {fileID: 11400000, guid: b8754eefbd3a7fe46a37e357dc3952db, type: 2}
+  - {fileID: 11400000, guid: 273e7e2255197a142bd0d9054fb5e737, type: 2}
+  agentClass_names:
+  - Ant
+  genericClass_names:
+  - Food
+  - Food
+  - Home
+  obstacleClass_names:
+  - Barrel
+  - Wood
+  - Rock
+  - Fence
+  - Boat
+  - House
+  - Pond
+  - Church

@@ -1,0 +1,455 @@
+using GerardoUtils;
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using System.Linq;
+using static GridSystem;
+
+public class SelectChangedEventArgs : EventArgs
+{
+    public SimObject.SimObjectType type;
+    public string class_name;
+    public SimObjectSO so;
+}
+
+public class SceneController : MonoBehaviour
+{
+    // Player Preferences
+    [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
+
+    // Events
+    public static event EventHandler<SimObjectCreateEventArgs> OnSimObjectCreateEventHandler;    
+    public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectModifyEventHandler;    
+    public static event EventHandler<SimObjectDeleteEventArgs> OnSimObjectDeleteEventHandler;    
+    public static event EventHandler<SelectChangedEventArgs> OnSelectChangedEventHandler;    
+
+    private static bool showSimSpace, showEnvironment;
+    private GameObject simulationSpace, visualEnvironment;
+
+    // Controllers
+    private SimulationController SimulationController;
+    private UIController UIController;
+    private SimSpaceSystem SimSpaceSystem;
+
+    // Prefabs
+    public GameObject[] SimSpace_prefabs_2D;
+    public GameObject[] SimSpace_prefabs_3D;
+    public GameObject[] Environment_prefabs;
+
+    // Placeable SOs
+    public SOCollection[] SOCollections;
+    public SOCollection SimObjectsData;
+
+    // PlacedObjects
+    private static Dictionary<(SimObject.SimObjectType type, string class_name, int id), PlaceableObject> simObjectRenders = new Dictionary<(SimObject.SimObjectType type, string class_name, int id), PlaceableObject>();
+
+    // Variables
+    public static int simId;
+    private static Dictionary<string, int> simDimensions;
+    private int width = 1, height = 1, lenght = 1;
+    private static Simulation.SimTypeEnum simType;
+    private static bool isDiscrete;
+    private PlaceableObject selectedSimObject = null;
+    public GameObject cellDebug;
+
+    /// UNITY LOOP METHODS ///
+
+    /// <summary>
+    /// We use Awake to bootstrap App
+    /// </summary>
+    private void Awake()
+    {
+        // bind GridSystem and Controllers
+        SimulationController = GameObject.Find("SimulationController").GetComponent<SimulationController>();
+        UIController = GameObject.Find("UIController").GetComponent<UIController>();
+        simId = SimulationController.GetSimId();
+        simDimensions = SimulationController.GetSimDimensions();
+        simType = SimulationController.GetSimType();
+        isDiscrete = simType.Equals(Simulation.SimTypeEnum.DISCRETE);
+        InitSimSpaceSystem(isDiscrete);
+        InitScene(isDiscrete);
+    }
+    /// <summary>
+    /// onEnable routine (Unity Process)
+    /// </summary>
+    private void OnEnable()
+    {
+        // Register to EventHandlers
+
+       
+    }
+    /// <summary>
+    /// Start routine (Unity Process)
+    /// </summary>
+    private void Start()
+    {
+        
+    }
+    /// <summary>
+    /// Update routine (Unity Process)
+    /// </summary>
+    private void Update()
+    {
+        StepOn();
+        ShowHideSimEnvironment();       // può essere sostituito con event
+        CheckForUserInput();
+    }
+    /// <summary>
+    /// onApplicationQuit routine (Unity Process)
+    /// </summary>
+    private void OnApplicationQuit()
+    {
+        simObjectRenders.Clear();
+    }
+    /// <summary>
+    /// onDisable routine (Unity Process)
+    /// </summary>
+    private void OnDisable()
+    {
+        // Unregister to EventHandlers
+        
+    }
+
+
+    /// Methods ///
+    // Initialization
+    public void InitSimSpaceSystem(bool isDiscrete)
+    {
+        if (isDiscrete) SimSpaceSystem = new GameObject("SimSpaceSystem").AddComponent<GridSystem>(); ((GridSystem)SimSpaceSystem).DEBUG_cell = cellDebug;
+        //else SimSpaceSystem = GameObject.Find("ContinuousSystem").GetComponent<ContinuousSystem>();
+    }
+    public void InitScene(bool isDiscrete)
+    {
+        // init SOCollection
+        SimObjectsData = SOCollections[simId];
+
+        // get sim dimensions (and add z in case)
+        if (simDimensions.ContainsKey("x")) simDimensions.TryGetValue("x", out width);
+        if (simDimensions.ContainsKey("y")) simDimensions.TryGetValue("y", out lenght);      // swap y-z
+        if (simDimensions.ContainsKey("z")) simDimensions.TryGetValue("z", out height);
+        float scaleFactor = Mathf.Max(width, height, lenght) / 10f;
+
+        // init env
+        InitEnvironment();
+
+        // init simSpace
+        InitSimSpace(isDiscrete, scaleFactor);
+
+    }
+    public void InitEnvironment()
+    {
+        GameObject choosenEnvironment = Environment_prefabs[1];
+        visualEnvironment = Instantiate(choosenEnvironment, choosenEnvironment.transform.position, Quaternion.identity);
+    }
+    public void InitSimSpace(bool isDiscrete, float scaleFactor)
+    {
+        GameObject choosenSimSpace;
+        if (isDiscrete)
+        {
+            if (simDimensions.Count == 2)
+            {
+                choosenSimSpace = SimSpace_prefabs_2D[0];
+                choosenSimSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_GridSize", Mathf.Max(width, height, lenght));
+            }
+            else choosenSimSpace = SimSpace_prefabs_3D[0];
+            
+            ((GridSystem)SimSpaceSystem).grid = new Grid3D<GridObject>(width, height, lenght, 10f / scaleFactor, choosenSimSpace.transform.position - new Vector3(50, 0, 50), ((g, x, y, z) => new GridObject(g, x, y, z)));
+        }
+        else
+        {
+            if (simDimensions.Count == 2)
+            {
+                choosenSimSpace = SimSpace_prefabs_2D[1];
+            }
+            else choosenSimSpace = SimSpace_prefabs_3D[1];
+
+            //init countinuosSystem
+
+        }
+        simulationSpace = Instantiate(choosenSimSpace, choosenSimSpace.transform.position, Quaternion.AngleAxis(180, new Vector3(0, 1, 0)));
+    }
+
+
+    // Interaction
+    public void ShowHideSimEnvironment()                                // FARE CON EVENTI
+    {
+        showSimSpace = UIController.showSimSpace;
+        showEnvironment = UIController.showEnvironment;
+
+        if (showSimSpace)
+            simulationSpace.gameObject.SetActive(true);
+        else
+            simulationSpace.gameObject.SetActive(false);
+
+        if (showEnvironment)
+            visualEnvironment.gameObject.SetActive(true);
+        else
+            visualEnvironment.gameObject.SetActive(false);
+    }
+    public void CheckForUserInput()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            RaycastHit hitPoint;
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out hitPoint, Mathf.Infinity))            // Check if UI is not hit
+            {
+                if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) Debug.Log("UI HIT!"); else
+                if (SimSpaceSystem.IsGhostSelected()) CreateSimObject(SimSpaceSystem.CreateSimObjectRender()); else
+                if (SelectSimObject(hitPoint)) Debug.Log("SELECTED:" + selectedSimObject.type + " " + selectedSimObject.class_name + " " + selectedSimObject.id);
+            }
+        }
+        // Destroy
+        if (Input.GetKeyDown(KeyCode.Backspace))
+        {
+            if (selectedSimObject != null)
+            {
+                SimSpaceSystem.DeleteSimObjectRender(selectedSimObject);
+                DeleteSimObject();
+            }
+        }
+        // Modify
+        //if (Input.GetKeyDown(KeyCode.M))
+        //{
+        //    if(selectedSimObject != null)
+        //    {
+                
+        //        selectedSimObject.SetMovable(true);
+        //    }
+        //    String buildName;
+        //    Vector3 mousePosition = Mouse3DPosition.GetMouseWorldPosition();
+        //    if (GridSystem.grid.GetGridObject(mousePosition) != null)
+        //    {
+        //        // Valid Grid Position
+        //        PlaceableObject placedObject = GridSystem.grid.GetGridObject(mousePosition).GetPlacedObject();
+        //        if (placedObject != null)
+        //        {
+        //            buildName = placedObject.name;
+        //            //Debug.Log("Nome prefab: " + buildName);
+        //            // Distruggi
+        //            placedObject.Destroy();
+
+        //            List<Vector3Int> gridPositionList = placedObject.GetGridPositionList();
+        //            foreach (Vector3Int gridPosition in gridPositionList)
+        //            {
+        //                GridSystem.grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).ClearPlacedObject();
+        //            }
+
+        //            foreach (SimObjectDiscreteSO scriptableObj in GridSystem.placeableAgentSos)
+        //            {
+        //                if (buildName.Contains(scriptableObj.name))
+        //                {
+        //                    GridSystem.selectedPlaceableObject = scriptableObj;
+        //                    UtilsClass.CreateWorldTextPopup("Moving Building", Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(grid.CellSize / 10 * 40), Color.yellow);
+        //                    GridSystem.RefreshSelectedSimObject();
+        //                    //DeselectObjectType();
+        //                    break;
+        //                }
+        //            }
+        //        }
+        //        else
+        //            UtilsClass.CreateWorldTextPopup("Nothing to MOVE!", Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(grid.CellSize / 10 * 40), Color.yellow);
+
+        //    }
+        //    else
+        //        //do nothing
+        //        UtilsClass.CreateWorldTextPopup("Nothing to MOVE!", Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(grid.CellSize / 10 * 40), Color.yellow);
+
+        //}
+        // Rotate
+        if (Input.GetKeyDown(KeyCode.R)) { SimSpaceSystem.RotateSelectedSimObject(); }
+        // Deselect
+        if (Input.GetKeyDown(KeyCode.Escape)) { SimSpaceSystem.RemoveGhost(); }
+
+
+    }                                  // DA SISTEMARE (raycast)
+    public bool SelectSimObject(RaycastHit hitPoint)
+    {
+        if(hitPoint.transform.gameObject.layer.Equals(LayerMask.NameToLayer("Sim Objects")))
+        {
+            if (simObjectRenders.Values.Contains(getPlaceableObjectRecursive(hitPoint.transform)))
+                {
+                    selectedSimObject = getPlaceableObjectRecursive(hitPoint.transform);
+                    ShowHideInspector(true);
+                    return true;
+                }
+        }        
+        return false;
+    }
+    public void CreateSimObjectRender()
+    {
+        PlaceableObject x = SimSpaceSystem.CreateSimObjectRender();
+    }
+    public void DeleteSimObjectRender(PlaceableObject toDelete)
+    {
+        SimSpaceSystem.DeleteSimObjectRender(toDelete);
+    }
+    public void RotateSimObjectRender()
+    {
+        SimSpaceSystem.RotateSelectedSimObject();
+    }
+    public void SelectPlaceableSimObject(int type, int id)
+    {
+        (string, SimObjectSO) x;
+        SelectChangedEventArgs e = new SelectChangedEventArgs();
+        e.type = (SimObject.SimObjectType)type;
+        switch (type)
+        {
+            case 0:
+                x = (SimObjectsData.agentClass_names[id], SimObjectsData.agents[id]);
+                break;
+            case 1:
+                x = (SimObjectsData.genericClass_names[id], SimObjectsData.generics[id]);
+                break;
+            default:
+                x = (SimObjectsData.obstacleClass_names[id], SimObjectsData.obstacles[id]);
+                break;
+        }
+        e.class_name = x.Item1;
+        e.so = x.Item2;
+        OnSelectChangedEventHandler?.Invoke(this, e);
+    }
+
+
+    // Simulation SimObject Events
+    public void CreateSimObject(PlaceableObject placedSimObject)
+    {
+        if(placedSimObject != null)
+        {
+            SimObjectCreateEventArgs e = new SimObjectCreateEventArgs();
+            e.type = placedSimObject.type;
+            e.class_name = placedSimObject.class_name;
+            e.id = GetTemporaryId(e.type, e.class_name);
+            e.parameters = GetSimObjectParams(e.type, e.class_name);        
+            e.parameters.Add("position", placedSimObject.Position);
+
+            placedSimObject.id = e.id;
+            simObjectRenders.Add((e.type, e.class_name, e.id), placedSimObject);
+
+            OnSimObjectCreateEventHandler?.BeginInvoke(this, e, null, null);
+        }
+    }
+    public void ModifySimObject()
+    {
+
+    }
+    public void DeleteSimObject()
+    {
+        SimObjectDeleteEventArgs e = new SimObjectDeleteEventArgs();
+        e.type = selectedSimObject.type;
+        e.class_name = selectedSimObject.class_name;
+        e.id = selectedSimObject.id;
+
+        simObjectRenders.Remove((e.type, e.class_name, e.id));
+
+        OnSimObjectDeleteEventHandler?.BeginInvoke(this, e, null, null);
+    }
+
+    // Step
+    public void StepOn()
+    {
+        foreach (SimObject so in SimulationController.GetSimulation().Agents.Values)
+        {
+            PlaceableObject po;
+            if (simObjectRenders.TryGetValue((so.Type, so.Class_name, so.Id), out po))
+            {
+                so.Parameters.TryGetValue("position", out dynamic coords);
+                if (isDiscrete)
+                {
+                    int x = 0, y = 0, z = 0;
+                    if(simDimensions.Count == 2)
+                    {
+                        Vector2Int cell = new Vector2Int();
+                        ((MyList<Vector2Int>)coords).ForEach((cell) =>
+                        {
+                            x = coord.Item2;
+                            y = coord.Item2;
+                            z = coord.Item2;
+                            });
+
+
+                            //po.gridPositionList.Add(new Vector3Int(x, y, z));
+                        });
+                    }
+                    else
+                    {
+                        
+                    }                    
+                }
+                else
+                {
+                    if (simDimensions.Count == 2)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+
+            }
+        }
+    }       // TODO e GENERALIZE
+
+
+    // Inspector
+    public void PopulateInspector()
+    {
+        // FARE CON EVENTI
+    }
+
+    public void ShowHideInspector(bool show)                 
+    {
+        PopulateInspector();
+        // FARE CON EVENTI
+    }
+
+    // Utils
+    public int GetTemporaryId(SimObject.SimObjectType type, string class_name)
+    {
+        int min_id = -1;
+        foreach (KeyValuePair<(string op, (SimObject.SimObjectType type, string class_name, int id) obj), SimObject> update in SimulationController.uncommitted_updates)
+        {
+            if (update.Key.op.Equals("CRT") && update.Key.obj.type.Equals(type) && update.Key.obj.class_name.Equals(class_name))
+            {
+                if (min_id > update.Key.obj.id) min_id = update.Key.obj.id;
+            }
+        }
+        return --min_id;
+    }
+    public Dictionary<string, dynamic> GetSimObjectParams(SimObject.SimObjectType type, string class_name)
+    {
+        Dictionary<string, SimObject> dict;
+        Dictionary<string, dynamic> parameters = new Dictionary<string, dynamic>();
+        switch (type)
+        {
+            case SimObject.SimObjectType.AGENT:
+                dict = SimulationController.GetSimulation().Agent_prototypes;
+                break;
+            case SimObject.SimObjectType.GENERIC:
+                dict = SimulationController.GetSimulation().Generic_prototypes;
+                break;
+            default:
+                dict = null;
+                break;
+        }
+        if (dict != null)
+        {
+            dict.TryGetValue(class_name, out SimObject so);
+            foreach (KeyValuePair<string, dynamic> p in so.Parameters)
+            {
+                if (!p.Key.Equals("position")) parameters.Add(p.Key, p.Value);
+            }
+        }
+        return parameters;
+    }
+    public PlaceableObject getPlaceableObjectRecursive(Transform hitTransform)
+    {
+        if (hitTransform.parent.gameObject.GetComponent<PlaceableObject>() != null)
+        {
+            return hitTransform.parent.gameObject.GetComponent<PlaceableObject>();
+        }
+        else return getPlaceableObjectRecursive(hitTransform.parent.transform);
+    } 
+}

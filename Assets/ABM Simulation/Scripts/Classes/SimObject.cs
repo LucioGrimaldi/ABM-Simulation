@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using DeepCopyExtensions;
 public class SimObject
@@ -5,12 +6,13 @@ public class SimObject
     private SimObjectType type;
     private string class_name;
     private int id;
-    private Dictionary<string, dynamic> parameters = new Dictionary<string, dynamic>();
+    private ConcurrentDictionary<string, object> parameters = new ConcurrentDictionary<string, object>();
 
     public SimObjectType Type { get => type; set => type = value; }
     public string Class_name { get => class_name; set => class_name = value; }
     public int Id { get => id; set => id = value; }
-    public Dictionary<string, dynamic> Parameters { get => parameters; set => parameters = value; }
+    public ConcurrentDictionary<string, object> Parameters { get => parameters; set => parameters = value; }
+
     public enum SimObjectType
     {
         AGENT = 0,
@@ -18,8 +20,7 @@ public class SimObject
         OBSTACLE = 2
     }
 
-
-    public SimObject(SimObjectType type, string class_name, int id, Dictionary<string, dynamic> parameters)
+    public SimObject(SimObjectType type, string class_name, int id, ConcurrentDictionary<string, object> parameters)
     {
         this.Type = type;
         this.Class_name = class_name;
@@ -33,31 +34,19 @@ public class SimObject
     }
 
 
-
-    public bool AddParameter(string param_name, dynamic value)
+    public object GetParameter(string param_name)
     {
-        if (!Parameters.ContainsKey(param_name))
-        {
-            Parameters.Add(param_name, value);
-            return true;
-        }
-        return false;
-    }
-    public bool UpdateParameter(string param_name, dynamic value)
-    {
-        if (Parameters.ContainsKey(param_name))
-        {
-            Parameters.Remove(param_name);
-            Parameters.Add(param_name, value);
-            return true;
-        }
-        return false;
-    }
-    public dynamic GetParameter(string param_name)
-    {
-        dynamic parameter;
+        object parameter;
         Parameters.TryGetValue(param_name, out parameter);
         return (!parameter.Equals(null)) ? parameter : false;
+    }
+    public bool AddParameter(string param_name, object value)
+    {
+        if (Parameters.TryAdd(param_name, value)) return true; else return false;
+    }
+    public bool UpdateParameter(string param_name, object value)
+    {
+        if (Parameters.AddOrUpdate(param_name, value, (k,v) => { return value; }).Equals(value)) return true; else return false;
     }
 
 

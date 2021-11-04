@@ -151,8 +151,9 @@ public class MenuController : MonoBehaviour
         // TODO
     }
     private void onSimListSuccess(object sender, ReceivedMessageEventArgs e)
-    {
+    {        
         sim_list_editable = (JSONArray)e.Payload["payload_data"]["list"];
+
         MenuMainThreadQueue.Enqueue(() => { LoadSimNames(sim_list_editable); });
         MenuMainThreadQueue.Enqueue(() => { PopulateSimListDropdown(); });
         MenuMainThreadQueue.Enqueue(() => { LoadSprites(); });

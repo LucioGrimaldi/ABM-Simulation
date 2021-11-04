@@ -1,8 +1,10 @@
 ﻿using SimpleJSON;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using UnityEngine;
 
 public class Simulation
 {
@@ -10,10 +12,11 @@ public class Simulation
     public string name, description;
     public SimTypeEnum type;
     public int id;
-    public Dictionary<string, dynamic> dimensions = new Dictionary<string, dynamic>();
-    public Dictionary<string, SimObject> agent_prototypes = new Dictionary<string, SimObject>();
-    public Dictionary<string, SimObject> generic_prototypes = new Dictionary<string, SimObject>();
-    public Dictionary<string, dynamic> parameters = new Dictionary<string, dynamic>();
+    private bool is_discrete;
+    public ConcurrentDictionary<string, object> dimensions = new ConcurrentDictionary<string, object>();
+    public ConcurrentDictionary<string, SimObject> agent_prototypes = new ConcurrentDictionary<string, SimObject>();
+    public ConcurrentDictionary<string, SimObject> generic_prototypes = new ConcurrentDictionary<string, SimObject>();
+    public ConcurrentDictionary<string, object> parameters = new ConcurrentDictionary<string, object>();
     public List<string> editableInPlay = new List<string>();
     public List<string> editableInInit = new List<string>();
     public List<string> editableInPause = new List<string>();
@@ -28,7 +31,8 @@ public class Simulation
         NOT_READY = -1,
         READY = 0,
         PLAY = 1,
-        PAUSE = 2
+        PAUSE = 2,
+        STEP = 3
     }
     public enum SpeedEnum
     {
@@ -43,113 +47,103 @@ public class Simulation
     public StateEnum state = StateEnum.NOT_READY;
     public SpeedEnum speed = SpeedEnum.X1;
     public long currentSimStep = 0;
-    public Dictionary<string,int> n_agents_for_each_class = new Dictionary<string, int>();
-    public Dictionary<string,int> n_generics_for_each_class = new Dictionary<string, int>();
-    public Dictionary<(string class_name, int id), SimObject> agents = new Dictionary<(string, int), SimObject>();
-    public Dictionary<(string class_name, int id), SimObject> generics = new Dictionary<(string, int), SimObject>();
-    public Dictionary<(string class_name, int id), SimObject> obstacles = new Dictionary<(string, int), SimObject>();
+    public ConcurrentDictionary<string,int> n_agents_for_each_class = new ConcurrentDictionary<string, int>();
+    public ConcurrentDictionary<string,int> n_generics_for_each_class = new ConcurrentDictionary<string, int>();
+    public ConcurrentDictionary<(string class_name, int id), SimObject> agents = new ConcurrentDictionary<(string, int), SimObject>();
+    public ConcurrentDictionary<(string class_name, int id), SimObject> generics = new ConcurrentDictionary<(string, int), SimObject>();
+    public ConcurrentDictionary<(string class_name, int id), SimObject> obstacles = new ConcurrentDictionary<(string, int), SimObject>();
 
     public string Name { get => name; set => name = value; }
     public string Description { get => description; set => description = value; }
     public SimTypeEnum Type { get => type; set => type = value; }
     public StateEnum State { get => state; set => state = value; }
     public SpeedEnum Speed { get => speed; set => speed = value; }
-    public Dictionary<string, dynamic> Dimensions { get => dimensions; set => dimensions = value; }
-    public Dictionary<string, SimObject> Agent_prototypes { get => agent_prototypes; set => agent_prototypes = value; }
-    public Dictionary<string, SimObject> Generic_prototypes { get => generic_prototypes; set => generic_prototypes = value; }
-    public Dictionary<string, dynamic> Parameters { get => parameters; set => parameters = value; }
+    public ConcurrentDictionary<string, object> Dimensions { get => dimensions; set => dimensions = value; }
+    public ConcurrentDictionary<string, SimObject> Agent_prototypes { get => agent_prototypes; set => agent_prototypes = value; }
+    public ConcurrentDictionary<string, SimObject> Generic_prototypes { get => generic_prototypes; set => generic_prototypes = value; }
+    public ConcurrentDictionary<string, object> Parameters { get => parameters; set => parameters = value; }
     public int Id { get => id; set => id = value; }
+    public bool Is_discrete { get => is_discrete; set => is_discrete = value; }
     public List<string> EditableInPlay { get => editableInPlay; set => editableInPlay = value; }
     public List<string> EditableInInit { get => editableInInit; set => editableInInit = value; }
     public List<string> EditableInPause { get => editableInPause; set => editableInPause = value; }
     public long CurrentSimStep { get => currentSimStep; set => currentSimStep = value; }
-    public Dictionary<string, int> N_agents_for_each_class { get => n_agents_for_each_class; set => n_agents_for_each_class = value; }
-    public Dictionary<string, int> N_generics_for_each_class { get => n_generics_for_each_class; set => n_generics_for_each_class = value; }
-    public Dictionary<(string class_name, int id), SimObject> Agents { get => agents; set => agents = value; }
-    public Dictionary<(string class_name, int id), SimObject> Obstacles { get => obstacles; set => obstacles = value; }
-    public Dictionary<(string class_name, int id), SimObject> Generics { get => generics; set => generics = value; }
+    public ConcurrentDictionary<string, int> N_agents_for_each_class { get => n_agents_for_each_class; set => n_agents_for_each_class = value; }
+    public ConcurrentDictionary<string, int> N_generics_for_each_class { get => n_generics_for_each_class; set => n_generics_for_each_class = value; }
+    public ConcurrentDictionary<(string class_name, int id), SimObject> Agents { get => agents; set => agents = value; }
+    public ConcurrentDictionary<(string class_name, int id), SimObject> Obstacles { get => obstacles; set => obstacles = value; }
+    public ConcurrentDictionary<(string class_name, int id), SimObject> Generics { get => generics; set => generics = value; }
 
     public Simulation(){}
 
     /// Add/Remove Agents/Generics Prototypes ///
     public void AddAgentPrototype(SimObject a)
     {
-        agent_prototypes.Add(a.Class_name, a);
+        agent_prototypes.TryAdd(a.Class_name, a);
     }
     public void AddGenericPrototype(SimObject g)
     {
-        generic_prototypes.Add(g.Class_name, g);
+        generic_prototypes.TryAdd(g.Class_name, g);
     }
 
     /// Add/Remove Agents/Generics/Obstacles ///
     public void AddAgent(SimObject a)
     {
-        Agents.Add((a.Class_name, a.Id), a);
+        Agents.TryAdd((a.Class_name, a.Id), a);
     }
     public void RemoveAgent(SimObject a)
     {
-        Agents.Remove((a.Class_name, a.Id));
+        Agents.TryRemove((a.Class_name, a.Id), out _);
     }
     public void RemoveAgent(int id, string class_name)
     {
-        Agents.Remove((class_name,id));
+        Agents.TryRemove((class_name,id), out _);
     }
     public void AddGeneric(SimObject g)
     {
-        Generics.Add((g.Class_name, g.Id), g);
+        Generics.TryAdd((g.Class_name, g.Id), g);
     }
     public void RemoveGeneric(SimObject g)
     {
-        Generics.Remove((g.Class_name, g.Id));
+        Generics.TryRemove((g.Class_name, g.Id), out _);
     }
     public void RemoveGeneric(int id, string class_name)
     {
-        Generics.Remove((class_name, id));
+        Generics.TryRemove((class_name, id), out _);
     }
     public void AddObstacle(SimObject o)
     {
-        Obstacles.Add((o.Class_name, o.Id), o);
+        Obstacles.TryAdd((o.Class_name, o.Id), o);
     }
     public void RemoveObstacle(SimObject o)
     {
-        Obstacles.Remove((o.Class_name, o.Id));
+        Obstacles.TryRemove((o.Class_name, o.Id), out _);
     }
     public void RemoveObstacle(string class_name, int id)
     {
-        Obstacles.Remove((class_name, id));
+        Obstacles.TryRemove((class_name, id), out _);
     }
 
     /// Get/Add/Update Sim params ///
     
-    public dynamic GetParameter(string param_name)
+    public object GetParameter(string param_name)
     {
-        dynamic parameter;
-        Parameters.TryGetValue(param_name, out parameter);
-        return (!parameter.Equals(null)) ? parameter : false;
+        object parameter;
+        if (Parameters.TryGetValue(param_name, out parameter)) return parameter; else return null;
     }
-    public bool AddParameter(string param_name, dynamic value)
+    public bool AddParameter(string param_name, object value)
     {
-        if (!Parameters.ContainsKey(param_name))
-        {
-            Parameters.Add(param_name, value);
-            return true;
-        }
-        return false;
+        return Parameters.TryAdd(param_name, value);
     }
-    public bool UpdateParameter(string param_name, dynamic value)
+    public bool UpdateParameter(string param_name, object value)
     {
-        if (Parameters.ContainsKey(param_name))
-        {
-            Parameters.Remove(param_name);
-            Parameters.Add(param_name, value);
-            return true;
-        }
-        return false;
+        if (Parameters.AddOrUpdate(param_name, value, (k, v) => { return value; }).Equals(value)) return true; else return false;
+
     }
 
 
     /// Utils ///
-    
+
     /// <summary>
     /// Get JSONObject from Simulation
     /// </summary>
@@ -173,8 +167,10 @@ public class Simulation
         Description = sim_edited_prototype["description"];
         Type = sim_edited_prototype["type"] == "DISCRETE" ? SimTypeEnum.DISCRETE : SimTypeEnum.CONTINUOUS;
 
-        dynamic value;
-        
+        object value;
+        object cell;
+        float x = 0, y = 0, z = 0;
+
         // Get Sim dimensions
         JSONArray dimensions = (JSONArray)sim_edited_prototype["dimensions"];
         foreach (JSONObject d in dimensions)
@@ -183,15 +179,16 @@ public class Simulation
             {
                 case "System.Single":
                     value = (float)d["default"];
+                    Dimensions.TryAdd(d["name"], (float)value);
                     break;
                 case "System.Int32":
                     value = (int)d["default"];
+                    Dimensions.TryAdd(d["name"], (int)value);
                     break;
                 default:
                     value = null;
                     break;
             }
-            Dimensions.Add(d["name"], value);
         }
         
         // Get Sim parameters
@@ -237,7 +234,7 @@ public class Simulation
         JSONArray agent_prototypes = (JSONArray)sim_edited_prototype["agent_prototypes"];
         foreach (JSONObject agent in agent_prototypes)
         {
-            N_agents_for_each_class.Add(agent["class"], (int)agent["default"]);
+            N_agents_for_each_class.TryAdd(agent["class"], (int)agent["default"]);
             SimObject a = new SimObject(agent["class"]);
 
             a.Type = SimObject.SimObjectType.AGENT;
@@ -259,22 +256,25 @@ public class Simulation
                         value = (string)p["default"];
                         break;
                     case "System.Position":
-                        value = new MyList<(string, float)>();
                         foreach (string dimension in Dimensions.Keys)
                         {
-                            value.Add((dimension, (float)p["default"][dimension]));
+                            if(dimension.Equals("x")) x = (float)p["default"][dimension];
+                            else if(dimension.Equals("y")) y = (float)p["default"][dimension];
+                            else if(dimension.Equals("z")) z = (float)p["default"][dimension];
                         }
+                        if(Dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x,y,z);
                         break;
                     case "System.Cells":
-                        value = new MyList<MyList<(string, int)>>();
+                        if (Dimensions.Count == 2) value = new MyList<Vector2Int>(); else value = new MyList<Vector3Int>();
                         foreach (JSONNode c in (JSONArray)p["default"])
                         {
-                            var coordinates = new MyList<(string, int)>();
                             foreach (string dimension in Dimensions.Keys)
                             {
-                                coordinates.Add((dimension, c[dimension]));
+                                if(dimension.Equals("x")) x = (float)c[dimension];
+                                else if(dimension.Equals("y")) y = (float)c[dimension];
+                                else if(dimension.Equals("z")) z = (float)c[dimension];
                             }
-                            value.Add(coordinates);
+                            if (Dimensions.Count == 2) { cell = new Vector2Int((int)x, (int)y); ((MyList<Vector2Int>)value).Add((Vector2Int)cell); } else { cell = new Vector3Int((int)x, (int)y, (int)z); ((MyList<Vector3Int>)value).Add((Vector3Int)cell); }
                         }
                         break;
                     default:
@@ -300,7 +300,7 @@ public class Simulation
         JSONArray generic_prototypes = (JSONArray)sim_edited_prototype["generic_prototypes"];
         foreach (JSONObject generic in generic_prototypes)
         {
-            N_generics_for_each_class.Add(generic["class"], (int)generic["default"]);
+            N_generics_for_each_class.TryAdd(generic["class"], (int)generic["default"]);
             SimObject g = new SimObject(generic["class"]);
 
             g.Type = SimObject.SimObjectType.GENERIC;
@@ -322,22 +322,26 @@ public class Simulation
                         value = (string)p["default"];
                         break;
                     case "System.Position":
-                        value = new MyList<(string, float)>();
                         foreach (string dimension in Dimensions.Keys)
                         {
-                            value.Add((dimension, (float)p["default"][dimension]));
+                            if (dimension.Equals("x")) x = (float)p["default"][dimension];
+                            else if (dimension.Equals("y")) y = (float)p["default"][dimension];
+                            else if (dimension.Equals("z")) z = (float)p["default"][dimension];
                         }
+                        if (Dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x, y, z);
+                        x = 0; y = 0; z = 0;
                         break;
                     case "System.Cells":
-                        value = new MyList<MyList<(string, int)>>();
+                        if (Dimensions.Count == 2) value = new MyList<Vector2Int>(); else value = new MyList<Vector3Int>();
                         foreach (JSONNode c in (JSONArray)p["default"])
                         {
-                            var coordinates = new MyList<(string, int)>();
                             foreach (string dimension in Dimensions.Keys)
                             {
-                                coordinates.Add((dimension, c[dimension]));
+                                if (dimension.Equals("x")) x = (float)c[dimension];
+                                else if (dimension.Equals("y")) y = (float)c[dimension];
+                                else if (dimension.Equals("z")) z = (float)c[dimension];
                             }
-                            value.Add(coordinates);
+                            if (Dimensions.Count == 2) { cell = new Vector2Int((int)x, (int)y); ((MyList<Vector2Int>)value).Add((Vector2Int)cell); } else { cell = new Vector3Int((int)x, (int)y, (int)z); ((MyList<Vector3Int>)value).Add((Vector3Int)cell); }
                         }
                         break;
                     default:
@@ -394,11 +398,22 @@ public class Simulation
     /// </summary>
     public void UpdateSimulationFromStep(byte[] step, JSONObject sim_prototype)
     {
+        //System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+        //stopwatch.Start();
+        
         // variabili
         byte[] decompressed_step = Utils.DecompressStepPayload(step);
-        SimObject x = new SimObject();
-        bool is_discrete = sim_prototype["type"].Equals("DISCRETE");
+        SimObject so = new SimObject();
+        Is_discrete = sim_prototype["type"].Equals("DISCRETE");
         List<List<(string, string)>> parameters;
+
+        object value;
+        object cell;
+        float x = 0, y = 0, z = 0;
+
+        //stopwatch.Stop();
+        //Debug.Log("Decompress: " + stopwatch.ElapsedMilliseconds);
+        //stopwatch.Restart();
 
         List<string> agent_class_names = new Func<List<string>>(() => {
             List<string> array = new List<string>();
@@ -491,6 +506,11 @@ public class Simulation
         MemoryStream deserialize_inputStream = new MemoryStream(decompressed_step);
         BinaryReader deserialize_binaryReader = new BinaryReader(deserialize_inputStream);
 
+        //stopwatch.Stop();
+        //Debug.Log("Metadata: " + stopwatch.ElapsedMilliseconds);
+        //stopwatch.Restart();
+
+
         // estraggo l'ID
         CurrentSimStep = BitConverter.ToInt64(deserialize_binaryReader.ReadBytes(8).Reverse().ToArray(), 0);
         // estraggo il numero di agenti per classe presenti nello step
@@ -504,6 +524,11 @@ public class Simulation
             n_objects_for_each_class[i] = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
         }
 
+        //stopwatch.Stop();
+        //Debug.Log("ID + numAgents + numObjects: " + stopwatch.ElapsedMilliseconds);
+        //stopwatch.Restart();
+
+
         // AGENTI
         // estraggo ogni agente per classe
         for (int i = 0; i < n_agents_classes; i++)                                                                  // i è la classe
@@ -516,58 +541,88 @@ public class Simulation
             {
                 parameters = d_agent_params_for_each_class;
                 int id = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
-                Agents.TryGetValue((agent_class_names[i], id), out x);                                              
-                if (x == null)                                                                                      // l'agente è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non dynamic
+                if(!Agents.TryGetValue((agent_class_names[i], id), out so))                                          // l'agente è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non object
                 {
                     Agent_prototypes.TryGetValue(agent_class_names[i], out SimObject g);
                     
-                    x = g.Clone();
-                    x.Type = SimObject.SimObjectType.AGENT;
-                    x.Class_name = agent_class_names[i];
-                    x.Id = id;
-                    AddAgent(x);
+                    so = g.Clone();
+                    so.Type = SimObject.SimObjectType.AGENT;
+                    so.Class_name = agent_class_names[i];
+                    so.Id = id;
+                    AddAgent(so);
 
                     // to get all params
                     parameters = agent_params_for_each_class;
                 }
                 
-                // all/dynamic params
+                // all/object params
                 foreach ((string, string) p in parameters[i])
                 {
                     switch (p.Item2)
                     {
                         case "System.Position":
-                        case "System.Cells":
-                            MyList<(string, float)> coords = new MyList<(string, float)>();
                             foreach (char d in "xyz")
                             {
                                 if (dimensions.Contains(d))
                                 {
-                                    coords.Add((d + "", is_discrete ? BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0) : BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0)));
-                                }
-                                else
-                                {
-                                    coords.Add((d + "", 0f));
+                                    if(d.Equals('x')) x = BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    else if(d.Equals('y')) y = BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    else if(d.Equals('z')) z = BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
                                 }
                             }
-                            x.UpdateParameter("position", coords);
+                            if (dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x, y, z);
+                            so.UpdateParameter("position", value);
+                            break;
+                        case "System.Cells":
+                            so.Parameters.TryGetValue("position", out value);
+                            if (dimensions.Count == 2)
+                            {
+                                int count = ((MyList<Vector2Int>)value).Count;
+                                value = new MyList<Vector2Int>();
+                                for (int q = 0; q < count; q++)
+                                {
+                                    x = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    y = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    cell = new Vector2Int((int)x, (int)y);
+                                    ((MyList<Vector2Int>)value).Add((Vector2Int)cell);
+                                }
+                            }
+                            else
+                            {
+                                int count = ((MyList<Vector3Int>)value).Count;
+                                value = new MyList<Vector3Int>();
+                                for (int q = 0; q < count; q++)
+                                {
+                                    x = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    y = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    z = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    cell = new Vector3Int((int)x, (int)y, (int)z);
+                                    ((MyList<Vector3Int>)value).Add((Vector3Int)cell);
+                                }
+                            }                            
+                            so.UpdateParameter("position", value);
                             break;
                         case "System.Single":
-                            x.UpdateParameter(p.Item1, BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
+                            so.UpdateParameter(p.Item1, BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
                             break;
                         case "System.Int32":
-                            x.UpdateParameter(p.Item1, BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
+                            so.UpdateParameter(p.Item1, BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
                             break;
                         case "System.Boolean":
-                            x.UpdateParameter(p.Item1, BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0));
+                            so.UpdateParameter(p.Item1, BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0));
                             break;
                         case "System.String":
-                            x.UpdateParameter(p.Item1, BitConverter.ToString(deserialize_binaryReader.ReadBytes(20).Reverse().ToArray(), 0));
+                            so.UpdateParameter(p.Item1, BitConverter.ToString(deserialize_binaryReader.ReadBytes(20).Reverse().ToArray(), 0));
                             break;
                     }
                 }
             }
         }
+
+        //stopwatch.Stop();
+        //Debug.Log("AGENTS: " + stopwatch.ElapsedMilliseconds);
+        //stopwatch.Restart();
+
 
         // OGGETTI
         // estraggo ogni oggetto per classe
@@ -581,73 +636,102 @@ public class Simulation
             {
                 parameters = d_generic_params_for_each_class;
                 int id = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
-                Generics.TryGetValue((generic_class_names[i], id), out x);                                          
-                if (x == null)                                                                                      // l'oggetto è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non dynamic
+                if(!Generics.TryGetValue((generic_class_names[i], id), out so))                                         // l'oggetto è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non object
                 {
                     Generic_prototypes.TryGetValue(generic_class_names[i], out SimObject g);
 
-                    x = g.Clone();
-                    x.Type = SimObject.SimObjectType.GENERIC;
-                    x.Class_name = generic_class_names[i];
-                    x.Id = id;
-                    AddGeneric(x);
+                    so = g.Clone();
+                    so.Type = SimObject.SimObjectType.GENERIC;
+                    so.Class_name = generic_class_names[i];
+                    so.Id = id;
+                    AddGeneric(so);
 
                     // to get all params
                     parameters = generic_params_for_each_class;
                 }
 
-                // dynamic params
+                // all/object params
                 foreach ((string, string) p in parameters[i])
                 {
                     switch (p.Item2)
                     {
                         case "System.Position":
-                        case "System.Cells":
-                            MyList<(string, float)> coords = new MyList<(string, float)>();
                             foreach (char d in "xyz")
                             {
                                 if (dimensions.Contains(d))
                                 {
-                                    coords.Add((d + "", is_discrete ? BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0) : BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0)));
-                                }
-                                else
-                                {
-                                    coords.Add((d + "", 0f));
+                                    if (d.Equals('x')) x = BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    else if (d.Equals('y')) y = BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    else if (d.Equals('z')) z = BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
                                 }
                             }
-                            x.UpdateParameter("position", coords);
+                            if (dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x, y, z);
+                            so.UpdateParameter("position", value);
+                            break;
+                        case "System.Cells":
+                            so.Parameters.TryGetValue("position", out value);
+                            if (dimensions.Count == 2)
+                            {
+                                int count = ((MyList<Vector2Int>)value).Count;
+                                value = new MyList<Vector2Int>();
+                                for (int q = 0; q < count; q++)
+                                {
+                                    x = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    y = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    cell = new Vector2Int((int)x, (int)y);
+                                    ((MyList<Vector2Int>)value).Add((Vector2Int)cell);
+                                }
+                            }
+                            else
+                            {
+                                int count = ((MyList<Vector3Int>)value).Count;
+                                value = new MyList<Vector3Int>();
+                                for (int q = 0; q < count; q++)
+                                {
+                                    x = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    y = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    z = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    cell = new Vector3Int((int)x, (int)y, (int)z);
+                                    ((MyList<Vector3Int>)value).Add((Vector3Int)cell);
+                                }
+                            }
+                            so.UpdateParameter("position", value);
                             break;
                         case "System.Single":
-                            x.UpdateParameter(p.Item1, BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
+                            so.UpdateParameter(p.Item1, BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
                             break;
                         case "System.Int32":
-                            x.UpdateParameter(p.Item1, BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
+                            so.UpdateParameter(p.Item1, BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
                             break;
                         case "System.Boolean":
-                            x.UpdateParameter(p.Item1, BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0));
+                            so.UpdateParameter(p.Item1, BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0));
                             break;
                         case "System.String":
-                            x.UpdateParameter(p.Item1, BitConverter.ToString(deserialize_binaryReader.ReadBytes(20).Reverse().ToArray(), 0));
+                            so.UpdateParameter(p.Item1, BitConverter.ToString(deserialize_binaryReader.ReadBytes(20).Reverse().ToArray(), 0));
                             break;
                     }
                 }
             }
         }
 
+        //stopwatch.Stop();
+        //Debug.Log("OBJETCS: " + stopwatch.ElapsedMilliseconds);
 
-        UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP: \n" + this.ToString());
+
+        UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP: \n" + currentSimStep);
+
 
     }
 
     /// <summary>
     /// Update Simulation from uncommited_update
     /// </summary>
-    public void UpdateSimulationFromEdit(JSONObject sim_updateJSON, Dictionary<(string, (SimObject.SimObjectType, string, int)), SimObject> sim_update)
+    public void UpdateSimulationFromEdit(JSONObject sim_updateJSON, ConcurrentDictionary<(string, (SimObject.SimObjectType, string, int)), SimObject> sim_update)
     {
         SimObject x = new SimObject();
         IEnumerable<KeyValuePair<(string class_name, int id), SimObject>> objs;
         MyList<(string, int)> keys_to_remove = new MyList<(string, int)>();
-        var dict = new Dictionary<(string class_name, int id), SimObject>();
+        var dict = new ConcurrentDictionary<(string class_name, int id), SimObject>();
 
 
         // SIM_PARAMS
@@ -688,7 +772,7 @@ public class Simulation
                 if (entry.Key.op.Equals("MOD")) {
                     foreach (KeyValuePair<(string class_name, int id), SimObject> o in objs)
                     {
-                        foreach (KeyValuePair<string, dynamic> p in entry.Value.Parameters)
+                        foreach (KeyValuePair<string, object> p in entry.Value.Parameters)
                         {
                             o.Value.UpdateParameter(p.Key, p.Value);
                         }
@@ -702,7 +786,7 @@ public class Simulation
                     }
                     foreach((string, int) k in keys_to_remove)
                     {
-                        dict.Remove(k);
+                        dict.TryRemove(k, out _);
                     }
                 }
             }
@@ -716,11 +800,11 @@ public class Simulation
                 }
                 else if (entry.Key.op.Equals("DEL"))
                 {
-                    dict.Remove((entry.Key.obj.class_name, entry.Key.obj.id));
+                    dict.TryRemove((entry.Key.obj.class_name, entry.Key.obj.id), out _);
                 }
                 else
                 {
-                    dict.Add((entry.Key.obj.class_name, entry.Key.obj.id), entry.Value);
+                    dict.TryAdd((entry.Key.obj.class_name, entry.Key.obj.id), entry.Value);
                 }
                     
             }

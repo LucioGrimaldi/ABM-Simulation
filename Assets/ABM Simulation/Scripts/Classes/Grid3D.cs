@@ -1,8 +1,7 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using GerardoUtils;
+using System.Collections.Generic;
 
 public class Grid3D<TGridObject>
     //cambiare da TGRidObject a reference di TGridObject
@@ -13,6 +12,7 @@ public class Grid3D<TGridObject>
     private float cellSize;
     private TextMesh[,,] debugTextArray;
     private Vector3 originPosition;
+    bool showDebug = false;
 
     //public int Width { get; set;}
 
@@ -46,8 +46,6 @@ public class Grid3D<TGridObject>
             }
         }
 
-
-        bool showDebug = false;
         if (showDebug)
         {
             TextMesh[,,] debugTextArray = new TextMesh[width, height, lenght];
@@ -74,14 +72,12 @@ public class Grid3D<TGridObject>
     }
 
     //METODI
-    
 
     //Converti x,y (gridPosition) in worldPosition
     public Vector3 GetWorldPosition(int x, int y, int z)
     {
         return new Vector3(x, y, z) * cellSize + originPosition;
     }
-
 
     //Converti worldPosition in gridPosition x,y
     public void GetXYZ(Vector3 worldPosition, out int x, out int y, out int z)
@@ -95,8 +91,6 @@ public class Grid3D<TGridObject>
             y = 0;
         
     }
-
-
     public void SetGridObject(int x, int y, int z, TGridObject value)
     {
         if (x >= 0 && y >= 0 && z >= 0 && x < width && y < height && z < lenght)    //ignora valori invalidi
@@ -107,13 +101,10 @@ public class Grid3D<TGridObject>
             OnGridObjectChanged?.Invoke(this, new OnGridObjectChangedEventArgs { x = x, y = y, z = z });
         }
     }
-
     public void TriggerGridObjectChanged(int x, int y, int z)
     {
         OnGridObjectChanged?.Invoke(this, new OnGridObjectChangedEventArgs { x = x, y = y, z = z });
     }
-
-
     public void SetGridObject(Vector3 worldPosition, TGridObject value)
     {
         int x, y, z;
@@ -126,7 +117,6 @@ public class Grid3D<TGridObject>
         SetGridObject(x, y, z, value);
     }
 
-
     //Get coordinate x,y,z
     public TGridObject GetGridObject(int x, int y, int z)
     {
@@ -136,7 +126,6 @@ public class Grid3D<TGridObject>
             return default(TGridObject);    //Se è una griglia di interi ritorna 0, se bool ritorna false, altri tipi ritorna null
     }
 
-
     //Get worldPosition
     public TGridObject GetGridObject(Vector3 worldPosition)
     {
@@ -144,7 +133,6 @@ public class Grid3D<TGridObject>
         GetXYZ(worldPosition, out x, out y, out z);
         return GetGridObject(x, y, z);
     }
-
 
 
     public int Width { get => width; set => width = value; }
