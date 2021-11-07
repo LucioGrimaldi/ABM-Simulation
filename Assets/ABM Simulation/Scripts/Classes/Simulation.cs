@@ -52,6 +52,8 @@ public class Simulation
     public ConcurrentDictionary<(string class_name, int id), SimObject> agents = new ConcurrentDictionary<(string, int), SimObject>();
     public ConcurrentDictionary<(string class_name, int id), SimObject> generics = new ConcurrentDictionary<(string, int), SimObject>();
     public ConcurrentDictionary<(string class_name, int id), SimObject> obstacles = new ConcurrentDictionary<(string, int), SimObject>();
+    private List<(SimObject.SimObjectType type, string class_name, int id)> toDeleteIfNotInStep = new List<(SimObject.SimObjectType type, string class_name, int id)>();
+    private List<(SimObject.SimObjectType type, string class_name, int id)> temp = new List<(SimObject.SimObjectType type, string class_name, int id)>();
 
     public string Name { get => name; set => name = value; }
     public string Description { get => description; set => description = value; }
@@ -71,8 +73,10 @@ public class Simulation
     public ConcurrentDictionary<string, int> N_agents_for_each_class { get => n_agents_for_each_class; set => n_agents_for_each_class = value; }
     public ConcurrentDictionary<string, int> N_generics_for_each_class { get => n_generics_for_each_class; set => n_generics_for_each_class = value; }
     public ConcurrentDictionary<(string class_name, int id), SimObject> Agents { get => agents; set => agents = value; }
-    public ConcurrentDictionary<(string class_name, int id), SimObject> Obstacles { get => obstacles; set => obstacles = value; }
     public ConcurrentDictionary<(string class_name, int id), SimObject> Generics { get => generics; set => generics = value; }
+    public ConcurrentDictionary<(string class_name, int id), SimObject> Obstacles { get => obstacles; set => obstacles = value; }
+    public List<(SimObject.SimObjectType type, string class_name, int id)> ToDeleteIfNotInStep { get => toDeleteIfNotInStep; set => toDeleteIfNotInStep = value; }
+    public List<(SimObject.SimObjectType type, string class_name, int id)> Temp { get => temp; set => temp = value; }
 
     public Simulation(){}
 
@@ -90,26 +94,32 @@ public class Simulation
     public void AddAgent(SimObject a)
     {
         Agents.TryAdd((a.Class_name, a.Id), a);
+        if(a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Add((a.Type, a.Class_name, a.Id));
     }
     public void RemoveAgent(SimObject a)
     {
         Agents.TryRemove((a.Class_name, a.Id), out _);
+        if (a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((a.Type, a.Class_name, a.Id));
     }
     public void RemoveAgent(int id, string class_name)
     {
-        Agents.TryRemove((class_name,id), out _);
+        Agents.TryRemove((class_name,id), out SimObject a);
+        if (a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((SimObject.SimObjectType.AGENT, class_name, id));
     }
     public void AddGeneric(SimObject g)
     {
         Generics.TryAdd((g.Class_name, g.Id), g);
+        if (g.Is_in_step && !g.To_keep_if_not_in_step) toDeleteIfNotInStep.Add((g.Type, g.Class_name, g.Id));
     }
     public void RemoveGeneric(SimObject g)
     {
         Generics.TryRemove((g.Class_name, g.Id), out _);
+        if (g.Is_in_step && !g.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((g.Type, g.Class_name, g.Id));
     }
     public void RemoveGeneric(int id, string class_name)
     {
-        Generics.TryRemove((class_name, id), out _);
+        Generics.TryRemove((class_name, id), out SimObject g);
+        if (g.Is_in_step && !g.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((SimObject.SimObjectType.GENERIC, class_name, id));
     }
     public void AddObstacle(SimObject o)
     {
@@ -238,6 +248,8 @@ public class Simulation
             SimObject a = new SimObject(agent["class"]);
 
             a.Type = SimObject.SimObjectType.AGENT;
+            a.Is_in_step = agent["is_in_step"];
+            a.To_keep_if_not_in_step = agent["to_keep_if_not_in_step"];
 
             foreach (JSONObject p in (JSONArray)agent["params"])
             {
@@ -304,6 +316,8 @@ public class Simulation
             SimObject g = new SimObject(generic["class"]);
 
             g.Type = SimObject.SimObjectType.GENERIC;
+            g.Is_in_step = generic["is_in_step"];
+            g.To_keep_if_not_in_step = generic["to_keep_if_not_in_step"];
 
             foreach (JSONObject p in (JSONArray)generic["params"])
             {
@@ -400,7 +414,8 @@ public class Simulation
     {
         //System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         //stopwatch.Start();
-        
+
+
         // variabili
         byte[] decompressed_step = Utils.DecompressStepPayload(step);
         SimObject so = new SimObject();
@@ -531,17 +546,17 @@ public class Simulation
 
         // AGENTI
         // estraggo ogni agente per classe
-        for (int i = 0; i < n_agents_classes; i++)                                                                  // i è la classe
+        for (int i = 0; i < n_agents_classes; i++)                                                                   // i è la classe
         {
             int n_agents_of_a_class = n_agents_for_each_class[i];
 
-            if (n_agents_of_a_class == 0) { continue; }                                                             //se non ci sono elementi di quella classe è inutile continuare
+            if (n_agents_of_a_class == 0) { continue; }                                                              //se non ci sono elementi di quella classe è inutile continuare
 
-            for (int j = 0; j < n_agents_of_a_class; j++)                                                           // j è l'agente
+            for (int j = 0; j < n_agents_of_a_class; j++)                                                            // j è l'agente
             {
                 parameters = d_agent_params_for_each_class;
                 int id = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
-                if(!Agents.TryGetValue((agent_class_names[i], id), out so))                                          // l'agente è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non object
+                if(!Agents.TryGetValue((agent_class_names[i], id), out so))                                          // l'agente è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non dynamic
                 {
                     Agent_prototypes.TryGetValue(agent_class_names[i], out SimObject g);
                     
@@ -554,7 +569,13 @@ public class Simulation
                     // to get all params
                     parameters = agent_params_for_each_class;
                 }
-                
+
+                if (so.Is_in_step && !so.To_keep_if_not_in_step)
+                {
+                    toDeleteIfNotInStep.Remove((so.Type, so.Class_name, so.Id));
+                    temp.Add((so.Type, so.Class_name, so.Id));
+                }
+
                 // all/object params
                 foreach ((string, string) p in parameters[i])
                 {
@@ -636,7 +657,7 @@ public class Simulation
             {
                 parameters = d_generic_params_for_each_class;
                 int id = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
-                if(!Generics.TryGetValue((generic_class_names[i], id), out so))                                         // l'oggetto è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non object
+                if (!Generics.TryGetValue((generic_class_names[i], id), out so))                                    // l'oggetto è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non object
                 {
                     Generic_prototypes.TryGetValue(generic_class_names[i], out SimObject g);
 
@@ -650,6 +671,11 @@ public class Simulation
                     parameters = generic_params_for_each_class;
                 }
 
+                if (so.Is_in_step && !so.To_keep_if_not_in_step)
+                {
+                    toDeleteIfNotInStep.Remove((so.Type, so.Class_name, so.Id));
+                    temp.Add((so.Type, so.Class_name, so.Id));
+                }
                 // all/object params
                 foreach ((string, string) p in parameters[i])
                 {
@@ -677,6 +703,14 @@ public class Simulation
                                 for (int q = 0; q < count; q++)
                                 {
                                     x = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
+                                    if(x > 49 || x < 0)
+                                    {
+                                        Debug.Log("Manngg gesuel chillu puorc bastard");
+                                    }
+                                    if(y > 49 || y < 0)
+                                    {
+                                        Debug.Log("Manngg gesuel chillu puorc bastard");
+                                    }
                                     y = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
                                     cell = new Vector2Int((int)x, (int)y);
                                     ((MyList<Vector2Int>)value).Add((Vector2Int)cell);
@@ -699,6 +733,10 @@ public class Simulation
                             break;
                         case "System.Single":
                             so.UpdateParameter(p.Item1, BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
+                            if((float)so.Parameters["intensity"] < 0.001f)
+                            {
+                                Debug.Log("Manngg gesuel chillu puorc bastard");
+                            }
                             break;
                         case "System.Int32":
                             so.UpdateParameter(p.Item1, BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
@@ -717,8 +755,23 @@ public class Simulation
         //stopwatch.Stop();
         //Debug.Log("OBJETCS: " + stopwatch.ElapsedMilliseconds);
 
+        // Elimina SimObject non aggiornati
+        toDeleteIfNotInStep.ForEach((so) => {
+            switch (so.type)
+            {
+                case SimObject.SimObjectType.AGENT:
+                    Agents.TryRemove((so.class_name, so.id), out _);
+                    break;
+                case SimObject.SimObjectType.GENERIC:
+                    Generics.TryRemove((so.class_name, so.id), out _);
+                    break;
+            }
+        });
+        toDeleteIfNotInStep.Clear();
+        toDeleteIfNotInStep.AddRange(Temp);
+        Temp.Clear();
 
-        UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP: \n" + currentSimStep);
+        UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP: " + currentSimStep);
 
 
     }

@@ -152,7 +152,10 @@ public class GridSystem : MonoBehaviour, SimSpaceSystem
         if (!Vector3.zero.Equals(Mouse3DPosition.GetMouseWorldPosition()))
         {
             MyList<Vector3Int> gridPositionList = GetPositionInternal(GetMouseWorldSnappedPosition(false), po);
-            foreach (Vector3Int gridPosition in gridPositionList)
+
+            if (!(po.type == SimObject.SimObjectType.OBSTACLE))
+            {
+                foreach (Vector3Int gridPosition in gridPositionList)
             {
 
                 if (!(gridPosition.x < grid.Width && gridPosition.y < grid.Height && gridPosition.z < grid.Lenght
@@ -171,6 +174,7 @@ public class GridSystem : MonoBehaviour, SimSpaceSystem
                         break;
                     }
                 }
+            }
             }
             if (canBuild)
             {

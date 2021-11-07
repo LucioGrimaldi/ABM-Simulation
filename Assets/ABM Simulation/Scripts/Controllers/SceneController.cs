@@ -162,7 +162,7 @@ public class SceneController : MonoBehaviour
             {
                 choosenSimSpace = SimSpace_prefabs_2D[0];
                 simulationSpace = Instantiate(choosenSimSpace, choosenSimSpace.transform.position, Quaternion.AngleAxis(180, new Vector3(0, 1, 0)));
-                InitShader(simulationSpace);
+                InitShader();
             }
             else
             {
@@ -190,7 +190,7 @@ public class SceneController : MonoBehaviour
 
         }
     }
-    public void InitShader(GameObject simulationSpace)
+    public void InitShader()
     {
         simulationSpace.GetComponent<Renderer>().material.shader = Shaders2D[simId];
         simulationSpace.AddComponent<ShaderManager>();

@@ -6,12 +6,16 @@ public class SimObject
     private SimObjectType type;
     private string class_name;
     private int id;
+    private bool is_in_step = false;
+    private bool to_keep_if_not_in_step = false;
     private ConcurrentDictionary<string, object> parameters = new ConcurrentDictionary<string, object>();
 
     public SimObjectType Type { get => type; set => type = value; }
     public string Class_name { get => class_name; set => class_name = value; }
     public int Id { get => id; set => id = value; }
     public ConcurrentDictionary<string, object> Parameters { get => parameters; set => parameters = value; }
+    public bool Is_in_step { get => is_in_step; set => is_in_step = value; }
+    public bool To_keep_if_not_in_step { get => to_keep_if_not_in_step; set => to_keep_if_not_in_step = value; }
 
     public enum SimObjectType
     {

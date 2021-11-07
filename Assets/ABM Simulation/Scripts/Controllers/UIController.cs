@@ -4,6 +4,11 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using System;
 
+public class SpeedChangeEventArgs : EventArgs
+{
+    public int Speed { get; set; }
+}
+
 public class UIController : MonoBehaviour
 {
     [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
@@ -13,6 +18,7 @@ public class UIController : MonoBehaviour
     public static event EventHandler<EventArgs> OnPlayEventHandler;
     public static event EventHandler<EventArgs> OnPauseEventHandler;
     public static event EventHandler<EventArgs> OnStopEventHandler;
+    public static event EventHandler<SpeedChangeEventArgs> OnSpeedChangeHandler;
 
     // Controllers
     private SceneController SceneController;
@@ -113,32 +119,9 @@ public class UIController : MonoBehaviour
 
     public void MoveSlider()
     {
-        if (slider.value == 0)
-        {
-            //SimulationController.ChangeSimulationSpeed(0);
-            Debug.Log("Slider set to 0");
-        }
-        else if (slider.value == 1)
-        {
-            //SimulationController.ChangeSimulationSpeed(1);
-            Debug.Log("Slider set to 1");
-        }
-        else if (slider.value == 2)
-        {
-            //SimulationController.ChangeSimulationSpeed(2);
-            Debug.Log("Slider set to 2");
-        }
-        else if (slider.value == 3)
-        {
-            //SimulationController.ChangeSimulationSpeed(3);
-            Debug.Log("Slider set to 3");
-        }
-        else if (slider.value == 4)
-        {
-            //SimulationController.ChangeSimulationSpeed(4);
-            Debug.Log("Slider set to 4");
-        }
-
+        SpeedChangeEventArgs e = new SpeedChangeEventArgs();
+        e.Speed = (int)slider.value;
+        OnSpeedChangeHandler?.BeginInvoke(this, e, null, null);
     }
 
     public void PlaySimulation()

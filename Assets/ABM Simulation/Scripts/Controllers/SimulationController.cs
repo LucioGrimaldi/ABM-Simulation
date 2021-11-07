@@ -190,6 +190,7 @@ public class SimulationController : MonoBehaviour
         UIController.OnPlayEventHandler += onPlay;
         UIController.OnPauseEventHandler += onPause;
         UIController.OnStopEventHandler += onStop;
+        UIController.OnSpeedChangeHandler += onSpeedChange;
         SceneController.OnSimObjectCreateEventHandler += onSimObjectCreate;
         SceneController.OnSimObjectDeleteEventHandler += onSimObjectDelete;
         MessageEventHandler += onMessageReceived;
@@ -242,6 +243,7 @@ public class SimulationController : MonoBehaviour
         UIController.OnPlayEventHandler -= onPlay;
         UIController.OnPauseEventHandler -= onPause;
         UIController.OnStopEventHandler -= onStop;
+        UIController.OnSpeedChangeHandler -= onSpeedChange;
         SceneController.OnSimObjectCreateEventHandler -= onSimObjectCreate;
         SceneController.OnSimObjectDeleteEventHandler -= onSimObjectDelete;
         MessageEventHandler -= onMessageReceived;
@@ -347,28 +349,41 @@ public class SimulationController : MonoBehaviour
         {
             if ((CommController.SecondaryQueue.Count > TARGET_FPS && sim_state.Equals(Simulation.StateEnum.PLAY)) || (CommController.SecondaryQueue.Count > 0 && steps_to_consume > 0 && sim_state.Equals(Simulation.StateEnum.PAUSE)))
             {
-                while(steps_to_consume > 0)
+                if (sim_state.Equals(Simulation.StateEnum.PAUSE))
                 {
-                    StepMessageEventArgs e = new StepMessageEventArgs();
-                    e.Step = CommController.SecondaryQueue.Values[0];
-                    StepMessageEventHandler?.BeginInvoke(this, e, new AsyncCallback((res) => { ChangeState(Command.STEP); }), null);
+                    while(steps_to_consume > 0)
+                    {
+                        try
+                        {
+                            StepMessageEventArgs e = new StepMessageEventArgs();
+                            e.Step = CommController.SecondaryQueue.Values[0];
+                            StepMessageEventHandler?.BeginInvoke(this, e, new AsyncCallback((res) => { ChangeState(Command.STEP); }), null);
 
-                    CommController.SecondaryQueue.RemoveAt(0);
-                    --steps_to_consume;
+                            CommController.SecondaryQueue.RemoveAt(0);
+                            --steps_to_consume;
+                        }
+                        catch (ArgumentOutOfRangeException e)
+                        {
+                            UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Queue Empty!");
+                        }
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        StepMessageEventArgs e = new StepMessageEventArgs();
+                        e.Step = CommController.SecondaryQueue.Values[0];
+                        StepMessageEventHandler?.Invoke(this, e);
+
+                        CommController.SecondaryQueue.RemoveAt(0);
+                    }
+                    catch (ArgumentOutOfRangeException e)
+                    {
+                        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Queue Empty!");
+                    }
                 }
 
-                try
-                {
-                    StepMessageEventArgs e = new StepMessageEventArgs();
-                    e.Step = CommController.SecondaryQueue.Values[0];
-                    StepMessageEventHandler?.Invoke(this, e);
-
-                    CommController.SecondaryQueue.RemoveAt(0);
-                }
-                catch (ArgumentOutOfRangeException e)
-                {
-                    UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Queue Empty!");
-                }
             }
             if (CommController.SimMessageQueue.Count > 0)
             {
@@ -543,6 +558,10 @@ public class SimulationController : MonoBehaviour
     private void onStop(object sender, EventArgs e)
     {
         Stop();
+    }
+    private void onSpeedChange(object sender, SpeedChangeEventArgs e)
+    {
+        ChangeSpeed((Simulation.SpeedEnum)e.Speed);
     }
     private void onLoadMainScene(object sender, EventArgs e)
     {
@@ -735,8 +754,8 @@ public class SimulationController : MonoBehaviour
         {
             if (command.Equals(Command.SPEED))
             {
-                Simulation.SpeedEnum value = (Simulation.SpeedEnum)(int)pd["value"];
-                ChangeSpeed(value);
+                Simulation.SpeedEnum value = (Simulation.SpeedEnum)((int)payload["value"]);
+                simulation.speed = value;
             }
             else if (!command.Equals(Command.STEP)) ChangeState(command);
         }
@@ -873,7 +892,6 @@ public class SimulationController : MonoBehaviour
     }
     public void StoreSimObjectCreate(SimObjectCreateEventArgs e)
     {
-        
         SimObject x = new SimObject();
         x.Type = e.type;
         x.Id = e.id;
@@ -882,7 +900,6 @@ public class SimulationController : MonoBehaviour
 
         uncommitted_updates.TryAdd(("CRT", (x.Type, x.Class_name, x.Id)), x);
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Entry: CRT " + e.type + "." + e.class_name + "." + x.Id + " created.");
-
     }
     public void StoreSimObjectDelete(SimObjectDeleteEventArgs e)
     {
@@ -973,8 +990,7 @@ public class SimulationController : MonoBehaviour
                 UnityEngine.Debug.Log("Params: \n" + obj_params.ToString());
                 obj.Add("params", obj_params);
             }
-            uncommitted_updatesJSON[type+"_"+op].Add(obj);
-                        
+            uncommitted_updatesJSON[type+"_"+op].Add(obj);           
         }
     }
    

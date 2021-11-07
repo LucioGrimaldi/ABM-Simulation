@@ -43,9 +43,7 @@ Shader "PDT Shaders/AntGrid" {
 		float4 _LineColor;
 		float4 _CellColor;
 		float4 _FoodColor;
-		float4 _FoodColor1;
 		float4 _HomeColor;
-		float4 _HomeColor1;
 
 		float _GridSize;
 		float _LineSize;
@@ -107,13 +105,11 @@ Shader "PDT Shaders/AntGrid" {
 			
 
 			//Clip transparent spots using alpha cutout
-			if (color.a <= 0.001)
+			if (color.a <= 0.0001)
 			{
 				clip(c.a - 1.0);
 			}
 			
-			c = tex2D(_MainTex, IN.uv_MainTex) * color;
-
 			o.Albedo = color.rgba;
 			// Metallic and smoothness come from slider variables
 			o.Metallic = 0.0;
