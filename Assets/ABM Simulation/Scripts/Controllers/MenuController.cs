@@ -238,7 +238,10 @@ public class MenuController : MonoBehaviour
                 break;
         }
     }
-
+    public void JoinSimulation()
+    {
+        MenuMainThreadQueue.Enqueue(() => { SceneManager.LoadScene("MainScene"); });
+    }
 
     private void LoadSimNames(JSONArray simList)
     {
@@ -351,6 +354,7 @@ public class MenuController : MonoBehaviour
         }
         else
         {
+            newSimButton.gameObject.SetActive(false);
             joinSimButton.gameObject.SetActive(true);
         }
     }

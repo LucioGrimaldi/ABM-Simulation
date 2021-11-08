@@ -11961,7 +11961,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 445768728}
         m_TargetAssemblyTypeName: MenuController, Assembly-CSharp
-        m_MethodName: StartSimulation
+        m_MethodName: JoinSimulation
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
