@@ -57,12 +57,12 @@ namespace RuntimeSceneGizmo
 			if (Input.GetKey(KeyCode.Q))
 			{
 				if (mainCamera.isActiveAndEnabled)
-					mainCamera.transform.position += new Vector3(0, -speed * Time.deltaTime, 0);
+					newPosition += new Vector3(0, -speed, 0);
 			}
 			if (Input.GetKey(KeyCode.E))
 			{
 				if (mainCamera.isActiveAndEnabled)
-					mainCamera.transform.position += new Vector3(0, speed * Time.deltaTime, 0);
+					newPosition += new Vector3(0, speed, 0);
 			}
 			if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
 			{
@@ -75,9 +75,8 @@ namespace RuntimeSceneGizmo
 					newPosition += (transform.right * speed);
 			}
 
-			float scroll = Input.GetAxis("Mouse ScrollWheel");
-			//transform.LookAt(target);
-			mainCamera.transform.Translate(0, 0, scroll * scrollSpeed, Space.Self);
+			//float scroll = Input.GetAxis("Mouse ScrollWheel");
+			//mainCamera.transform.Translate(0, 0, scroll * scrollSpeed, Space.Self);
 
 			transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 		}
