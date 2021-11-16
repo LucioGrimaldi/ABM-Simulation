@@ -47,7 +47,6 @@ public class MenuController : MonoBehaviour
     public static readonly ConcurrentQueue<Action> MenuMainThreadQueue = new ConcurrentQueue<Action>();
 
     // Variables
-    public static JSONArray sim_list_editable;
     public TMP_Dropdown dropdownSimTypes, dropdownAgents, dropdownObjects;
     public TMP_Text simDescription, simDescription2, simName, emptyScrollText;
     public Image simImage1, simImage2, agentImage;
@@ -153,9 +152,9 @@ public class MenuController : MonoBehaviour
     }
     private void onSimListSuccess(object sender, ReceivedMessageEventArgs e)
     {        
-        sim_list_editable = (JSONArray)e.Payload["payload_data"]["list"].Clone();
+        SimulationController.sim_list_editable = (JSONArray)e.Payload["payload_data"]["list"].Clone();
 
-        MenuMainThreadQueue.Enqueue(() => { LoadSimNames(sim_list_editable); });
+        MenuMainThreadQueue.Enqueue(() => { LoadSimNames(SimulationController.sim_list_editable); });
         MenuMainThreadQueue.Enqueue(() => { PopulateSimListDropdown(); });
         MenuMainThreadQueue.Enqueue(() => { LoadSprites(); });
     }
@@ -203,33 +202,33 @@ public class MenuController : MonoBehaviour
     private void onSimParamModified(string param_name, dynamic value)
     {
         int x = 0;
-        ((JSONArray)((JSONObject)sim_list_editable[SimulationController.sim_id])["sim_params"]).Linq.Where((p, i) => { if (p.Key.Equals(param_name)) { x = i; return true;} return false; });
-        ((JSONObject)((JSONArray)((JSONObject)sim_list_editable[SimulationController.sim_id])["sim_params"])[x])["default"] = value;
+        ((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["sim_params"]).Linq.Where((p, i) => { if (p.Key.Equals(param_name)) { x = i; return true;} return false; });
+        ((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["sim_params"])[x])["default"] = value;
     }
     private void onAgentParamModified(int id, string param_name, dynamic value)
     {
-        foreach ((int i, KeyValuePair<string, JSONNode>) param in sim_list_editable[SimulationController.sim_id]["agent_prototypes"][id]["params"].Linq.Select((v, i) => (i,v)))
+        foreach ((int i, KeyValuePair<string, JSONNode>) param in SimulationController.sim_list_editable[SimulationController.sim_id]["agent_prototypes"][id]["params"].Linq.Select((v, i) => (i,v)))
         {
             if (param.Item2.Key.Equals(param_name))
             {
-                sim_list_editable[SimulationController.sim_id]["agent_prototypes"][id]["params"][param.Item1]["default"] = value;
+                SimulationController.sim_list_editable[SimulationController.sim_id]["agent_prototypes"][id]["params"][param.Item1]["default"] = value;
             }
         }
     }
     private void onGenericParamModified(int id, string param_name, dynamic value)
     {
-        foreach ((int i, KeyValuePair<string, JSONNode>) param in sim_list_editable[SimulationController.sim_id]["generic_prototypes"][id]["params"].Linq.Select((v, i) => (i, v)))
+        foreach ((int i, KeyValuePair<string, JSONNode>) param in SimulationController.sim_list_editable[SimulationController.sim_id]["generic_prototypes"][id]["params"].Linq.Select((v, i) => (i, v)))
         {
             if (param.Item2.Key.Equals(param_name))
             {
-                sim_list_editable[SimulationController.sim_id]["generic_prototypes"][id]["params"][param.Item1]["default"] = value;
+                SimulationController.sim_list_editable[SimulationController.sim_id]["generic_prototypes"][id]["params"][param.Item1]["default"] = value;
             }
         }
     }
     public void ConfirmEditedPrototype()
     {
         SimPrototypeConfirmedEventArgs e = new SimPrototypeConfirmedEventArgs();
-        e.sim_prototype = (JSONObject)sim_list_editable[SimulationController.sim_id];
+        e.sim_prototype = (JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id];
         OnSimPrototypeConfirmedEventHandler?.BeginInvoke(this, e, null, null);
     }
     public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
@@ -507,8 +506,8 @@ public class MenuController : MonoBehaviour
         agentsScrollContent.transform.DetachChildren();
         
         SimulationController.sim_id = index;
-        LoadSimInfos((JSONObject)sim_list_editable[index]);
-        LoadSimParams(settingsScrollContent, (JSONArray)sim_list_editable[index]["sim_params"]);
+        LoadSimInfos((JSONObject)SimulationController.sim_list_editable[index]);
+        LoadSimParams(settingsScrollContent, (JSONArray)SimulationController.sim_list_editable[index]["sim_params"]);
 
         // set Buttons interactable
         SetButtonsInteractivity();
@@ -529,7 +528,7 @@ public class MenuController : MonoBehaviour
             agentsScrollContent.transform.DetachChildren();
         }
 
-        LoadParams(agentsScrollContent, index, (JSONArray)((JSONObject)((JSONArray)((JSONObject)sim_list_editable[SimulationController.sim_id])["agent_prototypes"])[index])["params"]);
+        LoadParams(agentsScrollContent, index, (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["agent_prototypes"])[index])["params"]);
         //agentImage.sprite = spriteBirdModel;
 
     }
@@ -543,7 +542,7 @@ public class MenuController : MonoBehaviour
             objectsScrollContent.transform.DetachChildren();
         }
 
-        LoadParams(objectsScrollContent, index, (JSONArray)((JSONObject)((JSONArray)((JSONObject)sim_list_editable[SimulationController.sim_id])["generic_prototypes"])[index])["params"]);
+        LoadParams(objectsScrollContent, index, (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["generic_prototypes"])[index])["params"]);
 
         //agentImage.sprite = spriteBirdModel;
 

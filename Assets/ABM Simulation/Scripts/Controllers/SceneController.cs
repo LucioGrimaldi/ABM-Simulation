@@ -51,7 +51,7 @@ public class SceneController : MonoBehaviour
     private object width = 1, height = 1, lenght = 1;
     private static Simulation.SimTypeEnum simType;
     private static bool isDiscrete;
-    private PlaceableObject selectedSimObject = null;
+    public PlaceableObject selectedSimObject = null;
     public GameObject cellDebug;
 
     /// UNITY LOOP METHODS ///
