@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f2d0692b4191724aa56d02b379fb666, type: 3}
+  m_Name: Flocker_Collection
+  m_EditorClassIdentifier: 
+  PO_AgentPrefabs:
+  - name: Flocker
+    prefab: {fileID: 3822513428025527814, guid: abf8935c1dd7a604da287e5b46a20177,
+      type: 3}
+  PO_GenericPrefabs: []
+  PO_ObstaclePrefabs: []

@@ -1,5 +1,35 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2003500266663682222
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1255869446899520471}
+  m_Layer: 0
+  m_Name: Model
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1255869446899520471
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2003500266663682222}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -1.2134953, y: 5.8643975, z: 1.1563315}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 3960166193636073918}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3960166192227805357
 GameObject:
   m_ObjectHideFlags: 0
@@ -104,7 +134,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3960166193636073918}
-  - component: {fileID: 1464543350476195436}
+  - component: {fileID: -5809868311418978441}
   m_Layer: 0
   m_Name: 1x1 PheromoneToFood
   m_TagString: Untagged
@@ -124,10 +154,11 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 3960166192227805356}
+  - {fileID: 1255869446899520471}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1464543350476195436
+--- !u!114 &-5809868311418978441
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -136,15 +167,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 3960166193636073919}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 89e007eb063aa294791a6fc6e2d2fb59, type: 3}
+  m_Script: {fileID: 11500000, guid: 525824c73fd0aa746978af10e84e66ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  type: 1
-  class_name: PheromoneToFood
-  id: 0
-  obj: {fileID: 0}
-  direction: 0
-  isMovable: 0
-  currentTransform: {fileID: 0}
+  simObjectRender: {fileID: 11400000, guid: 33f246525d717b24c8e42e79e2d5c0eb, type: 2}
   isGhost: 0
-  isPrefab: 0
+  isMovable: 0
+  direction: 0
+  width: 1
+  lenght: 1
+  isSquared: 1

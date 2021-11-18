@@ -3,6 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using System;
+using static SceneController;
+using System.Collections.Generic;
 
 public class SpeedChangeEventArgs : EventArgs
 {
@@ -24,7 +26,9 @@ public class UIController : MonoBehaviour
     private SceneController SceneController;
 
     // Sprites Collection
-    public SOCollection SimObjectsData;
+    public List<NamedPrefab> AgentsData;
+    public List<NamedPrefab> GenericsData;
+    public List<NamedPrefab> ObstaclesData;
 
     // Variables
     public TMP_Text nickname;
@@ -47,7 +51,6 @@ public class UIController : MonoBehaviour
 
         // Bind Controllers
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
-        SimObjectsData = SceneController.SimObjectsData;
 
         Debug.Log("sim space: " + showSimSpace + " env: " + showEnvironment);
 
@@ -67,6 +70,10 @@ public class UIController : MonoBehaviour
     void Start()
     {
         OnLoadMainSceneEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
+
+        AgentsData = SceneController.PO_Prefab_Collection[simId].PO_AgentPrefabs;
+        GenericsData = SceneController.PO_Prefab_Collection[simId].PO_GenericPrefabs;
+        ObstaclesData = SceneController.PO_Prefab_Collection[simId].PO_ObstaclePrefabs;
 
         LoadEditPanel();
         LoadParamsSettings(10);
@@ -155,7 +162,7 @@ public class UIController : MonoBehaviour
         //INVIA PARAMETRI A MASON
     }
 
-    public void BackToMenu()    //distruggi settaggi prima di uscire
+    public void BackToMenu()
     {
         StoreDataPreferences(nickname.text, showSimSpace, showEnvironment);
         //foreach (Transform child in settingsScrollContent.transform)
@@ -164,7 +171,7 @@ public class UIController : MonoBehaviour
         //    GameObject.Destroy(child.gameObject);
 
         SceneManager.LoadScene("MenuScene");
-    }
+    }               //distruggi settaggi prima di uscire
     public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
     {
         playerPreferencesSO.nickname = nameString;
@@ -175,34 +182,34 @@ public class UIController : MonoBehaviour
 
     void LoadEditPanel()
     {
-        foreach (SimObjectSO so in SimObjectsData.agents)
+        foreach (NamedPrefab po in AgentsData)
         {
-            Sprite s = so.sprite;
+            Sprite s = po.prefab.GetComponent<PlaceableObject>().SimObjectRender.Sprites["default"];
             GameObject o = Instantiate(editPanelSimObject_prefab, contentAgents.transform);
             o.GetComponent<Image>().sprite = s;
             o.GetComponent<Button>().onClick.AddListener(() =>
             {
-                SceneController.SelectPlaceableSimObject(0, o.transform.GetSiblingIndex());
+                SceneController.SelectGhost(0, o.transform.GetSiblingIndex());
             });
         }
-        foreach (SimObjectSO so in SimObjectsData.generics)
+        foreach (NamedPrefab po in GenericsData)
         {
-            Sprite s = so.sprite;
+            Sprite s = po.prefab.GetComponent<PlaceableObject>().SimObjectRender.Sprites["default"];
             GameObject o = Instantiate(editPanelSimObject_prefab, contentGenerics.transform);
             o.GetComponent<Image>().sprite = s;
             o.GetComponent<Button>().onClick.AddListener(() =>
             {
-                SceneController.SelectPlaceableSimObject(1, o.transform.GetSiblingIndex());
+                SceneController.SelectGhost(1, o.transform.GetSiblingIndex());
             });
         }
-        foreach (SimObjectSO so in SimObjectsData.obstacles)
+        foreach (NamedPrefab po in ObstaclesData)
         {
-            Sprite s = so.sprite;
+            Sprite s = po.prefab.GetComponent<PlaceableObject>().SimObjectRender.Sprites["default"];
             GameObject o = Instantiate(editPanelSimObject_prefab, contentObstacles.transform);
             o.GetComponent<Image>().sprite = s;
             o.GetComponent<Button>().onClick.AddListener(() =>
             {
-                SceneController.SelectPlaceableSimObject(2, o.transform.GetSiblingIndex());
+                SceneController.SelectGhost(2, o.transform.GetSiblingIndex());
             });
         }
     }

@@ -7246,6 +7246,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPreferencesSO: {fileID: 11400000, guid: 5e8f8baebfb8c704893075b20959fb7a,
     type: 2}
+  PO_Prefab_Collection:
+  - {fileID: 11400000, guid: 86a9e59149c38404b8e8427ced089295, type: 2}
+  - {fileID: 11400000, guid: 662c59bb86fd1554f87e427123b6c531, type: 2}
   SimSpace_prefabs_2D:
   - {fileID: 3938228412142364311, guid: 3b372b1e5441f0b4fbb457d2f13b041e, type: 3}
   - {fileID: 818190985185202977, guid: 543675be1be2e3e47a4e3b26e787bdbe, type: 3}
@@ -7260,12 +7263,6 @@ MonoBehaviour:
   - {fileID: 4800000, guid: e58c412cd2524554b9b486c29fb80bae, type: 3}
   Shaders3D:
   - {fileID: 4800000, guid: 0f19cb105f717aa4888ed285af1dc093, type: 3}
-  SOCollections:
-  - {fileID: 11400000, guid: 7da966c53f9aab1499fa0024210b7d1e, type: 2}
-  - {fileID: 11400000, guid: e65b7c0b815886a4d84c2d6e3454c70e, type: 2}
-  SimObjectsData: {fileID: 0}
-  cellDebug: {fileID: 3960166193636073919, guid: 3cc782b60b0b8934599684453aa7853f,
-    type: 3}
 --- !u!1 &1490117387
 GameObject:
   m_ObjectHideFlags: 0
@@ -7744,7 +7741,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.56078434, g: 1, b: 0.98039216, a: 0}
+  m_BackGroundColor: {r: 0.1792453, g: 0.1792453, b: 0.1792453, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -9048,7 +9045,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPreferencesSO: {fileID: 11400000, guid: 5e8f8baebfb8c704893075b20959fb7a,
     type: 2}
-  SimObjectsData: {fileID: 0}
+  AgentsData: []
+  GenericsData: []
+  ObstaclesData: []
   nickname: {fileID: 1017930861}
   panelSimButtons: {fileID: 2142324587}
   panelEditMode: {fileID: 466397189}

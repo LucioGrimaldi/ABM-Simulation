@@ -13,7 +13,7 @@ public class Simulation
     public SimTypeEnum type;
     public int id;
     private bool is_discrete;
-    public ConcurrentDictionary<string, object> dimensions = new ConcurrentDictionary<string, object>();
+    public ConcurrentDictionary<string, int> dimensions = new ConcurrentDictionary<string, int>();
     public ConcurrentDictionary<string, SimObject> agent_prototypes = new ConcurrentDictionary<string, SimObject>();
     public ConcurrentDictionary<string, SimObject> generic_prototypes = new ConcurrentDictionary<string, SimObject>();
     public ConcurrentDictionary<string, object> parameters = new ConcurrentDictionary<string, object>();
@@ -60,7 +60,7 @@ public class Simulation
     public SimTypeEnum Type { get => type; set => type = value; }
     public StateEnum State { get => state; set => state = value; }
     public SpeedEnum Speed { get => speed; set => speed = value; }
-    public ConcurrentDictionary<string, object> Dimensions { get => dimensions; set => dimensions = value; }
+    public ConcurrentDictionary<string, int> Dimensions { get => dimensions; set => dimensions = value; }
     public ConcurrentDictionary<string, SimObject> Agent_prototypes { get => agent_prototypes; set => agent_prototypes = value; }
     public ConcurrentDictionary<string, SimObject> Generic_prototypes { get => generic_prototypes; set => generic_prototypes = value; }
     public ConcurrentDictionary<string, object> Parameters { get => parameters; set => parameters = value; }
@@ -185,20 +185,8 @@ public class Simulation
         JSONArray dimensions = (JSONArray)sim_edited_prototype["dimensions"];
         foreach (JSONObject d in dimensions)
         {
-            switch ((string)d["type"])
-            {
-                case "System.Single":
-                    value = (float)d["default"];
-                    Dimensions.TryAdd(d["name"], (float)value);
-                    break;
-                case "System.Int32":
-                    value = (int)d["default"];
-                    Dimensions.TryAdd(d["name"], (int)value);
-                    break;
-                default:
-                    value = null;
-                    break;
-            }
+            value = (int)d["default"];
+            Dimensions.TryAdd(d["name"], (int)value);
         }
         
         // Get Sim parameters
@@ -250,6 +238,8 @@ public class Simulation
             a.Type = SimObject.SimObjectType.AGENT;
             a.Is_in_step = agent["is_in_step"];
             a.To_keep_if_not_in_step = agent["to_keep_if_not_in_step"];
+            a.Layer = agent["layer"];
+            a.Shares_position = agent["shares_position"];
 
             foreach (JSONObject p in (JSONArray)agent["params"])
             {
@@ -318,6 +308,8 @@ public class Simulation
             g.Type = SimObject.SimObjectType.GENERIC;
             g.Is_in_step = generic["is_in_step"];
             g.To_keep_if_not_in_step = generic["to_keep_if_not_in_step"];
+            g.Layer = generic["layer"];
+            g.Shares_position = generic["shares_position"];
 
             foreach (JSONObject p in (JSONArray)generic["params"])
             {

@@ -271,7 +271,7 @@ public class SimulationController : MonoBehaviour
     {
         return simulation.Type;
     }
-    public ConcurrentDictionary<string, object> GetSimDimensions()
+    public ConcurrentDictionary<string, int> GetSimDimensions()
     {
         return simulation.Dimensions;
     }

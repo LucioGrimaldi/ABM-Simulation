@@ -3,15 +3,13 @@ using UnityEngine;
 using GerardoUtils;
 using System.Collections.Generic;
 
-public class Grid3D<TGridObject>
-    //cambiare da TGRidObject a reference di TGridObject
-
+public class Grid3D<TGridObject>                                                 //cambiare da TGRidObject a reference di TGridObject
 {
     private int width, lenght, height;
     private TGridObject[,,] gridArray;
-    private float cellSize;
+    private static float cellSize;
     private TextMesh[,,] debugTextArray;
-    private Vector3 originPosition;
+    private static Vector3 originPosition;
     bool showDebug = false;
 
     //public int Width { get; set;}
@@ -29,8 +27,8 @@ public class Grid3D<TGridObject>
         this.width = width;
         this.height = height;
         this.lenght = lenght;
-        this.cellSize = cellSize;
-        this.originPosition = originPosition;
+        Grid3D<TGridObject>.cellSize = cellSize;
+        Grid3D<TGridObject>.originPosition = originPosition;
 
         gridArray = new TGridObject[width, height, lenght];
         debugTextArray = new TextMesh[width, height, lenght];
@@ -74,7 +72,7 @@ public class Grid3D<TGridObject>
     //METODI
 
     //Converti x,y (gridPosition) in worldPosition
-    public Vector3 GetWorldPosition(int x, int y, int z)
+    public static Vector3 GetWorldPosition(int x, int y, int z)
     {
         return new Vector3(x, y, z) * cellSize + originPosition;
     }
@@ -139,4 +137,5 @@ public class Grid3D<TGridObject>
     public int Height { get => height; set => height = value; }
     public int Lenght { get => lenght; set => lenght = value; }
     public float CellSize { get => cellSize; set => cellSize = value; }
+    public TGridObject[,,] GridArray { get => gridArray; set => gridArray = value; }
 }
