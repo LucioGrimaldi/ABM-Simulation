@@ -191,8 +191,8 @@ public class UIController : MonoBehaviour
     }
     public void PopulateInspector(PlaceableObject po)
     {
-        LoadInspectorInfo(po.type, po.class_name, po.id);
-        LoadInspectorParams(InspectorContent, SceneController.GetSimObjectParamsPrototype(po.type, po.class_name));
+        LoadInspectorInfo(po.SimObject.Type, po.SimObject.Class_name, po.SimObject.Id);
+        LoadInspectorParams(InspectorContent, SceneController.GetSimObjectParamsPrototype(po.SimObject.Type, po.SimObject.Class_name));
     }
     public void LoadInspectorInfo(SimObject.SimObjectType type, string class_name, int id)
     {
@@ -311,9 +311,9 @@ public class UIController : MonoBehaviour
     public void OnSimObjectParamsApply()
     {
         SimObjectModifyEventArgs e = new SimObjectModifyEventArgs();
-        e.type = SceneController.selectedSimObject.type;
-        e.class_name = SceneController.selectedSimObject.class_name;
-        e.id = SceneController.selectedSimObject.id;
+        e.type = SceneController.selectedPlaced.SimObject.Type;
+        e.class_name = SceneController.selectedPlaced.SimObject.Class_name;
+        e.id = SceneController.selectedPlaced.SimObject.Id;
         e.parameters = tempSimObjectParams;
     }
     public void OnSimParamsDiscard()

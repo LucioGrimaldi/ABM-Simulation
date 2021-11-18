@@ -48,8 +48,8 @@ public class SceneController : MonoBehaviour
     private static Simulation.SimTypeEnum simType;
     private static ConcurrentDictionary<string, int> simDimensions;
     private int width = 1, height = 1, lenght = 1;
-    private PlaceableObject selectedGhost = null;
-    private PlaceableObject selectedPlaced = null;
+    public PlaceableObject selectedGhost = null;
+    public PlaceableObject selectedPlaced = null;
 
     /// UNITY LOOP METHODS ///
 
@@ -319,14 +319,14 @@ public class SceneController : MonoBehaviour
             DeselectSimObject();
             selectedPlaced = GetPOFromTransformRecursive(hitPoint.transform);
             selectedPlaced.Highlight();
-            ShowHideInspector(true);
+            ShowInspector(selectedPlaced);
             return true;
         }        
         return false;
     }
     public void DeselectSimObject()
     {
-        ShowHideInspector(false);
+        HideInspector();
         if(selectedPlaced != null)
         {
             selectedPlaced.DeHighlight();
@@ -337,7 +337,7 @@ public class SceneController : MonoBehaviour
     {
         RemoveGhost();
         selectedGhost = PlaceGhost(so, po, true);
-        ShowHideInspector(true);
+        ShowInspector(selectedGhost);
     }
 
     // PlacedObjects
@@ -463,14 +463,18 @@ public class SceneController : MonoBehaviour
     }
 
     // Inspector
-    public void PopulateInspector()
+    public void PopulateInspector(PlaceableObject po)
     {
-        UIController.PopulateInspector(selectedSimObject);
+        UIController.PopulateInspector(po);
     }
-    public void ShowHideInspector(bool show)
+    public void ShowInspector(PlaceableObject po)
     {
-        PopulateInspector();
-        if (UIController.showInspectorPanel != show) UIController.ShowHidePanelInspector();
+        PopulateInspector(po);
+        if (UIController.showInspectorPanel != true) UIController.ShowHidePanelInspector();
+    }
+    public void HideInspector()
+    {
+        if (UIController.showInspectorPanel != false) UIController.ShowHidePanelInspector();
     }
 
     // Utils
@@ -515,6 +519,18 @@ public class SceneController : MonoBehaviour
                 return SimulationController.GetSimulation().Generic_prototypes[class_name];
             case SimObject.SimObjectType.OBSTACLE:
                 return null;
+            default:
+                return null;
+        }
+    }
+    public JSONArray GetSimObjectParamsPrototype(SimObject.SimObjectType type, string class_name)
+    {
+        switch (type)
+        {
+            case SimObject.SimObjectType.AGENT:
+                return (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[simId])["agent_prototypes"]).Linq.Where((node) => node.Value["class"].Equals(class_name)).ToArray()[0])["params"];
+            case SimObject.SimObjectType.GENERIC:
+                return (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[simId])["generic_prototypes"]).Linq.Where((node) => node.Value["class"].Equals(class_name)).ToArray()[0])["params"];
             default:
                 return null;
         }
