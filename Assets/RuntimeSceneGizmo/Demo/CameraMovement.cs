@@ -5,77 +5,83 @@ namespace RuntimeSceneGizmo
 	public class CameraMovement : MonoBehaviour
 	{
 #pragma warning disable 0649
-		[SerializeField] private float sensitivity = 0.5f, speed = 20.0f;
+		[SerializeField] private float normalSpeed = 0.05f, fastSpeed = 0.1f, scrollSpeed = 8;
 		[SerializeField] private Camera mainCamera;
+		[SerializeField] private float movementTime = 10f;
 
 #pragma warning restore 0649
 
-		private Vector3 prevMousePos;
-		private Transform mainCamParent;
+		private Vector3 newPosition;
+		private float speed;
 
 		private void Awake()
 		{
-			mainCamParent = Camera.main.transform.parent;
+		}
+        private void Start()
+        {
+			newPosition = transform.position;
+        }
+        private void Update()
+		{
+
 		}
 
-		private void Update()
-		{
+        private void LateUpdate()
+        {
 			MoveCamera();
-
-			if( Input.GetMouseButtonDown( 1 ) )
-				prevMousePos = Input.mousePosition;
-			else if( Input.GetMouseButton( 1 ) )
-			{
-				Vector3 mousePos = Input.mousePosition;
-				Vector2 deltaPos = ( mousePos - prevMousePos ) * sensitivity;
-
-				Vector3 rot = mainCamParent.localEulerAngles;
-				while( rot.x > 180f )
-					rot.x -= 360f;
-				while( rot.x < -180f )
-					rot.x += 360f;
-
-				rot.x = Mathf.Clamp( rot.x - deltaPos.y, -89.8f, 89.8f );
-				rot.y += deltaPos.x;
-				rot.z = 0f;
-
-				mainCamParent.localEulerAngles = rot;
-				prevMousePos = mousePos;
-			}
 		}
 
 		void MoveCamera()
 		{
-			if (Input.GetKey(KeyCode.W))
+			newPosition = transform.position;
+			if (Input.GetKey(KeyCode.LeftShift))
+            {
+				speed = fastSpeed;
+            }
+            else
+            {
+				speed = normalSpeed;
+            }
+			if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
 			{
 				if (mainCamera.isActiveAndEnabled)
-					mainCamera.transform.position = mainCamera.transform.position + Camera.main.transform.forward * speed * Time.deltaTime;
+					newPosition += (transform.forward * speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
-			if (Input.GetKey(KeyCode.S))
+			if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
 			{
 				if (mainCamera.isActiveAndEnabled)
-					mainCamera.transform.position = mainCamera.transform.position - Camera.main.transform.forward * speed * Time.deltaTime;
+					newPosition += (transform.forward * -speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
 			if (Input.GetKey(KeyCode.Q))
 			{
 				if (mainCamera.isActiveAndEnabled)
-					mainCamera.transform.position += new Vector3(0, -speed * Time.deltaTime, 0);
+					newPosition += new Vector3(0, -speed, 0);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
 			if (Input.GetKey(KeyCode.E))
 			{
 				if (mainCamera.isActiveAndEnabled)
-					mainCamera.transform.position += new Vector3(0, speed * Time.deltaTime, 0);
+					newPosition += new Vector3(0, speed, 0);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
-			if (Input.GetKey(KeyCode.A))
+			if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
 			{
 				if (mainCamera.isActiveAndEnabled)
-					mainCamera.transform.position = mainCamera.transform.position - Camera.main.transform.right * speed * Time.deltaTime;
+					newPosition += (transform.right * -speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
-			if (Input.GetKey(KeyCode.D))
+			if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
 			{
 				if (mainCamera.isActiveAndEnabled)
-					mainCamera.transform.position = mainCamera.transform.position + Camera.main.transform.right * speed * Time.deltaTime;
+					newPosition += (transform.right * speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
+
+			//float scroll = Input.GetAxis("Mouse ScrollWheel");
+			//mainCamera.transform.Translate(0, 0, scroll * scrollSpeed, Space.Self);
+
 		}
 	}
 }

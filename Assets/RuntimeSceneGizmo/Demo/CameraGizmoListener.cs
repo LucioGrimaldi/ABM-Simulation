@@ -8,6 +8,8 @@ namespace RuntimeSceneGizmo
 #pragma warning disable 0649
 		[SerializeField]
 		private float cameraAdjustmentSpeed = 3f;
+		[SerializeField]
+		private float distance;
 
 		[SerializeField]
 		private float projectionTransitionSpeed = 2f;
@@ -34,17 +36,17 @@ namespace RuntimeSceneGizmo
 			if( component == GizmoComponent.Center )
 				SwitchOrthographicMode();
 			else if( component == GizmoComponent.XNegative )
-				RotateCameraInDirection( Vector3.right );
-			else if( component == GizmoComponent.XPositive )
 				RotateCameraInDirection( -Vector3.right );
+			else if( component == GizmoComponent.XPositive )
+				RotateCameraInDirection( Vector3.right );
 			else if( component == GizmoComponent.YNegative )
-				RotateCameraInDirection( Vector3.up );
-			else if( component == GizmoComponent.YPositive )
 				RotateCameraInDirection( -Vector3.up );
+			else if( component == GizmoComponent.YPositive )
+				RotateCameraInDirection( Vector3.up );
 			else if( component == GizmoComponent.ZNegative )
-				RotateCameraInDirection( Vector3.forward );
-			else
 				RotateCameraInDirection( -Vector3.forward );
+			else
+				RotateCameraInDirection( Vector3.forward );
 		}
 
 		public void SwitchOrthographicMode()
@@ -61,7 +63,7 @@ namespace RuntimeSceneGizmo
 			if( cameraRotateCoroutine != null )
 				return;
 
-			cameraRotateCoroutine = SetCameraRotation( direction );
+			cameraRotateCoroutine = SetCameraPositionAndRotation( direction );
 			StartCoroutine( cameraRotateCoroutine );
 		}
 
@@ -129,12 +131,21 @@ namespace RuntimeSceneGizmo
 
 			for( float t = 0f; t < 1f; t += Time.unscaledDeltaTime * cameraAdjustmentSpeed )
 			{
-				mainCamParent.localRotation = Quaternion.LerpUnclamped( initialRotation, targetRotation, t );
+				mainCamera.transform.localRotation = Quaternion.LerpUnclamped( initialRotation, targetRotation, t );
 				yield return null;
 			}
 
-			mainCamParent.localRotation = targetRotation;
+			mainCamera.transform.localRotation = targetRotation;
 			cameraRotateCoroutine = null;
 		}
+
+		private IEnumerator SetCameraPositionAndRotation(Vector3 whereToMove)
+        {
+			Vector3 newPosition = mainCamParent.localPosition + (whereToMove * distance);
+			mainCamera.transform.localPosition = newPosition;
+			mainCamera.transform.LookAt(mainCamParent);
+			cameraRotateCoroutine = null;
+			yield return null;
+        }
 	}
 }

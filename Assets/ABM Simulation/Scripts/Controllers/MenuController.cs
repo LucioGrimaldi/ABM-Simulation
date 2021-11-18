@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.Linq;
 
 public class MenuController : MonoBehaviour
 {
@@ -46,11 +47,10 @@ public class MenuController : MonoBehaviour
     public static readonly ConcurrentQueue<Action> MenuMainThreadQueue = new ConcurrentQueue<Action>();
 
     // Variables
-    public static JSONArray sim_list_editable;
     public TMP_Dropdown dropdownSimTypes, dropdownAgents, dropdownObjects;
     public TMP_Text simDescription, simDescription2, simName, emptyScrollText;
     public Image simImage1, simImage2, agentImage;
-    public GameObject nickCheckSign, inMenuParamPrefab, settingsScrollContent, agentsScrollContent, objectsScrollContent, simToggle, envToggle;
+    public GameObject nickCheckSign, inMenuParamPrefab, inMenuTogglePrefab, settingsScrollContent, agentsScrollContent, objectsScrollContent, simToggle, envToggle;
     public InputField nicknameField;
     public Button newSimButton, joinSimButton, simSettingsButton, agentsSettingsButton, objectsSettingsButton;
     private bool showSimSpace, showEnvironment;
@@ -152,9 +152,9 @@ public class MenuController : MonoBehaviour
     }
     private void onSimListSuccess(object sender, ReceivedMessageEventArgs e)
     {        
-        sim_list_editable = (JSONArray)e.Payload["payload_data"]["list"];
+        SimulationController.sim_list_editable = (JSONArray)e.Payload["payload_data"]["list"].Clone();
 
-        MenuMainThreadQueue.Enqueue(() => { LoadSimNames(sim_list_editable); });
+        MenuMainThreadQueue.Enqueue(() => { LoadSimNames(SimulationController.sim_list_editable); });
         MenuMainThreadQueue.Enqueue(() => { PopulateSimListDropdown(); });
         MenuMainThreadQueue.Enqueue(() => { LoadSprites(); });
     }
@@ -199,10 +199,36 @@ public class MenuController : MonoBehaviour
         e.nickname = nicknameField.text;
         OnNicknameEnterEventHandler?.BeginInvoke(this, e, null, null);
     }
+    private void onSimParamModified(string param_name, dynamic value)
+    {
+        int x = 0;
+        ((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["sim_params"]).Linq.Where((p, i) => { if (p.Key.Equals(param_name)) { x = i; return true;} return false; });
+        ((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["sim_params"])[x])["default"] = value;
+    }
+    private void onAgentParamModified(int id, string param_name, dynamic value)
+    {
+        foreach ((int i, KeyValuePair<string, JSONNode>) param in SimulationController.sim_list_editable[SimulationController.sim_id]["agent_prototypes"][id]["params"].Linq.Select((v, i) => (i,v)))
+        {
+            if (param.Item2.Key.Equals(param_name))
+            {
+                SimulationController.sim_list_editable[SimulationController.sim_id]["agent_prototypes"][id]["params"][param.Item1]["default"] = value;
+            }
+        }
+    }
+    private void onGenericParamModified(int id, string param_name, dynamic value)
+    {
+        foreach ((int i, KeyValuePair<string, JSONNode>) param in SimulationController.sim_list_editable[SimulationController.sim_id]["generic_prototypes"][id]["params"].Linq.Select((v, i) => (i, v)))
+        {
+            if (param.Item2.Key.Equals(param_name))
+            {
+                SimulationController.sim_list_editable[SimulationController.sim_id]["generic_prototypes"][id]["params"][param.Item1]["default"] = value;
+            }
+        }
+    }
     public void ConfirmEditedPrototype()
     {
         SimPrototypeConfirmedEventArgs e = new SimPrototypeConfirmedEventArgs();
-        e.sim_prototype = (JSONObject)sim_list_editable[SimulationController.sim_id];
+        e.sim_prototype = (JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id];
         OnSimPrototypeConfirmedEventHandler?.BeginInvoke(this, e, null, null);
     }
     public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
@@ -214,29 +240,36 @@ public class MenuController : MonoBehaviour
     }
     public void ChangeMenuState()
     {
-        GameObject selected = new GameObject();
-        foreach (GameObject c in GameObject.FindGameObjectsWithTag("Menu")) if (c.activeSelf) selected = c;
-        switch (selected.name)
+        foreach (GameObject c in GameObject.FindGameObjectsWithTag("Menu"))
         {
-            case "MainMenu":
-                menuState = MenuState.MAIN;
-                break;
-            case "SettingsMenu":
-                menuState = MenuState.SETTINGS;
-                break;
-            case "NewSimScreen":
-                menuState = MenuState.NEWSIM;
-                break;
-            case "SimSettingsScreen":
-                menuState = MenuState.SIM_SETTINGS;
-                break;
-            case "AgentsSettingsScreen":
-                menuState = MenuState.AGENTS_SETTINGS;
-                break;
-            case "ObjectsSettingsScreen":
-                menuState = MenuState.OBJECTS_SETTINGS;
-                break;
+            if (c.activeSelf)
+            {
+                switch (c.name)
+                {
+                    case "MainMenu":
+                        menuState = MenuState.MAIN;
+                        break;
+                    case "SettingsMenu":
+                        menuState = MenuState.SETTINGS;
+                        break;
+                    case "NewSimScreen":
+                        menuState = MenuState.NEWSIM;
+                        break;
+                    case "SimSettingsScreen":
+                        menuState = MenuState.SIM_SETTINGS;
+                        break;
+                    case "AgentsSettingsScreen":
+                        menuState = MenuState.AGENTS_SETTINGS;
+                        break;
+                    case "ObjectsSettingsScreen":
+                        menuState = MenuState.OBJECTS_SETTINGS;
+                        break;
+                }
+                return;
+            } 
         }
+        
+        
     }
     public void JoinSimulation()
     {
@@ -295,35 +328,98 @@ public class MenuController : MonoBehaviour
             objectsSprites.Add(oSprites);
         }
     }
-    public void LoadParams(GameObject scrollContent, GameObject itemPrefab, JSONArray parameters)
+    public void LoadParams(GameObject scrollContent, int id, JSONArray parameters)
+    {
+        emptyScrollText.gameObject.SetActive(false);
+        foreach (JSONObject p in parameters)
+        {
+            if (p.HasKey("editable_in_init") && p["editable_in_init"].Equals(true) || !p.HasKey("editable_in_init"))
+            {
+                GameObject param;
+                switch ((string)p["type"])
+                {
+                    case "System.Single":
+                        param = Instantiate(inMenuParamPrefab);
+                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
+                        if (scrollContent.name.Contains("agent")) param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onAgentParamModified(id, p["name"], float.Parse(value)));
+                        else param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onGenericParamModified(id, p["name"], float.Parse(value)));
+                        break;
+                    case "System.Int32":
+                        param = Instantiate(inMenuParamPrefab);
+                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
+                        if (scrollContent.name.Contains("agent")) param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onAgentParamModified(id, p["name"], int.Parse(value)));
+                        else param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onGenericParamModified(id, p["name"], int.Parse(value)));
+                        break;
+                    case "System.Boolean":
+                        param = Instantiate(inMenuTogglePrefab);
+                        if (scrollContent.name.Contains("agent")) param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => onAgentParamModified(id, p["name"], value));
+                        else param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => onGenericParamModified(id, p["name"], value));
+                        break;
+                    case "System.String":
+                        param = Instantiate(inMenuParamPrefab);
+                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
+                        if (scrollContent.name.Contains("agent")) param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onAgentParamModified(id, p["name"], value));
+                        else param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onGenericParamModified(id, p["name"], value));
+                        break;
+                    default:
+                        return;
+                }
+                param.transform.SetParent(scrollContent.transform);
+                if (!((string)p["type"]).Equals("System.Boolean"))
+                {
+                    param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
+                    param.GetComponentInChildren<InputField>().characterLimit = 20;
+                    param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
+                    param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+                }
+            }
+        }
+        if (scrollContent.transform.childCount == 0)
+        {
+            emptyScrollText.text = "No params available for this " + (scrollContent.name.Equals("ContentSettings") ? "Simulation" : (scrollContent.name.Equals("ContentAgents") ? "Agent" : "Object"));
+            emptyScrollText.gameObject.SetActive(true);
+        }
+    }
+    public void LoadSimParams(GameObject scrollContent, JSONArray parameters)
     {
         emptyScrollText.gameObject.SetActive(false);
         foreach (JSONObject p in parameters)
         {
             if(p.HasKey("editable_in_init") && p["editable_in_init"].Equals(true) || !p.HasKey("editable_in_init"))
             {
-                GameObject param = Instantiate(itemPrefab);
-                param.transform.SetParent(scrollContent.transform);
-                param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
-                param.GetComponentInChildren<InputField>().characterLimit = 20;
-
+                GameObject param;
                 switch ((string)p["type"])
                 {
                     case "System.Single":
+                        param = Instantiate(inMenuParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onSimParamModified(p["name"], float.Parse(value)));
                         break;
                     case "System.Int32":
+                        param = Instantiate(inMenuParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onSimParamModified(p["name"], int.Parse(value)));
                         break;
                     case "System.Boolean":
-                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Custom;
+                        param = Instantiate(inMenuTogglePrefab);
+                        param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => onSimParamModified(p["name"], value));
                         break;
                     case "System.String":
+                        param = Instantiate(inMenuParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onSimParamModified(p["name"], value));
                         break;
+                    default:
+                        return;
                 }
-                param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
-                param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+                param.transform.SetParent(scrollContent.transform);
+                if (!((string)p["type"]).Equals("System.Boolean"))
+                {
+                    param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
+                    param.GetComponentInChildren<InputField>().characterLimit = 20;
+                    param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
+                    param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+                }    
             }
         }
         if(scrollContent.transform.childCount == 0)
@@ -401,17 +497,17 @@ public class MenuController : MonoBehaviour
         foreach (Transform child in settingsScrollContent.transform)
         {
             GameObject.Destroy(child.gameObject);
-            settingsScrollContent.transform.DetachChildren();
         }
+        settingsScrollContent.transform.DetachChildren();
         foreach (Transform child in agentsScrollContent.transform)
         {
             GameObject.Destroy(child.gameObject);
-            agentsScrollContent.transform.DetachChildren();
         }
+        agentsScrollContent.transform.DetachChildren();
         
         SimulationController.sim_id = index;
-        LoadSimInfos((JSONObject)sim_list_editable[index]);
-        LoadParams(settingsScrollContent, inMenuParamPrefab, (JSONArray)sim_list_editable[index]["sim_params"]);
+        LoadSimInfos((JSONObject)SimulationController.sim_list_editable[index]);
+        LoadSimParams(settingsScrollContent, (JSONArray)SimulationController.sim_list_editable[index]["sim_params"]);
 
         // set Buttons interactable
         SetButtonsInteractivity();
@@ -432,8 +528,7 @@ public class MenuController : MonoBehaviour
             agentsScrollContent.transform.DetachChildren();
         }
 
-        LoadParams(agentsScrollContent, inMenuParamPrefab, (JSONArray)((JSONObject)((JSONArray)((JSONObject)sim_list_editable[SimulationController.sim_id])["agent_prototypes"])[index])["params"]);
-
+        LoadParams(agentsScrollContent, index, (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["agent_prototypes"])[index])["params"]);
         //agentImage.sprite = spriteBirdModel;
 
     }
@@ -447,7 +542,7 @@ public class MenuController : MonoBehaviour
             objectsScrollContent.transform.DetachChildren();
         }
 
-        LoadParams(objectsScrollContent, inMenuParamPrefab, (JSONArray)((JSONObject)((JSONArray)((JSONObject)sim_list_editable[SimulationController.sim_id])["generic_prototypes"])[index])["params"]);
+        LoadParams(objectsScrollContent, index, (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["generic_prototypes"])[index])["params"]);
 
         //agentImage.sprite = spriteBirdModel;
 

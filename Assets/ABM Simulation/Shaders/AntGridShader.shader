@@ -105,7 +105,7 @@ Shader "PDT Shaders/AntGrid" {
 			
 
 			//Clip transparent spots using alpha cutout
-			if (color.a <= 0.0001)
+			if (color.a <= 0.00001)
 			{
 				clip(c.a - 1.0);
 			}

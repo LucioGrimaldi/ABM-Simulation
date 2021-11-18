@@ -1,3 +1,4 @@
+using SimpleJSON;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -92,7 +93,7 @@ public class SceneController : MonoBehaviour
         //if (SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE)) LockUp();
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.PLAY)) StepUp();
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.STEP)) {StepUp(); if(SimulationController.steps_to_consume==0) SimulationController.GetSimulation().state = Simulation.StateEnum.PAUSE; }
-        ShowHideSimEnvironment();       // può essere sostituito con event
+        ShowHideSimEnvironment();       // puï¿½ essere sostituito con event
         CheckForUserInput();
     }
     /// <summary>
@@ -464,12 +465,12 @@ public class SceneController : MonoBehaviour
     // Inspector
     public void PopulateInspector()
     {
-        // FARE CON EVENTI
+        UIController.PopulateInspector(selectedSimObject);
     }
     public void ShowHideInspector(bool show)
     {
         PopulateInspector();
-        // FARE CON EVENTI
+        if (UIController.showInspectorPanel != show) UIController.ShowHidePanelInspector();
     }
 
     // Utils

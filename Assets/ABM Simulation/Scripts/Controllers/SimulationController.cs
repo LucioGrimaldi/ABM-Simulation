@@ -39,16 +39,16 @@ public class SimPrototypeConfirmedEventArgs : EventArgs
 {
     public JSONObject sim_prototype;
 }
-public class SimParamUpdateEventArgs : EventArgs
+public class SimParamsUpdateEventArgs : EventArgs
 {
-    public (string param_name, object value) param;
+    public Dictionary<string, object> parameters;
 }
 public class SimObjectModifyEventArgs : EventArgs
 {
     public SimObject.SimObjectType type;
     public string class_name;
     public int id;
-    public ConcurrentDictionary<string, object> parameters;                                    // i parametri sono (string param_name, object value)
+    public Dictionary<string, object> parameters;                                    // i parametri sono (string param_name, object value)
 }
 public class SimObjectCreateEventArgs : EventArgs
 {
@@ -141,6 +141,7 @@ public class SimulationController : MonoBehaviour
     }
 
     /// Updates
+    public static JSONArray sim_list_editable;
     private JSONObject uncommitted_updatesJSON = new JSONObject();
     public ConcurrentDictionary<(string op, (SimObject.SimObjectType type, string class_name, int id) obj), SimObject> uncommitted_updates = new ConcurrentDictionary<(string, (SimObject.SimObjectType, string, int)), SimObject>();
 
@@ -190,7 +191,9 @@ public class SimulationController : MonoBehaviour
         UIController.OnPlayEventHandler += onPlay;
         UIController.OnPauseEventHandler += onPause;
         UIController.OnStopEventHandler += onStop;
-        UIController.OnSpeedChangeHandler += onSpeedChange;
+        UIController.OnSpeedChangeEventHandler += onSpeedChange;
+        UIController.OnSimParamsUpdateEventHandler += onSimParamsUpdate;
+        SceneController.OnSimObjectModifyEventHandler += onSimObjectModify;
         SceneController.OnSimObjectCreateEventHandler += onSimObjectCreate;
         SceneController.OnSimObjectDeleteEventHandler += onSimObjectDelete;
         MessageEventHandler += onMessageReceived;
@@ -243,7 +246,9 @@ public class SimulationController : MonoBehaviour
         UIController.OnPlayEventHandler -= onPlay;
         UIController.OnPauseEventHandler -= onPause;
         UIController.OnStopEventHandler -= onStop;
-        UIController.OnSpeedChangeHandler -= onSpeedChange;
+        UIController.OnSpeedChangeEventHandler -= onSpeedChange;
+        UIController.OnSimParamsUpdateEventHandler -= onSimParamsUpdate;
+        SceneController.OnSimObjectModifyEventHandler -= onSimObjectModify;
         SceneController.OnSimObjectCreateEventHandler -= onSimObjectCreate;
         SceneController.OnSimObjectDeleteEventHandler -= onSimObjectDelete;
         MessageEventHandler -= onMessageReceived;
@@ -567,9 +572,9 @@ public class SimulationController : MonoBehaviour
     {
         Step();
     }
-    private void onSimParamModify(object sender, SimParamUpdateEventArgs e)
+    private void onSimParamsUpdate(object sender, SimParamsUpdateEventArgs e)
     {
-        StoreSimParameterUpdateToJSON(e);
+        StoreSimParamsUpdateToJSON(e);
     }
     private void onSimObjectModify(object sender, SimObjectModifyEventArgs e)
     {
@@ -714,7 +719,7 @@ public class SimulationController : MonoBehaviour
 
         if (result) {
             
-            if (e.Msg.Topic.Equals(nickname)) simulation.InitSimulationFromPrototype((JSONObject)MenuController.sim_list_editable[sim_id]);
+            if (e.Msg.Topic.Equals(nickname)) simulation.InitSimulationFromPrototype((JSONObject)sim_list_editable[sim_id]);
             else simulation.InitSimulationFromPrototype((JSONObject)e.Payload["payload_data"]);
 
             UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
@@ -830,7 +835,7 @@ public class SimulationController : MonoBehaviour
                 UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | 0 entries for object " + e.type + "." + e.class_name + "." + e.id + ".");
             }
 
-            if (!(entry.Value == null))
+            if (entry.Value != null)
             {
                 foreach (KeyValuePair<string, object> param in e.parameters)
                     {
@@ -943,9 +948,12 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// Store in uncommitted_updatesJSON parameter changes
     /// </summary>
-    private void StoreSimParameterUpdateToJSON(SimParamUpdateEventArgs e)
+    private void StoreSimParamsUpdateToJSON(SimParamsUpdateEventArgs e)
     {
-        uncommitted_updatesJSON["sim_params"].Add(e.param.param_name, (JSONNode)e.param.Item2);
+        foreach (KeyValuePair<string, object> p in e.parameters)
+        {
+            uncommitted_updatesJSON["sim_params"].Add(p.Key, (JSONNode)p.Value);
+        }
     }
     private void StoreUncommittedUpdatesToJSON()
     {
