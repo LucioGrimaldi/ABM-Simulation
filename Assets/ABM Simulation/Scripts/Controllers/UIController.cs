@@ -32,7 +32,7 @@ public class UIController : MonoBehaviour
 
     // Variables
     public TMP_Text nickname;
-    private int counter1 = 0, counter2 = 1, counter3 = 1, counter4 = 1, counter5 = 1;
+    public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSimParams, panelBackToMenu, panelFPS, 
         InspectorParamPrefab, InspectorTogglePrefab, InspectorContent, SimParamPrefab, SimTogglePrefab, SimParamsContent,
         simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab;
@@ -40,6 +40,7 @@ public class UIController : MonoBehaviour
     public Image imgEditMode, imgSimState, imgContour;
     public Button buttonEdit;
     public Sprite[] commandSprites;
+    public Text inspectorType, inspectorClass, inspectorId;
     public static bool showSimSpace, showEnvironment;
     public Dictionary<string, object> tempSimParams = new Dictionary<string, object>();
     public Dictionary<string, object> tempSimObjectParams = new Dictionary<string, object>();
@@ -182,9 +183,16 @@ public class UIController : MonoBehaviour
             });
         }
     }
-    public void LoadInspectorInfo()
+    public void PopulateInspector(PlaceableObject po)
     {
-        // load type, class_name, id
+        LoadInspectorInfo(po.type, po.class_name, po.id);
+        LoadInspectorParams(InspectorContent, SceneController.GetSimObjectParamsPrototype(po.type, po.class_name));
+    }
+    public void LoadInspectorInfo(SimObject.SimObjectType type, string class_name, int id)
+    {
+        inspectorType.text = type.ToString();
+        inspectorClass.text = class_name;
+        inspectorId.text = id.ToString();
     }
     public void LoadInspectorParams(GameObject scrollContent, JSONArray parameters)
     {
@@ -311,60 +319,33 @@ public class UIController : MonoBehaviour
         tempSimObjectParams.Clear();
     }
 
-    public void ShowHidePanelSim()
+    public void ShowHideEditPanel()
     {
-        counter1++;
-        if (counter1 % 2 == 1)
-        {
-            panelSimButtons.gameObject.SetActive(false);
-            panelEditMode.gameObject.SetActive(true);
-            imgEditMode.gameObject.SetActive(true);
-            imgContour.gameObject.SetActive(true);
-        }
-        else
-        {
-            imgContour.gameObject.SetActive(false);
-            imgEditMode.gameObject.SetActive(false);
-            panelEditMode.gameObject.SetActive(false);
-            panelSimButtons.gameObject.SetActive(true);
-        }
-
+            panelSimButtons.gameObject.SetActive(showEditPanel);
+            panelEditMode.gameObject.SetActive(!showEditPanel);
+            imgEditMode.gameObject.SetActive(!showEditPanel);
+            imgContour.gameObject.SetActive(!showEditPanel);
+            showEditPanel = !showEditPanel;
     }
     public void ShowHidePanelSettings()
     {
-        counter2++;
-        if (counter2 % 2 == 1)
-            panelSimParams.gameObject.SetActive(false);
-        else
-            panelSimParams.gameObject.SetActive(true);
-
+        panelSimParams.gameObject.SetActive(!showSettingsPanel);
+        showSettingsPanel = !showSettingsPanel;
     }
     public void ShowHideInfoPanel()
     {
-        counter3++;
-        if (counter3 % 2 == 1)
-            panelFPS.gameObject.SetActive(false);
-        else
-            panelFPS.gameObject.SetActive(true);
-
+        panelFPS.gameObject.SetActive(!showInfoPanel);
+        showInfoPanel = !showInfoPanel;
     }
     public void ShowHidePanelQuit()
     {
-        counter4++;
-        if (counter4 % 2 == 1)
-            panelBackToMenu.gameObject.SetActive(false);
-        else
-            panelBackToMenu.gameObject.SetActive(true);
-
+        panelBackToMenu.gameObject.SetActive(!showQuitPanel);
+        showQuitPanel = !showQuitPanel;
     }
     public void ShowHidePanelInspector()
     {
-        counter5++;
-        if (counter5 % 2 == 1)
-            panelInspector.gameObject.SetActive(false);
-        else
-            panelInspector.gameObject.SetActive(true);
-
+        panelInspector.gameObject.SetActive(!showInspectorPanel);
+        showInspectorPanel = !showInspectorPanel;
     }
 
     public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)

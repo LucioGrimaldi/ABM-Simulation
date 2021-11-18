@@ -1,3 +1,4 @@
+using SimpleJSON;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -542,12 +543,12 @@ public class SceneController : MonoBehaviour
     // Inspector
     public void PopulateInspector()
     {
-        // FARE CON EVENTI
+        UIController.PopulateInspector(selectedSimObject);
     }
     public void ShowHideInspector(bool show)
     {
         PopulateInspector();
-        // FARE CON EVENTI
+        if (UIController.showInspectorPanel != show) UIController.ShowHidePanelInspector();
     }
 
     // Utils
@@ -601,6 +602,18 @@ public class SceneController : MonoBehaviour
             }
         }
         return parameters;
+    }
+    public JSONArray GetSimObjectParamsPrototype(SimObject.SimObjectType type, string class_name)
+    {
+        switch (type)
+        {
+            case SimObject.SimObjectType.AGENT:
+                return (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[simId])["agent_prototypes"]).Linq.Where((node) => node.Value["class"].Equals(class_name)).ToArray()[0])["params"];
+            case SimObject.SimObjectType.GENERIC:
+                return (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[simId])["generic_prototypes"]).Linq.Where((node) => node.Value["class"].Equals(class_name)).ToArray()[0])["params"];
+            default:
+                return null;
+        }
     }
     public PlaceableObject getPlaceableObjectRecursive(Transform hitTransform)
     {

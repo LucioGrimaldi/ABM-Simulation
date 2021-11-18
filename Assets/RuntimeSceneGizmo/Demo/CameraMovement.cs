@@ -11,14 +11,11 @@ namespace RuntimeSceneGizmo
 
 #pragma warning restore 0649
 
-		private Vector3 prevMousePos;
-		private Transform mainCamParent;
 		private Vector3 newPosition;
 		private float speed;
 
 		private void Awake()
 		{
-			mainCamParent = Camera.main.transform.parent;
 		}
         private void Start()
         {
@@ -36,6 +33,7 @@ namespace RuntimeSceneGizmo
 
 		void MoveCamera()
 		{
+			newPosition = transform.position;
 			if (Input.GetKey(KeyCode.LeftShift))
             {
 				speed = fastSpeed;
@@ -48,37 +46,42 @@ namespace RuntimeSceneGizmo
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.forward * speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
 			if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.forward * -speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
 			if (Input.GetKey(KeyCode.Q))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += new Vector3(0, -speed, 0);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
 			if (Input.GetKey(KeyCode.E))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += new Vector3(0, speed, 0);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
 			if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.right * -speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
 			if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.right * speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
 
 			//float scroll = Input.GetAxis("Mouse ScrollWheel");
 			//mainCamera.transform.Translate(0, 0, scroll * scrollSpeed, Space.Self);
 
-			transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 		}
 	}
 }
