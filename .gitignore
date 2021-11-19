@@ -62,4 +62,5 @@ sysinfo.txt
 crashlytics-build.properties
 
 Assets/Low Poly Assets/
-*.meta
+
+!/[Aa]ssets/ABM*Simulation/

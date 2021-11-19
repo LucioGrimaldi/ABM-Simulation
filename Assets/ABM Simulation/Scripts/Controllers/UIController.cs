@@ -29,9 +29,9 @@ public class UIController : MonoBehaviour
     private SceneController SceneController;
 
     // Sprites Collection
-    public List<NamedPrefab> AgentsData;
-    public List<NamedPrefab> GenericsData;
-    public List<NamedPrefab> ObstaclesData;
+    private List<NamedPrefab> AgentsData;
+    private List<NamedPrefab> GenericsData;
+    private List<NamedPrefab> ObstaclesData;
 
     // Variables
     public TMP_Text nickname;
@@ -79,7 +79,7 @@ public class UIController : MonoBehaviour
         GenericsData = SceneController.PO_Prefab_Collection[simId].PO_GenericPrefabs;
         ObstaclesData = SceneController.PO_Prefab_Collection[simId].PO_ObstaclePrefabs;
 
-        LoadEditPanel();
+        PopulateEditPanel();
         LoadSimParams(SimParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["sim_params"]);
     }
     /// <summary>
@@ -156,7 +156,7 @@ public class UIController : MonoBehaviour
         OnStopEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
     }
 
-    public void LoadEditPanel()
+    public void PopulateEditPanel()
     {
         foreach (NamedPrefab po in AgentsData)
         {
@@ -222,14 +222,24 @@ public class UIController : MonoBehaviour
                     case "System.Boolean":
                         param = Instantiate(InspectorTogglePrefab);
                         param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
+                        param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
+                        param.GetComponentInChildren<Toggle>().isOn = p["defalut"];
                         break;
                     case "System.String":
                         param = Instantiate(InspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
                         break;
+                    case "System.Position":
+                        param = Instantiate(InspectorParamPrefab);
+                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
+                        break;
+                    case "System.Cells":
+                        // multiple elements prefab
+                        continue;
                     default:
-                        return;
+                        continue;
                 }
                 param.transform.SetParent(scrollContent.transform);
                 if (!((string)p["type"]).Equals("System.Boolean"))
@@ -268,12 +278,22 @@ public class UIController : MonoBehaviour
                     case "System.Boolean":
                         param = Instantiate(SimTogglePrefab);
                         param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => OnSimParamUpdate(p["name"], value));
+                        param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
+                        param.GetComponentInChildren<Toggle>().isOn = p["defalut"];
                         break;
                     case "System.String":
                         param = Instantiate(SimParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], value));
                         break;
+                    case "System.Position":
+                        param = Instantiate(SimParamPrefab);
+                        param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
+                        break;
+                    case "System.Cells":
+                        // multiple elements prefab
+                        continue;
                     default:
                         return;
                 }
