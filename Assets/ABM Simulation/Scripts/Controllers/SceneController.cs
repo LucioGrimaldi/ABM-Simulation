@@ -22,8 +22,8 @@ public class SceneController : MonoBehaviour
     [SerializeField] public Obstacle_SO_Collection Obstacle_SimObject_Collection;
 
     // Events
-    public static event EventHandler<SimObjectCreateEventArgs> OnSimObjectCreateEventHandler;    
-    public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectModifyEventHandler;    
+    public static event EventHandler<SimObjectCreateEventArgs> OnSimObjectCreateEventHandler;
+    public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectModifyEventHandler;
     public static event EventHandler<SimObjectDeleteEventArgs> OnSimObjectDeleteEventHandler;
 
     private static bool showSimSpace, showEnvironment;
@@ -41,7 +41,6 @@ public class SceneController : MonoBehaviour
     public Shader[] Shaders2D;
     public Shader[] Shaders3D;
 
-
     // Variables
     public static int simId;
     private static bool isDiscrete;
@@ -50,6 +49,7 @@ public class SceneController : MonoBehaviour
     private int width = 1, height = 1, lenght = 1;
     public PlaceableObject selectedGhost = null;
     public PlaceableObject selectedPlaced = null;
+    public AudioSource audioPlacedSound;
 
     /// UNITY LOOP METHODS ///
 
@@ -69,6 +69,7 @@ public class SceneController : MonoBehaviour
         isDiscrete = simType.Equals(Simulation.SimTypeEnum.DISCRETE);
         InitSimSpaceSystem();
         InitScene();
+
     }
     /// <summary>
     /// onEnable routine (Unity Process)
@@ -237,12 +238,14 @@ public class SceneController : MonoBehaviour
                 if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) { }
                 else if (selectedGhost != null)
                 {
+                    audioPlacedSound.Play();
                     if (selectedGhost.Place(SimSpaceSystem.MouseClickToSpawnPosition(selectedGhost)))
                     {
                         selectedPlaced = selectedGhost;
                         selectedPlaced.SimObject.Id = GetTemporaryId(selectedPlaced.SimObject.Type, selectedPlaced.SimObject.Class_name);
                         CreateSimObject(selectedPlaced);
                         selectedGhost = PlaceGhost(selectedGhost.SimObject, selectedGhost, true);
+                        
                     }
                 }
                 else if (SelectSimObject(hitPoint)) Debug.Log("SELECTED:" + selectedPlaced.SimObject.Type + " " + selectedPlaced.SimObject.Class_name + " " + selectedPlaced.SimObject.Id + (selectedPlaced.IsGhost ? " -unconfirmed-" : ""));

@@ -42,17 +42,20 @@ public class UIController : MonoBehaviour
     public Slider slider;
     public Image imgEditMode, imgSimState, imgContour;
     public Button buttonEdit;
+    public AudioSource backgroundMusic;
     public Sprite[] commandSprites;
-    public Text inspectorType, inspectorClass, inspectorId;
+    public Text inspectorType, inspectorClass, inspectorId, emptyScrollTextInspector, emptyScrollTextSimParams;
     public static bool showSimSpace, showEnvironment;
     public Dictionary<string, object> tempSimParams = new Dictionary<string, object>();
     public Dictionary<string, object> tempSimObjectParams = new Dictionary<string, object>();
+    private float musicVolume;
 
     private void Awake()
     {
         nickname.text = playerPreferencesSO.nickname;
         showSimSpace = playerPreferencesSO.showSimSpace;
         showEnvironment = playerPreferencesSO.showEnvironment;
+        musicVolume = playerPreferencesSO.musicVolume;
 
         // Bind Controllers
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
@@ -80,6 +83,7 @@ public class UIController : MonoBehaviour
         ObstaclesData = SceneController.PO_Prefab_Collection[simId].PO_ObstaclePrefabs;
 
         PopulateEditPanel();
+        emptyScrollTextSimParams.gameObject.SetActive(false);
         LoadSimParams(SimParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["sim_params"]);
     }
     /// <summary>
@@ -95,6 +99,7 @@ public class UIController : MonoBehaviour
             showEnvironment = true;
         else showEnvironment = false;
 
+        backgroundMusic.volume = musicVolume;
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -191,6 +196,7 @@ public class UIController : MonoBehaviour
     }
     public void PopulateInspector(PlaceableObject po)
     {
+        emptyScrollTextInspector.gameObject.SetActive(false);
         LoadInspectorInfo(po.SimObject.Type, po.SimObject.Class_name, po.SimObject.Id);
         LoadInspectorParams(InspectorContent, SceneController.GetSimObjectParamsPrototype(po.SimObject.Type, po.SimObject.Class_name));
     }
@@ -253,7 +259,8 @@ public class UIController : MonoBehaviour
         }
         if (scrollContent.transform.childCount == 0)
         {
-            //if no params
+            emptyScrollTextInspector.text = "No inspector parameters available";
+            emptyScrollTextInspector.gameObject.SetActive(true);
         }
     }
     public void LoadSimParams(GameObject scrollContent, JSONArray parameters)
@@ -309,7 +316,8 @@ public class UIController : MonoBehaviour
         }
         if (scrollContent.transform.childCount == 0)
         {
-            //if not params
+            emptyScrollTextSimParams.text = "No simulation parameters available";
+            emptyScrollTextSimParams.gameObject.SetActive(true);
         }
     }
     
@@ -381,6 +389,7 @@ public class UIController : MonoBehaviour
         playerPreferencesSO.showEnvironment = toggleEnvironment;
 
     }
+
     public void BackToMenu()    //distruggi settaggi prima di uscire
     {
         StoreDataPreferences(nickname.text, showSimSpace, showEnvironment);
