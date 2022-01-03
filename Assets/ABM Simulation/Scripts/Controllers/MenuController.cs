@@ -52,16 +52,25 @@ public class MenuController : MonoBehaviour
     public GameObject nickCheckSign, inMenuParamPrefab, inMenuTogglePrefab, settingsScrollContent, agentsScrollContent, objectsScrollContent, simToggle, envToggle;
     public InputField nicknameField;
     public Button newSimButton, joinSimButton, simSettingsButton, agentsSettingsButton, objectsSettingsButton;
+    public AudioSource backgroundMusic, testAudioEffect;
+    public Slider musicSlider, effectsSlider;
+    private float musicVolume, effectsVolume;
     private bool showSimSpace, showEnvironment;
-
+    
+    
     // UNITY LOOP METHODS
     private void Awake()
-    {  
+    {
         nicknameField.text = playerPreferencesSO.nickname;
         showSimSpace = playerPreferencesSO.showSimSpace;
         showEnvironment = playerPreferencesSO.showEnvironment;
+        musicVolume = playerPreferencesSO.musicVolume;
+        effectsVolume = playerPreferencesSO.effectsVolume;
 
-        if (nicknameField.text.Length > 0) SavePlayerName();
+        musicSlider.value = musicVolume;
+        effectsSlider.value = effectsVolume;
+
+        if (nicknameField.text.Length > 0) SavePlayerName();//trycomment
 
         simToggle.GetComponent<Toggle>().isOn = showSimSpace;
         envToggle.GetComponent<Toggle>().isOn = showEnvironment;
@@ -82,8 +91,7 @@ public class MenuController : MonoBehaviour
         SimulationController.OnSimInitUnsuccessEventHandler += onSimInitUnsuccess;
     }
     private void Start()
-    {  
-
+    {
     }
     private void Update()
     {
@@ -94,6 +102,10 @@ public class MenuController : MonoBehaviour
                 action?.Invoke();
             }
         }
+
+        backgroundMusic.volume = musicVolume;
+        testAudioEffect.volume = effectsVolume;
+
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -230,11 +242,13 @@ public class MenuController : MonoBehaviour
         e.sim_prototype = (JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id];
         OnSimPrototypeConfirmedEventHandler?.BeginInvoke(this, e, null, null);
     }
-    public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
+    public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment, float musicVolume, float effectsVolume)
     {
         playerPreferencesSO.nickname = nameString;
         playerPreferencesSO.showSimSpace = toggleSimSpace;
         playerPreferencesSO.showEnvironment = toggleEnvironment;
+        playerPreferencesSO.musicVolume = musicVolume;
+        playerPreferencesSO.effectsVolume = effectsVolume;
 
     }
     public void ChangeMenuState()
@@ -554,7 +568,21 @@ public class MenuController : MonoBehaviour
     public void OnLoadSimulationScene()
     {
         ConfirmEditedPrototype();
-        StoreDataPreferences(nicknameField.text, showSimSpace, showEnvironment);
+        StoreDataPreferences(nicknameField.text, showSimSpace, showEnvironment, musicVolume, effectsVolume);
+    }
+
+    public void SetMusicVolume(float volume)
+    {
+        musicVolume = volume;
+    }
+    public void SetEffectsVolume(float volume)
+    {
+        effectsVolume = volume;
+    }
+
+    public void TestAudioEffect()
+    {
+        testAudioEffect.Play();
     }
     public void Quit()
     {

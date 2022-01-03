@@ -44,7 +44,6 @@ public class SceneController : MonoBehaviour
     public Shader[] Shaders2D;
     public Shader[] Shaders3D;
 
-
     // Variables
     public static int simId;
     private static bool isDiscrete;
@@ -53,6 +52,7 @@ public class SceneController : MonoBehaviour
     private int width = 1, height = 1, lenght = 1;
     public PlaceableObject selectedGhost = null;
     public PlaceableObject selectedPlaced = null;
+    public AudioSource audioPlacedSound;
 
     /// UNITY LOOP METHODS ///
 
@@ -78,6 +78,7 @@ public class SceneController : MonoBehaviour
         isDiscrete = simType.Equals(Simulation.SimTypeEnum.DISCRETE);
         InitSimSpaceSystem();
         InitScene();
+
     }
     /// <summary>
     /// onEnable routine (Unity Process)
@@ -256,6 +257,7 @@ public class SceneController : MonoBehaviour
                 if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) { }
                 else if (selectedGhost != null)
                 {
+                    audioPlacedSound.Play();
                     if (SimSpaceSystem.CanBuild(selectedGhost))
                     {
                         //if (selectedPlaced != null) selectedPlaced.DeHighlight();

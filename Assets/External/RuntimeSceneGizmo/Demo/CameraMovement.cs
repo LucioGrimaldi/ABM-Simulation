@@ -5,7 +5,7 @@ namespace RuntimeSceneGizmo
 	public class CameraMovement : MonoBehaviour
 	{
 #pragma warning disable 0649
-		[SerializeField] private float normalSpeed = 0.05f, fastSpeed = 0.1f, scrollSpeed = 8;
+		[SerializeField] private float normalSpeed = 0.1f, fastSpeed = 0.3f, scrollSpeed = 8;
 		[SerializeField] private Camera mainCamera;
 		[SerializeField] private float movementTime = 10f;
 

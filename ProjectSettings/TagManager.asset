@@ -17,6 +17,7 @@ TagManager:
   - Environment
   - Menu
   - UI
+  - Music
   layers:
   - Default
   - TransparentFX
