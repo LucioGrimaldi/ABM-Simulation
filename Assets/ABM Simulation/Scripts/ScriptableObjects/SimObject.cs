@@ -1,23 +1,28 @@
+using System;
 using System.Collections.Concurrent;
 using DeepCopyExtensions;
+using SimpleJSON;
+using UnityEngine;
 
-[System.Serializable]
-public class SimObject
+[Serializable]
+[CreateAssetMenu(fileName = "SimObjects", menuName = "Sim Objects/Sim Object")]
+public class SimObject : ScriptableObject
 {
-    private SimObjectType type;
-    private string class_name;
-    private int id;
-    private bool is_in_step = false;
-    private bool to_keep_if_not_in_step = false;
-    private string layer = "default";
-    private bool shares_position = false;
+    [SerializeField] private SimObjectType type;
+    [SerializeField] private string class_name;
+    [SerializeField] private int id;
+    [SerializeField] private bool is_in_step = false;
+    [SerializeField] private bool to_keep_if_not_in_step = false;
+    [SerializeField] private string layer = "default";
+    [SerializeField] private bool shares_position = false;
 
-    private ConcurrentDictionary<string, object> parameters = new ConcurrentDictionary<string, object>();
+    //[SerializeField] private StringObjectDictionary parameters;
+    private ConcurrentDictionary<String, object> parameters = new ConcurrentDictionary<string, object>();
 
     public SimObjectType Type { get => type; set => type = value; }
     public string Class_name { get => class_name; set => class_name = value; }
     public int Id { get => id; set => id = value; }
-    public ConcurrentDictionary<string, object> Parameters { get => parameters; set => parameters = value; }
+    public ConcurrentDictionary<String, object> Parameters { get => parameters; set => parameters = value; }
     public bool Is_in_step { get => is_in_step; set => is_in_step = value; }
     public bool To_keep_if_not_in_step { get => to_keep_if_not_in_step; set => to_keep_if_not_in_step = value; }
     public string Layer { get => layer; set => layer = value; }
@@ -31,18 +36,6 @@ public class SimObject
     }
 
     public SimObject() {}
-    public SimObject(string class_name)
-    {
-        Class_name = class_name;
-    }
-    public SimObject(SimObjectType type, string class_name, int id, ConcurrentDictionary<string, object> parameters)
-    {
-        this.Type = type;
-        this.Class_name = class_name;
-        this.Id = id;
-        this.Parameters = parameters;
-    }
-
 
     public object GetParameter(string param_name)
     {
@@ -52,13 +45,25 @@ public class SimObject
     }
     public bool AddParameter(string param_name, object value)
     {
-        if (Parameters.TryAdd(param_name, value)) return true; else return false;
+        try
+        {
+            Parameters.TryAdd(param_name, value);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
     public bool UpdateParameter(string param_name, object value)
     {
-        if (Parameters.AddOrUpdate(param_name, value, (k,v) => { return value; }).Equals(value)) return true; else return false;
+        Parameters.AddOrUpdate(param_name, value, (key, old_value) => value);
+        return true;
     }
-
+    public JSONArray GetParametersJSON()
+    {
+        return (JSONArray) JSON.Parse(JsonUtility.ToJson(Parameters));
+    }
 
     public SimObject Clone()
     {

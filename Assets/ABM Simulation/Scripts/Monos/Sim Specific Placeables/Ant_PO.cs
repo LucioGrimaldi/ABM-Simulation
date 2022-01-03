@@ -1,3 +1,4 @@
+using GerardoUtils;
 using UnityEngine;
 using static SimObjectRender;
 
@@ -43,7 +44,7 @@ public class Ant_PO : PO_Discrete2D
             ChangeColor((bool)simObject.Parameters["hasFoodItem"]);
             if (isMovable)
             {
-                Vector3 targetPosition = GridSystem.MasonToUnityPosition2D(GetCells());
+                Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
                 direction = GetFacingDirection(transform.position, targetPosition);
                 transform.position = targetPosition;
                 transform.Find("Model").rotation = Quaternion.Euler(GetRotationVector(direction));
@@ -70,6 +71,11 @@ public class Ant_PO : PO_Discrete2D
     public void ChangeColor(bool hasFoodItem)
     {
         transform.Find("Model").gameObject.GetComponent<MeshRenderer>().material = (hasFoodItem) ? simObjectRender.Materials["hasFoodItem"] : simObjectRender.Materials["default"];
+    }
+    public override void Rotate()
+    {
+        direction = (DirEnum)(((int)direction + 1) % 8);
+        UtilsClass.CreateWorldTextPopup("" + direction, Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(gridSystem.grid.CellSize / 10 * 40), Color.green);
     }
     public override Vector3 GetRotationVector(DirEnum dir)
     {

@@ -9,13 +9,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b5b86cb100e54c47bfb63fe057fa279, type: 3}
-  m_Name: 25x25
+  m_Script: {fileID: 11500000, guid: 31bfc00a02e4ad84fa1a6921a2cab521, type: 3}
+  m_Name: Default SimObject
   m_EditorClassIdentifier: 
-  type: 2
+  type: 0
   class_name: 
-  prefab: {fileID: 0}
-  visual: {fileID: 0}
-  width: 25
-  height: 1
-  lenght: 25
+  id: 0
+  is_in_step: 0
+  to_keep_if_not_in_step: 0
+  layer: default
+  shares_position: 0
+  parameters:
+    m_keys: []

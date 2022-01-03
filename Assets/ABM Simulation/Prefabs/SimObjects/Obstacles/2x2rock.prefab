@@ -5755,7 +5755,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6364079668824038100}
-  - component: {fileID: 400503992064522121}
+  - component: {fileID: 4210029952689803123}
   m_Layer: 0
   m_Name: 2x2rock
   m_TagString: Untagged
@@ -5779,7 +5779,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &400503992064522121
+--- !u!114 &4210029952689803123
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5788,7 +5788,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 6364079668824038101}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a9c5ae9290d2c064e88abf7923926fb8, type: 3}
+  m_Script: {fileID: 11500000, guid: 051a3bc1905911340b695dae6a6fdafd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   simObjectRender: {fileID: 11400000, guid: 07a350718e294284db5caff20cbc4153, type: 2}

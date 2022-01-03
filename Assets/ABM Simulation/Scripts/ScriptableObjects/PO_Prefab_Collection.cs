@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using static SceneController;
 
-[CreateAssetMenu(fileName = "Collection", menuName = "Sim ObjectRenders/Prefab Collection")]
+[CreateAssetMenu(fileName = "Collections", menuName = "Collections/Prefab Collection")]
 public class PO_Prefab_Collection : ScriptableObject
 {
     [SerializeField] public List<NamedPrefab> PO_AgentPrefabs;

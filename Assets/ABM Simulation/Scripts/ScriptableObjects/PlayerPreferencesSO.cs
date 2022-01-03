@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "PlayerInfo", menuName = "ScriptableObjects/PlayerInfos")]
+[CreateAssetMenu(fileName = "PlayerSettings", menuName = "PlayerSettings/PlayerInfos")]
 public class PlayerPreferencesSO : ScriptableObject
 {
     public string nickname;

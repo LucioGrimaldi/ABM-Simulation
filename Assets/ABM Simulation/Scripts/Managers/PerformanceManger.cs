@@ -1,110 +1,82 @@
 using System;
+using System.Linq;
 using System.Threading;
-using UnityEngine;
 
 public class PerformanceManger
 {
-    private Thread performanceMonitorThread;
-
     /// Load Balancing
-    public int target_fps = 60;
-    public int[] targets_array = new int[] { 15, 30, 45, 60 };
-    public int[][] topics_array;
-    public long timeout_target_up = 3000;
-    public long timeout_target_down = 1000;
+    public static int SORTING_THRESHOLD = 15;
+    public static int MAX_SPS = 60;
+    public static int MIN_SPS = 15;
+    public int produced_sps = 60;
+    public int received_sps = 60;
+    public int consumed_sps = 60;
+    public int attempted_sps = 60;
+    public double consume_rate = 1d;
+    public int[] topics = new int[MAX_SPS];
+
+    /// Time related vars
+    public long timeout_target_up = 0;
+    public long timeout_target_down = 0;
     public long timestamp_last_update = 0;
 
-    /// Benchmarking
-    public long start_time;
-    public float fps;
-    public float deltaTime = 0f;
-
-    public int TARGET_FPS { get => target_fps; set => target_fps = value; }
-    public int[] Targets_array { get => targets_array; set => targets_array = value; }
-    public int[][] Topics_array { get => topics_array; set => topics_array = value; }
+    public int[] TOPICS { get => topics; set => topics = value; }
+    public int PRODUCED_SPS { get => produced_sps; set => produced_sps = value; }
+    public int RECEIVED_SPS { get => received_sps; set => received_sps = value; }
+    public int CONSUMED_SPS { get => consumed_sps; set => consumed_sps = value; }
+    public int ATTEMPTED_SPS { get => attempted_sps; set => attempted_sps = value; }
+    public double CONSUME_RATE { get => consume_rate; set => consume_rate = value; }
     public long TIMEOUT_TARGET_UP { get => timeout_target_up; set => timeout_target_up = value; }
     public long TIMEOUT_TARGET_DOWN { get => timeout_target_down; set => timeout_target_down = value; }
-    public long Timestamp_last_update { get => timestamp_last_update; set => timestamp_last_update = value; }
+    public long TIMESTAMP_LAST_UPDATE { get => timestamp_last_update; set => timestamp_last_update = value; }
 
-    public void PerformanceMonitor()
+    public void CalculatePerformance(CommunicationController CommController, ref Simulation.StateEnum state, ref int stepsConsumed, ref int stepsReceived)
     {
-        performanceMonitorThread = new Thread(this.CalculatePerformance);
-        performanceMonitorThread.Start();
-    }
-
-    public void CalculatePerformance()
-    {
-        int[] arrayTarget60 = new int[60];
-        int[] arrayTarget45 = new int[45];
-        int[] arrayTarget30 = new int[30];
-        int[] arrayTarget15 = new int[15];
-        topics_array = new int[][] { arrayTarget15, arrayTarget30, arrayTarget45, arrayTarget60 };
-        //Fill the array incrementally without repeating common values from others target arrays 
-        for (int i = 0, y = 0, z = 0, k = 0; i < TARGET_FPS; i++)
-        {
-            if ((i % 4) == 3)
-            {
-                arrayTarget60[i] = i;
-            }
-            if ((i % 4) == 1)
-            {
-                arrayTarget45[y] = i;
-                y++;
-            }
-
-            if ((i % 4) == 2)
-            {
-                arrayTarget30[z] = i;
-                z++;
-            }
-            if ((i % 4) == 0)
-            {
-                arrayTarget15[k] = i;
-                k++;
-            }
-        }
-
         System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         stopwatch.Start();
+
         while (true)
         {
-            if (TARGET_FPS < 60 && fps > targets_array[Array.IndexOf(targets_array, TARGET_FPS) + 1])
+            if (state == Simulation.StateEnum.PLAY)
             {
+                CalculateConsumeRate(ref stepsConsumed, ref stepsReceived);
                 stopwatch.Stop();
                 timestamp_last_update = stopwatch.ElapsedMilliseconds;
                 stopwatch.Start();
-                if (timestamp_last_update > TIMEOUT_TARGET_UP)
+                if (CONSUME_RATE >= 1d && timestamp_last_update > TIMEOUT_TARGET_UP)
                 {
-                    //controllare il target attuale
-                    int index = Array.IndexOf(targets_array, TARGET_FPS);
-                    TARGET_FPS = targets_array[++index];
-                    //prendiamo l'array corretto in base al target aggiornato
-                    //CommController.SubscribeTopics(topics_array[index]);
-                    stopwatch.Restart();
+                    if (CommController.SimMessageQueue.Count >= SORTING_THRESHOLD) continue;
+                    ATTEMPTED_SPS = (CommController.SimMessageQueue.Count == 0) ? Math.Min(TOPICS.Length + 2, MAX_SPS) : Math.Min(TOPICS.Length + 1, MAX_SPS);
+                    CalculateTargetTopics();
+                    CommController.SubscribeOnly(TOPICS);
+                }
+                else if (CONSUME_RATE < 1d && timestamp_last_update > TIMEOUT_TARGET_DOWN)
+                {
+                    ATTEMPTED_SPS = (CommController.SimMessageQueue.Count >= SORTING_THRESHOLD) ? Math.Max(TOPICS.Length - 4, MIN_SPS) : Math.Max(TOPICS.Length - 2, MIN_SPS);
+                    CalculateTargetTopics();
+                    CommController.SubscribeOnly(TOPICS);
                 }
             }
-            else if (TARGET_FPS > 15 && fps + 1 < TARGET_FPS)
-            {
-                stopwatch.Stop();
-                timestamp_last_update = stopwatch.ElapsedMilliseconds;
-                stopwatch.Start();
-                if (timestamp_last_update > TIMEOUT_TARGET_DOWN)
-                {
-                    //controllare il target attuale
-                    int index = Array.IndexOf(targets_array, TARGET_FPS);
-                    TARGET_FPS = targets_array[index - 1];
-                    //prendiamo l'array corretto in base al target aggiornato
-                    //CommController.UnsubscribeTopics(topics_array[index]);
-                    stopwatch.Restart();
-                }
-            }
-            Thread.Sleep(500);
         }
     }
-
-    public void CalculateFps()
+    public void CalculateConsumeRate(ref int stepsConsumed, ref int stepsReceived)
     {
-        deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
-        fps = 1.0f / deltaTime;//da prendere da display stats
+        stepsConsumed = 0;
+        stepsReceived = 0;
+        Thread.Sleep(500);
+        RECEIVED_SPS = stepsReceived * 2;
+        CONSUMED_SPS = stepsConsumed * 2;
+        CONSUME_RATE = RECEIVED_SPS > 0d ? (CONSUMED_SPS / (double)RECEIVED_SPS) : 0d;
+    }
+    public void CalculateTargetTopics()
+    {
+        TOPICS = new int[ATTEMPTED_SPS];
+
+        for (int t = 1; t <= ATTEMPTED_SPS; t++)
+        {
+            topics[t - 1] = t * MAX_SPS / (ATTEMPTED_SPS + 1);
+        }
+
+        if (!TOPICS.Contains(0)) TOPICS[0] = 0;
     }
 }

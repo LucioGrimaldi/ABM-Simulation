@@ -7130,7 +7130,25 @@ MonoBehaviour:
   PO_Prefab_Collection:
   - {fileID: 11400000, guid: 86a9e59149c38404b8e8427ced089295, type: 2}
   - {fileID: 11400000, guid: 662c59bb86fd1554f87e427123b6c531, type: 2}
-  Obstacle_SimObject_Collection: {fileID: 0}
+  Obstacles:
+    m_keys:
+    - Barrel
+    - Boat
+    - Church
+    - Fence
+    - House
+    - Pond
+    - Rock
+    - Wood
+    m_values:
+    - {fileID: 11400000, guid: 3abf46b0c2d7ae148805eb8aa419edec, type: 2}
+    - {fileID: 11400000, guid: 2abd1f8990cda7947914e00afc5f9214, type: 2}
+    - {fileID: 11400000, guid: 9f91559ff23d3bd42a5ee8b44d90d734, type: 2}
+    - {fileID: 11400000, guid: 77db77c0549d0ec4c95584d0a18e8c5e, type: 2}
+    - {fileID: 11400000, guid: 5d52ddec3250d8f439f095a66070700c, type: 2}
+    - {fileID: 11400000, guid: 072108427a4bd42418952252f1d85fad, type: 2}
+    - {fileID: 11400000, guid: fb87857dcd26c1541aec81bbcc188ec5, type: 2}
+    - {fileID: 11400000, guid: e4c36afa1be68c943aa72a37e1b34ca4, type: 2}
   SimSpace_prefabs_2D:
   - {fileID: 3938228412142364311, guid: 3b372b1e5441f0b4fbb457d2f13b041e, type: 3}
   - {fileID: 818190985185202977, guid: 543675be1be2e3e47a4e3b26e787bdbe, type: 3}
@@ -7154,6 +7172,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 348569882}
     m_Modifications:
+    - target: {fileID: 155302, guid: 0abab5bb77339e4428787a870eb31bd3, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 177638, guid: 0abab5bb77339e4428787a870eb31bd3, type: 3}
       propertyPath: m_Name
       value: '[Graphy]'
@@ -7435,6 +7457,7 @@ GameObject:
   - component: {fileID: 1573319562}
   - component: {fileID: 1573319564}
   - component: {fileID: 1573319563}
+  - component: {fileID: 1573319565}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -7562,6 +7585,19 @@ MonoBehaviour:
   scrollSpeed: 12
   mainCamera: {fileID: 1573319561}
   movementTime: 10
+--- !u!114 &1573319565
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1573319557}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 780d077c2e459ff44827a7ddb403e1ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text_color: {r: 0, g: 0.5114999, b: 1, a: 1}
 --- !u!1 &1580734390
 GameObject:
   m_ObjectHideFlags: 0

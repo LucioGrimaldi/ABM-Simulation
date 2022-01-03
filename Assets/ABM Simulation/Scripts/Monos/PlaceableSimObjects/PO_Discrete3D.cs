@@ -4,6 +4,11 @@ using UnityEngine;
 
 public class PO_Discrete3D : PO_Discrete
 {
+    public override object GetCells()
+    {
+        throw new System.NotImplementedException();
+    }
+
     public override Vector3Int GetRotationOffset()
     {
         throw new System.NotImplementedException();
@@ -13,4 +18,6 @@ public class PO_Discrete3D : PO_Discrete
     {
         throw new System.NotImplementedException();
     }
+
+
 }

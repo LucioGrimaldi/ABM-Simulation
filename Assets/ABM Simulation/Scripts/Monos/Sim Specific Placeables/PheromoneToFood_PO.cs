@@ -7,7 +7,7 @@ public class PheromoneToFood_PO : PO_Discrete2D
     {
         gridSystem = GameObject.Find("SimSpaceSystem").GetComponent<GridSystem>();
 
-        PheromoneToFood_PO po_clone = Instantiate((PheromoneToFood_PO)po, GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)simObject.Parameters["position"]), Quaternion.Euler(Vector3.zero));
+        PheromoneToFood_PO po_clone = Instantiate((PheromoneToFood_PO)po, GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)simObject.Parameters["position"]), po.gameObject.transform.rotation);
         po_clone.simObject = simObject.Clone();
         po_clone.SetScale(gridSystem.grid.CellSize);
         if (isGhost)
@@ -17,7 +17,7 @@ public class PheromoneToFood_PO : PO_Discrete2D
         else
         {
             SimSpaceSystem.SetLayerRecursive(po_clone.gameObject, 9);
-            po_clone.pos = po_clone.GetCells();
+            po_clone.pos = (MyList<Vector2Int>)po_clone.GetCells();
             gridSystem.placedObjectsDict.TryAdd((po_clone.simObject.Type, po_clone.simObject.Class_name, po_clone.simObject.Id), (isGhost, po_clone));
             foreach (Vector2Int cell in po_clone.pos) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(po_clone);
         }

@@ -1,6 +1,7 @@
 using GerardoUtils;
 using UnityEngine;
 using static SimObjectRender;
+using System;
 
 public class PO_Discrete2D : PO_Discrete
 {
@@ -26,7 +27,7 @@ public class PO_Discrete2D : PO_Discrete
 
             po_clone.simObject = simObject;
             SimSpaceSystem.SetLayerRecursive(po_clone.gameObject, 9);
-            po_clone.pos = po_clone.GetCells();
+            po_clone.pos = (MyList<Vector2Int>)po_clone.GetCells();
             gridSystem.placedObjectsDict.TryAdd((po_clone.simObject.Type, po_clone.simObject.Class_name, po_clone.simObject.Id),(isGhost, po_clone));
             foreach (Vector2Int cell in po_clone.pos) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(po_clone);
         }
@@ -55,6 +56,7 @@ public class PO_Discrete2D : PO_Discrete
     public DirEnum Direction { get => direction; set => direction = value; }
     public int Width { get => width; set => width = value; }
     public int Lenght { get => lenght; set => lenght = value; }
+    public MyList<Vector2Int> Pos { get => pos; set => pos = value; }
 
 
     // UNITY LOOP METHODS
@@ -84,19 +86,22 @@ public class PO_Discrete2D : PO_Discrete
             {
                 if (isMovable)
                 {
-                    Vector3 targetPosition = gridSystem.MouseClickToSpawnPosition(this);                                                                              // offset incluso
-                    transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 15f);
-                    transform.GetChild(1).rotation = Quaternion.Lerp(transform.GetChild(1).rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);                   // limiti di rotazione gestiti in Rotate()
+                    Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
+                    Vector3 targetPosition = gridSystem.MouseClickToSpawnPosition(this);                                                                                                                // offset escluso
+                    gridSystem.grid.GetXYZ(targetPosition, out int x, out _, out int z);
+                    simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, lenght);
+                    transform.position = Vector3.Lerp(transform.position, targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize, Time.deltaTime * 15f);        // offset incluso
+                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);                                                     // limiti di rotazione gestiti in Rotate()
                 }
             }
             else
             {
                 if (isMovable)
                 {
-                    Vector3 targetPosition = GridSystem.MasonToUnityPosition2D(GetCells());
+                    Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
                     direction = GetFacingDirection(transform.position, targetPosition);
                     transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 15f);
-                    transform.GetChild(1).rotation = Quaternion.Lerp(transform.GetChild(1).rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);
+                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);
                     MoveInSimSpace();
                 }
             }
@@ -120,40 +125,29 @@ public class PO_Discrete2D : PO_Discrete
     public void MoveInSimSpace()
     {
         foreach (Vector2Int cell in pos) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject(this);
-        foreach (Vector2Int cell in pos = GetCells()) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
+        foreach (Vector2Int cell in pos = (MyList<Vector2Int>)GetCells()) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
     }
-    public override void MakeGhost()
-    {
-        base.MakeGhost();
-        foreach (Vector2Int cell in pos) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject(this);
-        gridSystem.placedObjectsDict.TryRemove((simObject.Type, simObject.Class_name, simObject.Id), out _);
-    }
-    public override bool Place(Vector3 position)
+    public override bool PlaceGhost(Vector3 position)
     {
         gridSystem.grid.GetXYZ(position, out int x, out _, out int z);
         simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, lenght);
-        if (gridSystem.CanBuild2D(simObject))
-        {
-            base.Place(position);
-            foreach (Vector2Int cell in pos) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
-            gridSystem.placedObjectsDict.TryAdd((simObject.Type, simObject.Class_name, simObject.Id), (isGhost, this));
-            return true;
-        }
-        return false;
+        foreach (Vector2Int cell in pos) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
+        gridSystem.placedGhostsDict.TryAdd((simObject.Type, simObject.Class_name, simObject.Id), (isGhost, this));
+        base.PlaceGhost(position);
+        return true;
     }
     public override void Destroy()
     {
         base.Destroy();
-        if (!isMovable)
-        {
-            foreach (Vector2Int cell in pos) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject(this);
-            gridSystem.placedObjectsDict.TryRemove((simObject.Type, simObject.Class_name, simObject.Id), out _);
-        }
     }
     public override void Rotate()
     {
-        if (!isSquared) direction = (DirEnum)(((int)direction + 2) % 8);
-        else direction = (DirEnum)(((int)direction + 1) % 8);
+        direction = (DirEnum)(((int)direction + 2) % 8);
+        UtilsClass.CreateWorldTextPopup("" + direction, Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(gridSystem.grid.CellSize / 10 * 40), Color.green);
+    }
+    public override void Rotate(DirEnum dir)
+    {
+        direction = dir;
         UtilsClass.CreateWorldTextPopup("" + direction, Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(gridSystem.grid.CellSize / 10 * 40), Color.green);
     }
     public override void SetScale(float scale)
@@ -172,20 +166,16 @@ public class PO_Discrete2D : PO_Discrete
     }
     public override Vector3Int GetRotationOffset()
     {
-        if (!isSquared)
+        switch (direction)
         {
-            switch (direction)
-            {
-                default:
-                case PO_Discrete2D.DirEnum.SUD: return new Vector3Int(0, 0, 0);
-                case PO_Discrete2D.DirEnum.OVEST: return new Vector3Int(0, 0, width);
-                case PO_Discrete2D.DirEnum.NORD: return new Vector3Int(width, 0, lenght);
-                case PO_Discrete2D.DirEnum.EST: return new Vector3Int(lenght, 0, 0);
-            }
+            default:
+            case PO_Discrete2D.DirEnum.NORD: return new Vector3Int(0, 0, 0);
+            case PO_Discrete2D.DirEnum.EST: return new Vector3Int(0, 0, width);
+            case PO_Discrete2D.DirEnum.SUD: return new Vector3Int(width, 0, lenght);
+            case PO_Discrete2D.DirEnum.OVEST: return new Vector3Int(width, 0, 0);
         }
-        else return Vector3Int.zero;
     }
-    public MyList<Vector2Int> GetCells()
+    public override object GetCells()
     {
         return (MyList<Vector2Int>)simObject.Parameters["position"];
     }

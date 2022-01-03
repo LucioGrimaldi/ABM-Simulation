@@ -59,7 +59,7 @@ public class GridSystem : SimSpaceSystem
         }
         public MyList<PO_Discrete> GetPlacedObjectsByLayer(string layer)
         {
-            if (placedObjects.ContainsKey(layer)) return placedObjects[layer]; else return null;
+            if (placedObjects.ContainsKey(layer)) return placedObjects[layer]; else return new MyList<PO_Discrete>();
         }
         public bool CanBuild(SimObject so)
         {
@@ -76,7 +76,6 @@ public class GridSystem : SimSpaceSystem
     public Grid3D<GridObject> grid;
     public GameObject DEBUG_cell;
     private bool DEBUG = false;
-
 
     /// <summary>
     /// We use Awake to bootstrap App
@@ -126,41 +125,45 @@ public class GridSystem : SimSpaceSystem
     {
         return placedObjectsDict;
     }
+    public override ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> GetTemporaryGhosts()
+    {
+        return placedGhostsDict;
+    }
     public override PlaceableObject CreateGhost(SimObject simObject, PlaceableObject po, bool isMovable)
     {
-        return Create(simObject, po, true, true);
+        return Create(simObject, po, true, isMovable);
     }
     public override PlaceableObject CreateSimObject(SimObject simObject, PlaceableObject po, bool isMovable)
     {
-        return Create(simObject, po, false, true);
-    }
-    public override void ConfirmEdited()
-    {
-        GetPlacedObjects().Where((kvp) => kvp.Value.isGhost).All((g) => { g.Value.po.Confirm(); return true;});
+        return Create(simObject, po, false, isMovable);
     }
     public override void RotatePlacedObject(PlaceableObject toRotate)
     {
         toRotate.Rotate();
     }
+    public override void CopyRotation(PlaceableObject _old, PlaceableObject _new)
+    {
+        if (simSpaceDimensions.Equals(SimSpaceDimensionsEnum._2D)) ((PO_Discrete2D)_new).Direction = ((PO_Discrete2D)_old).Direction;
+    }
     public override void DeleteSimObject(PlaceableObject toDelete)
     {
-        if (toDelete != null) toDelete.Destroy();
+        if (toDelete != null)
+        {
+            if (!toDelete.IsGhost)
+            {
+                foreach (Vector2Int cell in (MyList<Vector2Int>)((PO_Discrete)toDelete).GetCells()) grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject((PO_Discrete)toDelete);
+                placedObjectsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
+            }
+            else placedGhostsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
+        }
     }
-    public override Vector3 MouseClickToSpawnPosition(PlaceableObject dso)
+    public override Vector3 MouseClickToSpawnPosition(PlaceableObject po)
     {
         Vector3 mousePosition = Mouse3DPosition.GetMouseWorldPosition();
         grid.GetXYZ(mousePosition, out int x, out int y, out int z);
 
-        if (dso != null)
-        {
-            Vector3Int rotationOffset = ((PO_Discrete)dso).GetRotationOffset();                                                                                            //prendo offset rotazione
-            Vector3 placedObjectWorldPosition = Grid3D<GridObject>.GetWorldPosition(x, y, z) + new Vector3(rotationOffset.x, 0, rotationOffset.z) * grid.CellSize;                       //applico offset
-            return placedObjectWorldPosition;
-        }
-        else
-        {
-            return mousePosition;
-        }
+        if (po != null) return Grid3D<GridObject>.GetWorldPosition(x, y, z);
+        else return mousePosition;
     }
     public static Vector3 MasonToUnityPosition2D(MyList<Vector2Int> sim_position)
     {
@@ -170,20 +173,30 @@ public class GridSystem : SimSpaceSystem
     {
         return Grid3D<GridObject>.GetWorldPosition(sim_position[0].x, sim_position[0].z, sim_position[0].y);
     }
+    public override bool CanBuild(PlaceableObject toPlace)
+    {
+        if (simSpaceDimensions.Equals(SimSpaceDimensionsEnum._2D)) return CanBuild2D(toPlace.SimObject);
+        //else if (simSpaceDimensions.Equals(SimSpaceDimensionsEnum._3D)) return CanBuild3D(toPlace.SimObject);
+        return false;
+    }
+    public override PlaceableObject GetGhostFromSO(SimObject so)
+    {
+        int x = ((MyList<Vector2Int>)so.Parameters["position"])[0].x;
+        int y = ((MyList<Vector2Int>)so.Parameters["position"])[0].y;
+        PO_Discrete[] ghosts = grid.GetGridObject(x, 0, y).GetPlacedObjectsByLayer(so.Layer).Where((po, index) => po.IsGhost).ToArray();
+
+        if (ghosts.Length > 0)
+        {
+            return ghosts[0];
+        }
+        else return null;
+    }
 
     // Other Methods
     public PlaceableObject Create(SimObject simObject, PlaceableObject po, bool isGhost, bool isMovable)
     {
-        if (simSpaceType.Equals(SimSpaceTypeEnum.DISCRETE))
-        {
-            if (simSpaceDimensions.Equals(SimSpaceDimensionsEnum._2D)) return !isGhost ? (CanBuild2D(simObject) ? PlaceableObject.Create(simObject, po, isGhost, isMovable) : null) : PlaceableObject.Create(simObject, po, isGhost, isMovable);
-            //if(simSpaceDimensions.Equals(SimSpaceDimensionsEnum._3D)) return CanBuild3D((PO_Discrete3D)po) ? PO_Discrete3D.Create(simObject, (PO_Discrete3D)po, isGhost, isMovable) : null;
-        }
-        else
-        {
-            //if (simSpaceDimensions.Equals(SimSpaceDimensionsEnum._2D)) return PO_Continuous2D.Create(simObject, (PO_Continuous2D)po, isGhost, isMovable);
-            if (simSpaceDimensions.Equals(SimSpaceDimensionsEnum._3D)) return PO_Continuous3D.Create(simObject, (PO_Continuous3D)po, isGhost, isMovable);
-        }
+        if (simSpaceDimensions.Equals(SimSpaceDimensionsEnum._2D)) return PlaceableObject.Create(simObject, po, isGhost, isMovable);
+        //else if(simSpaceDimensions.Equals(SimSpaceDimensionsEnum._3D)) return CanBuild3D((PO_Discrete3D)po) ? PO_Discrete3D.Create(simObject, (PO_Discrete3D)po, isGhost, isMovable) : null;
         return null;
     }
     public bool CanBuild2D(SimObject so)
@@ -243,5 +256,4 @@ public class GridSystem : SimSpaceSystem
         }
         return positions;
     }
-
 }

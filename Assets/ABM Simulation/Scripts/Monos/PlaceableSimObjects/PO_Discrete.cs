@@ -5,5 +5,6 @@ using UnityEngine;
 public abstract class PO_Discrete : PlaceableObject
 {
     public abstract Vector3Int GetRotationOffset();
+    public abstract object GetCells();
     
 }

@@ -1,6 +1,7 @@
 ﻿#define TRACE
 
 using System;
+using System.Collections.Generic;
 using Fixed;
 using UnityEngine;
 using uPLibrary.Networking.M2Mqtt;
@@ -17,9 +18,7 @@ public class MQTTSimClient
     [Tooltip("Use encrypted connection")]
     private bool isEncrypted = false;
     [Tooltip("Topic where Unity receive messages")]
-    private int[] topicArray;
-    //represent all topics available for simulation as strings
-    private string[] stringTopicArray;
+    private List<string> stepTopics = new List<string>();
     [Header("Connection parameters")]
     [Tooltip("Connection to the broker is delayed by the the given milliseconds")]
     public int connectionDelay = 500;
@@ -36,6 +35,9 @@ public class MQTTSimClient
 
     /// MQTT Queues
     private ConcurrentQueue<MqttMsgPublishEventArgs> simMessageQueue = new ConcurrentQueue<MqttMsgPublishEventArgs>();
+
+    /// Others
+    public int stepsReceived = 0;
 
     /// Action Events ///
 
@@ -108,21 +110,36 @@ public class MQTTSimClient
     }
 
     /// <summary>
+    /// Subscribes to this Topics an unsubscribes from any other one.
+    /// </summary>
+    public virtual void SubscribeOnly(int[] topics)
+    {
+        byte[] QosArray = new byte[topics.Length];
+
+        UnsubscribeAll();
+
+        for (int i = 0; i < topics.Length; i++)
+        {
+            stepTopics.Add("Topic" + topics[i]);
+            QosArray[i] = MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE;
+        }
+        client.Subscribe(stepTopics.ToArray(), QosArray);
+        //OnSubscribeOnly(stepTopics);
+    }
+
+    /// <summary>
     /// Subscribe to all MQTT topics.
     /// </summary>
-    protected virtual void SubscribeAll()
+    public virtual void SubscribeAll()
     {
-        topicArray = new int[60];
-        stringTopicArray = new string[60];
         byte[] QosArray = new byte[60];
         for (int i = 0; i < 60; i++)
         {
-            topicArray[i] = i;
-            stringTopicArray[i] = "Topic" + i;
+            stepTopics.Add("Topic" + i);
             QosArray[i] = MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE;
         }
-        client.Subscribe(stringTopicArray, QosArray);
-        OnSubscribe(stringTopicArray);
+        client.Subscribe(stepTopics.ToArray(), QosArray);
+        OnSubscribe(stepTopics);
     }
    
     /// <summary>
@@ -130,14 +147,18 @@ public class MQTTSimClient
     /// </summary>
     public virtual void SubscribeTopics(int[] topics)
     {
-        string[] topicsToSubscribe = new string[topics.Length];
-        byte[] QosArray = new byte[topics.Length];
+        List<string> topicsToSubscribe = new List<string>();
+        List<byte> QosArray = new List<byte>();
         for (int i = 0; i < topics.Length; i++)
         {
-            topicsToSubscribe[i] = "Topic" + topics[i];
-            QosArray[i] = MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE;
+            if(!stepTopics.Contains("Topic" + topics[i]))
+            {
+                stepTopics.Add("Topic" + topics[i]);
+                topicsToSubscribe.Add("Topic" + topics[i]);
+                QosArray.Add(MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE);
+            }
         }
-        client.Subscribe(topicsToSubscribe, QosArray);
+        client.Subscribe(topicsToSubscribe.ToArray(), QosArray.ToArray());
         OnSubscribe(topicsToSubscribe);
     }
 
@@ -146,7 +167,8 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void UnsubscribeAll()
     {
-        client.Unsubscribe(stringTopicArray);
+        client.Unsubscribe(stepTopics.ToArray());
+        stepTopics.Clear();
     }
 
     /// <summary>
@@ -154,12 +176,16 @@ public class MQTTSimClient
     /// </summary>
     public virtual void UnsubscribeTopics(int[] topics)
     {
-        string[] topicsToUnsubscribe = new string[topics.Length];
+        List<string> topicsToUnsubscribe = new List<string>();
         for (int i = 0; i < topics.Length; i++)
         {
-            topicsToUnsubscribe[i] = "Topic" + topics[i];
+            if (stepTopics.Contains("Topic" + topics[i]))
+            {
+                stepTopics.Remove("Topic" + topics[i]);
+                topicsToUnsubscribe.Add("Topic" + topics[i]);
+            }
         }
-        client.Unsubscribe(topicsToUnsubscribe);
+        client.Unsubscribe(topicsToUnsubscribe.ToArray());
     }
 
     /// <summary>
@@ -176,8 +202,9 @@ public class MQTTSimClient
     /// </summary>
     private void OnMqttMessageReceived(object sender, MqttMsgPublishEventArgs msg)
     {
-        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step " + Utils.GetStepId(msg.Message) + " arrived | " + "Topic: " + msg.Topic + " | Size: " + msg.Message.Length);
+        //Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step " + Utils.GetStepId(msg.Message) + " arrived | " + "Topic: " + msg.Topic + " | Size: " + msg.Message.Length);
         EnqueueSimMessage(msg);
+        ++stepsReceived;
     }
 
     /// <summary>
@@ -191,9 +218,17 @@ public class MQTTSimClient
     /// <summary>
     /// Log OnSubscribe.
     /// </summary>
-    protected virtual void OnSubscribe(string[] topics)
+    protected virtual void OnSubscribe(List<string> topics)
     {
-        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Subscribed to topic: " + String.Join(",", topics));
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Subscribed to topics: " + String.Join(",", topics));
+    }
+
+    /// <summary>
+    /// Log OnSubscribeOnly.
+    /// </summary>
+    protected virtual void OnSubscribeOnly(List<string> topics)
+    {
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Now you are ONLY Subscribed to topics: " + String.Join(",", topics));
     }
 
     /// <summary>

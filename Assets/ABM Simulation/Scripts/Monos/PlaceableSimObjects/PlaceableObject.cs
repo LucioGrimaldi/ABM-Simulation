@@ -24,30 +24,32 @@ public class PlaceableObject : MonoBehaviour
     public bool IsGhost { get => isGhost; set => isGhost = value; }
     public bool IsMovable { get => isMovable; set => isMovable = value; }
 
-    public virtual void MakeGhost()
+    public virtual void MakeGhost(bool isMovable)
     {
-        SetMaterialRecursive(transform.GetChild(1).gameObject, SimObjectRender.ghostMaterial);
+        SetMaterialRecursive(transform.Find("Model").gameObject, SimObjectRender.ghostMaterial);
         SimSpaceSystem.SetLayerRecursive(this.gameObject, 10);
-        isGhost = true; isMovable = true;
+        isGhost = true; this.isMovable = isMovable;
     }
-    public virtual bool Place(Vector3 position)
+    public virtual bool PlaceGhost(Vector3 position)
     {
-        gameObject.transform.position = position;
         isMovable = false;
         return true;
     }
+    public virtual void Rotate() { }
+    public virtual void Rotate(Vector3 dir) { }
+    public virtual void Rotate(PO_Discrete2D.DirEnum dir) { }
     public virtual void Confirm()
     {
-        isGhost = false; isMovable = false;
-        // SetMaterialRecursive(transform.GetChild(1).gameObject, simObjectRender.Materials["default"]);                    NOT WORKING PROPERLY 'CAUSE OF FUNKY MESHES
-        gameObject.transform.GetChild(1).transform.parent = null;
-        Instantiate(simObjectRender.Meshes["default"], transform.position, transform.rotation, this.transform);
-        SimSpaceSystem.SetLayerRecursive(this.gameObject, 9);
+        if (SimObjectRender.RenderType.Equals(SimObjectRender.RenderTypeEnum.MESH))
+        {
+            // TODO
+            //transform.Find("Model").GetComponent<MeshFilter>().mesh = SimObjectRender.Meshes["default"].GetComponent<Mesh>();
+            SetMaterialRecursive(transform.Find("Model").gameObject, SimObjectRender.Materials["default"]);
+        }
     }
-    public virtual void Rotate() { }
     public virtual void Destroy()
     {
-        GameObject.Destroy(this.gameObject);
+        Destroy(gameObject);
     }
     public virtual void SetScale(float scale)
     {

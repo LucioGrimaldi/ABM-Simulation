@@ -9,7 +9,7 @@ using static GridSystem;
 
 public class SceneController : MonoBehaviour
 {
-    [System.Serializable]
+    [Serializable]
     public class NamedPrefab
     {
         public string name;
@@ -19,12 +19,15 @@ public class SceneController : MonoBehaviour
     // Set in Inspector
     [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
     [SerializeField] public List<PO_Prefab_Collection> PO_Prefab_Collection;
-    [SerializeField] public Obstacle_SO_Collection Obstacle_SimObject_Collection;
 
     // Events
+    public static event EventHandler<EventArgs> OnLoadSimulationSceneEventHandler;
     public static event EventHandler<SimObjectCreateEventArgs> OnSimObjectCreateEventHandler;    
     public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectModifyEventHandler;    
     public static event EventHandler<SimObjectDeleteEventArgs> OnSimObjectDeleteEventHandler;
+
+    // UI Action Queue
+    public static readonly ConcurrentQueue<Action> SceneControllerThreadQueue = new ConcurrentQueue<Action>();
 
     private static bool showSimSpace, showEnvironment;
     private GameObject simulationSpace, visualEnvironment;
@@ -58,11 +61,17 @@ public class SceneController : MonoBehaviour
     /// </summary>
     private void Awake()
     {
-        // ignore collisions
+        // Ignore collisions for performance
         Physics.IgnoreLayerCollision(9, 9, true);
-        // bind GridSystem and Controllers
+
+        // Bind Controllers
         SimulationController = GameObject.Find("SimulationController").GetComponent<SimulationController>();
         UIController = GameObject.Find("UIController").GetComponent<UIController>();
+
+        // Trigger SimController to pass references
+        OnLoadSimulationSceneEventHandler?.Invoke(this, new EventArgs());
+
+        // Init Scene
         simId = SimulationController.GetSimId();
         simDimensions = SimulationController.GetSimDimensions();
         simType = SimulationController.GetSimType();
@@ -76,7 +85,7 @@ public class SceneController : MonoBehaviour
     private void OnEnable()
     {
         // Register to EventHandlers
-
+        Simulation.OnSimObjectNotInStepEventHandler += onSimObjectNotInStep;
     }
     /// <summary>
     /// Start routine (Unity Process)
@@ -90,10 +99,18 @@ public class SceneController : MonoBehaviour
     /// </summary>
     private void Update()
     {
-        //if (SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE)) LockUp();
+        if (!SceneControllerThreadQueue.IsEmpty)
+        {
+            while (SceneControllerThreadQueue.TryDequeue(out var action))
+            {
+                action?.Invoke();
+            }
+        }
+
+        //LockUp();
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.PLAY)) StepUp();
-        if (SimulationController.GetSimState().Equals(Simulation.StateEnum.STEP)) {StepUp(); if(SimulationController.steps_to_consume==0) SimulationController.GetSimulation().state = Simulation.StateEnum.PAUSE; }
-        ShowHideSimEnvironment();       // pu� essere sostituito con event
+        if (SimulationController.GetSimState().Equals(Simulation.StateEnum.STEP)) { StepUp(); if(SimulationController.Steps_to_consume==0) SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE); }
+        ShowHideSimEnvironment();      // può essere sostituito con event
         CheckForUserInput();
     }
     /// <summary>
@@ -101,7 +118,7 @@ public class SceneController : MonoBehaviour
     /// </summary>
     private void OnApplicationQuit()
     {
-
+        while (SceneControllerThreadQueue.TryDequeue(out _)) ;
     }
     /// <summary>
     /// onDisable routine (Unity Process)
@@ -109,6 +126,7 @@ public class SceneController : MonoBehaviour
     private void OnDisable()
     {
         // Unregister to EventHandlers
+        Simulation.OnSimObjectNotInStepEventHandler -= onSimObjectNotInStep;
 
     }
 
@@ -225,9 +243,10 @@ public class SceneController : MonoBehaviour
             visualEnvironment.gameObject.SetActive(true);
         else
             visualEnvironment.gameObject.SetActive(false);
-    }                             // FARE CON EVENTI
+    }      // FARE CON EVENTI
     public void CheckForUserInput()
     {
+        // Select/Spawn
         if (Input.GetMouseButtonDown(0))
         {
             RaycastHit hitPoint;
@@ -237,12 +256,16 @@ public class SceneController : MonoBehaviour
                 if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) { }
                 else if (selectedGhost != null)
                 {
-                    if (selectedGhost.Place(SimSpaceSystem.MouseClickToSpawnPosition(selectedGhost)))
+                    if (SimSpaceSystem.CanBuild(selectedGhost))
                     {
+                        //if (selectedPlaced != null) selectedPlaced.DeHighlight();
                         selectedPlaced = selectedGhost;
-                        selectedPlaced.SimObject.Id = GetTemporaryId(selectedPlaced.SimObject.Type, selectedPlaced.SimObject.Class_name);
-                        CreateSimObject(selectedPlaced);
-                        selectedGhost = PlaceGhost(selectedGhost.SimObject, selectedGhost, true);
+                        selectedPlaced.PlaceGhost(SimSpaceSystem.MouseClickToSpawnPosition(selectedPlaced));
+                        CreateSimObject(selectedPlaced);             
+                        //selectedPlaced.Highlight();
+                        ShowInspector(selectedPlaced);
+                        selectedGhost = CreateGhost(selectedGhost.SimObject, selectedGhost, true);
+                        selectedGhost.SimObject.Id = GetTemporaryId(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name);
                     }
                 }
                 else if (SelectSimObject(hitPoint)) Debug.Log("SELECTED:" + selectedPlaced.SimObject.Type + " " + selectedPlaced.SimObject.Class_name + " " + selectedPlaced.SimObject.Id + (selectedPlaced.IsGhost ? " -unconfirmed-" : ""));
@@ -308,17 +331,17 @@ public class SceneController : MonoBehaviour
         // Rotate
         if (Input.GetKeyDown(KeyCode.R)) { if (selectedPlaced != null || selectedGhost != null) SimSpaceSystem.RotatePlacedObject((selectedGhost != null) ? selectedGhost : selectedPlaced); }
         // Deselect
-        if (Input.GetKeyDown(KeyCode.Escape)) { if (selectedGhost != null) RemoveGhost(); else if(selectedPlaced != null) { DeselectSimObject(); } }
+        if (Input.GetKeyDown(KeyCode.Escape)) { if (selectedGhost != null) DeleteGhost(); if(selectedPlaced != null) { DeselectSimObject(); } }
 
 
-    }                                  // DA SISTEMARE (raycast)
+    }
     public bool SelectSimObject(RaycastHit hitPoint)
     {
         if(hitPoint.transform.gameObject.layer.Equals(9) || hitPoint.transform.gameObject.layer.Equals(10))
         {
             DeselectSimObject();
             selectedPlaced = GetPOFromTransformRecursive(hitPoint.transform);
-            selectedPlaced.Highlight();
+            //selectedPlaced.Highlight();
             ShowInspector(selectedPlaced);
             return true;
         }        
@@ -327,44 +350,61 @@ public class SceneController : MonoBehaviour
     public void DeselectSimObject()
     {
         HideInspector();
+        UIController.EmptyInspectorParams();
+        UIController.tempSimObjectParams.Clear();
         if(selectedPlaced != null)
         {
-            selectedPlaced.DeHighlight();
+            //selectedPlaced.DeHighlight();
             selectedPlaced = null;
         }
     }
     public void RefreshSelectedGhost(SimObject so, PlaceableObject po)
     {
-        RemoveGhost();
-        selectedGhost = PlaceGhost(so, po, true);
+        DeleteGhost();
+        selectedGhost = CreateGhost(so, po, true);
         ShowInspector(selectedGhost);
     }
 
     // PlacedObjects
-    public PlaceableObject PlaceGhost(SimObject simObject, PlaceableObject ghost, bool isMovable)
+    public PlaceableObject CreateGhost(SimObject simObject, PlaceableObject ghost, bool isMovable)
     {
         return SimSpaceSystem.CreateGhost(simObject, ghost, isMovable);
     }
-    public PlaceableObject PlacePlaceableObject(SimObject simObject, PlaceableObject toPlace, bool isMovable)
+    public void DeleteGhost()
+    {
+        if(selectedGhost != null)
+        {
+            SimSpaceSystem.DeleteSimObject(selectedGhost);
+            selectedGhost.Destroy();
+            selectedGhost = null;
+        }
+    }
+    public void DeleteTempGhost(SimObject.SimObjectType type, String class_name, int id)
+    {
+        if(SimSpaceSystem.GetTemporaryGhosts().TryGetValue((type, class_name, id), out (bool, PlaceableObject) x)) x.Item2.Destroy();
+    }
+    public void ConfirmTempGhosts()
+    {
+        SimSpaceSystem.GetTemporaryGhosts().ToList().ForEach((element) => { if (element.Value.isGhost) { SimSpaceSystem.GetPlacedObjects().TryRemove((element.Key.type, element.Key.class_name, element.Key.id), out (bool isGhost, PlaceableObject po) x); x.po.Confirm(); }});
+    }
+    public void DeleteTempGhosts()
+    {
+        SimSpaceSystem.GetTemporaryGhosts().ToList().ForEach((element) => { SimSpaceSystem.GetTemporaryGhosts().TryRemove((element.Key.type, element.Key.class_name, element.Key.id), out (bool isGhost, PlaceableObject po) x); x.po.Destroy();});
+    }
+    public PlaceableObject CreatePlaceableObject(SimObject simObject, PlaceableObject toPlace, bool isMovable)
     {
         return SimSpaceSystem.CreateSimObject(simObject, toPlace, isMovable);
-    }
-    public void ConfirmEdited()
-    {
-        SimSpaceSystem.ConfirmEdited();
-    }
-    public void DeletePlacedObject(PlaceableObject toDelete)
-    {
-        SimSpaceSystem.DeleteSimObject(toDelete);
-    }
-    public void RemoveGhost()
-    {
-        SimSpaceSystem.DeleteSimObject(selectedGhost);
-        selectedGhost = null;
     }
     public void RotatePlacedObject(PlaceableObject toRotate)
     {
         SimSpaceSystem.RotatePlacedObject(toRotate);
+    }
+    public void DeletePlacedObject(PlaceableObject toDelete)
+    {
+        if(toDelete != null)
+        {
+            toDelete.MakeGhost(false);
+        }
     }
 
     // SimObjects
@@ -383,7 +423,7 @@ public class SceneController : MonoBehaviour
     }
     public void ModifySimObject()
     {
-
+        // TODO
     }
     public void DeleteSimObject()
     {
@@ -394,27 +434,73 @@ public class SceneController : MonoBehaviour
         OnSimObjectDeleteEventHandler?.BeginInvoke(this, e, null, null);
     }
 
+    // Event Handles
+    public void onSimObjectNotInStep(object sender, SimObjectDeleteEventArgs e)
+    {
+        if (SimSpaceSystem.GetPlacedObjects().TryGetValue((e.type, e.class_name, e.id), out (bool, PlaceableObject) x))
+        {
+            SimSpaceSystem.DeleteSimObject(x.Item2);
+            SceneControllerThreadQueue.Enqueue(() => { x.Item2.Destroy(); });
+        }
+    }
+
     // Step
     public void StepUp()
     {
-        UpdatePlacedObjects(SimSpaceSystem.GetPlacedObjects().Where((kvp) => !kvp.Value.isGhost).ToDictionary(entry => entry.Key, entry => entry.Value), true);
+        UpdatePlacedObjects(SimSpaceSystem.GetPlacedObjects(), true);
         UpdatePheromones(SimulationController.GetSimulation().Generics.Values.Where((g) => { if (g.Class_name.Contains("Pheromone")) return true; else return false; }).ToArray());
     }
     public void LockUp()
     {
-        UpdatePlacedObjects(SimSpaceSystem.GetPlacedObjects().Where((kvp) => !kvp.Value.isGhost).ToDictionary(entry => entry.Key, entry => entry.Value), false);
+        UpdatePlacedObjects(SimSpaceSystem.GetPlacedObjects(), false);
     }
-    public void UpdatePlacedObjects(Dictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> placedObjects, bool movable)
+    public void UpdatePlacedObjects(ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> placedObjects, bool movable)
     {
         SimObject[] a = SimulationController.GetSimulation().Agents.Values.ToArray();
         SimObject[] g = SimulationController.GetSimulation().Generics.Values.ToArray();
-        foreach (SimObject so in a.Union(g))
+        SimObject[] o = SimulationController.GetSimulation().Obstacles.Values.ToArray();
+
+        foreach (SimObject so in a)
         {
-            if (placedObjects.Count > 0)
+            if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable;
+            else
             {
-                if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable;
+                PlaceableObject _old = GetGhostToReplace(so);
+                PlaceableObject _new = GetPlaceableObjectPrefab(so.Type, so.Class_name);
+                if (_old != null)
+                {
+                    DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
+                    SimSpaceSystem.CopyRotation(_old, _new);
+                }
+                CreatePlaceableObject(so, _new, movable);
             }
-            else PlacePlaceableObject(so, GetPlaceableObjectPrefab(so.Type, so.Class_name), movable);
+        }
+        foreach (SimObject so in g)
+        {
+            if (!placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
+            {
+                PlaceableObject _old = GetGhostToReplace(so);
+                PlaceableObject _new = GetPlaceableObjectPrefab(so.Type, so.Class_name);
+                if (_old != null)
+                {
+                    DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
+                    SimSpaceSystem.CopyRotation(_old, _new);
+                }
+                CreatePlaceableObject(so, _new, movable);
+            }
+        }
+        foreach (SimObject so in o) {
+            if (!placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
+            {
+                PlaceableObject _old = GetGhostToReplace(so);
+                PlaceableObject _new = GetPlaceableObjectPrefab(so.Type, so.Class_name);
+                if (_old != null)
+                {
+                    DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
+                    SimSpaceSystem.CopyRotation(_old, _new);
+                }
+                CreatePlaceableObject(so, _new, movable);
+            }
         }
     }
     public void UpdatePheromones(ICollection<SimObject> pheromones)
@@ -427,7 +513,9 @@ public class SceneController : MonoBehaviour
         foreach (SimObject so in pheromones)
         {
             so.Parameters.TryGetValue("position", out object coords);
+            while(coords == null) so.Parameters.TryGetValue("position", out coords);
             so.Parameters.TryGetValue("intensity", out object intensity);
+            while(intensity == null) so.Parameters.TryGetValue("intensity", out intensity);
             if (isDiscrete)
             {
                 if (simDimensions.Count == 2)
@@ -463,21 +551,25 @@ public class SceneController : MonoBehaviour
     }
 
     // Inspector
+    public void ShowInspector(PlaceableObject po)
+    {
+        PopulateInspector(po);
+        if (!UIController.showInspectorPanel) UIController.ShowHidePanelInspector();
+    }
+    public void HideInspector()
+    {
+        if (UIController.showInspectorPanel) UIController.ShowHidePanelInspector();
+    }
     public void PopulateInspector(PlaceableObject po)
     {
         UIController.PopulateInspector(po);
     }
-    public void ShowInspector(PlaceableObject po)
-    {
-        PopulateInspector(po);
-        if (UIController.showInspectorPanel != true) UIController.ShowHidePanelInspector();
-    }
-    public void HideInspector()
-    {
-        if (UIController.showInspectorPanel != false) UIController.ShowHidePanelInspector();
-    }
 
     // Utils
+    public PlaceableObject GetGhostToReplace(SimObject so)
+    {
+        return SimSpaceSystem.GetGhostFromSO(so);
+    }
     public PlaceableObject GetPlaceableObjectPrefab(SimObject.SimObjectType type, int id)
     {
         switch (type)
@@ -513,12 +605,19 @@ public class SceneController : MonoBehaviour
         {
             case SimObject.SimObjectType.AGENT:
                 class_name = PO_Prefab_Collection[simId].PO_AgentPrefabs[id].name;
-                return SimulationController.GetSimulation().Agent_prototypes[class_name];
+                SimObject a = SimulationController.GetSimulation().Agent_prototypes[class_name];
+                a.Id = GetTemporaryId(a.Type, a.Class_name);
+                return a;
             case SimObject.SimObjectType.GENERIC:
                 class_name = PO_Prefab_Collection[simId].PO_GenericPrefabs[id].name;
-                return SimulationController.GetSimulation().Generic_prototypes[class_name];
+                SimObject g = SimulationController.GetSimulation().Generic_prototypes[class_name];
+                g.Id = GetTemporaryId(g.Type, g.Class_name);
+                return g;
             case SimObject.SimObjectType.OBSTACLE:
-                return null;
+                class_name = PO_Prefab_Collection[simId].PO_ObstaclePrefabs[id].name;
+                SimObject o = SimulationController.GetSimulation().Obstacle_prototypes[class_name];
+                o.Id = GetTemporaryId(o.Type, o.Class_name);
+                return o;
             default:
                 return null;
         }
@@ -531,6 +630,8 @@ public class SceneController : MonoBehaviour
                 return (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[simId])["agent_prototypes"]).Linq.Where((node) => node.Value["class"].Equals(class_name)).ToArray()[0])["params"];
             case SimObject.SimObjectType.GENERIC:
                 return (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[simId])["generic_prototypes"]).Linq.Where((node) => node.Value["class"].Equals(class_name)).ToArray()[0])["params"];
+            case SimObject.SimObjectType.OBSTACLE:
+                return (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[simId])["obstacle_prototypes"]).Linq.Where((node) => node.Value["class"].Equals(class_name)).ToArray()[0])["params"];
             default:
                 return null;
         }
@@ -546,13 +647,10 @@ public class SceneController : MonoBehaviour
     public int GetTemporaryId(SimObject.SimObjectType type, string class_name)
     {
         int min_id = -1;
-        foreach (KeyValuePair<(string op, (SimObject.SimObjectType type, string class_name, int id) obj), SimObject> update in SimulationController.uncommitted_updates)
+        SimSpaceSystem.GetTemporaryGhosts().ToList().ForEach((element) =>
         {
-            if (update.Key.op.Equals("CRT") && update.Key.obj.type.Equals(type) && update.Key.obj.class_name.Equals(class_name))
-            {
-                if (min_id > update.Key.obj.id) min_id = update.Key.obj.id;
-            }
-        }
+            if (element.Key.id < 0 && element.Key.type.Equals(type) && element.Key.class_name.Equals(class_name)) min_id = Math.Min(min_id, element.Key.id);
+        });
         return --min_id;
     }
 }

@@ -6,7 +6,6 @@ using System;
 using static SceneController;
 using System.Collections.Generic;
 using SimpleJSON;
-using System.Linq;
 
 public class SpeedChangeEventArgs : EventArgs
 {
@@ -23,7 +22,9 @@ public class UIController : MonoBehaviour
     public static event EventHandler<EventArgs> OnPauseEventHandler;
     public static event EventHandler<EventArgs> OnStopEventHandler;
     public static event EventHandler<SpeedChangeEventArgs> OnSpeedChangeEventHandler;
-    public static event EventHandler<SimParamsUpdateEventArgs> OnSimParamsUpdateEventHandler; 
+    public static event EventHandler<SimParamsUpdateEventArgs> OnSimParamsUpdateEventHandler;
+    public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectParamsUpdateEventHandler;
+    public static event EventHandler<EventArgs> OnEditExitEventHandler;
 
     // Controllers
     private SceneController SceneController;
@@ -191,8 +192,15 @@ public class UIController : MonoBehaviour
     }
     public void PopulateInspector(PlaceableObject po)
     {
+        EmptyInspectorParams();
+        tempSimObjectParams.Clear();
         LoadInspectorInfo(po.SimObject.Type, po.SimObject.Class_name, po.SimObject.Id);
-        LoadInspectorParams(InspectorContent, SceneController.GetSimObjectParamsPrototype(po.SimObject.Type, po.SimObject.Class_name));
+        LoadInspectorParams(SceneController.GetSimObjectParamsPrototype(po.SimObject.Type, po.SimObject.Class_name));
+    }
+    public void EmptyInspectorParams()
+    {
+        foreach (Transform child in InspectorContent.transform) GameObject.Destroy(child.gameObject);
+        InspectorContent.transform.DetachChildren();
     }
     public void LoadInspectorInfo(SimObject.SimObjectType type, string class_name, int id)
     {
@@ -200,7 +208,7 @@ public class UIController : MonoBehaviour
         inspectorClass.text = class_name;
         inspectorId.text = id.ToString();
     }
-    public void LoadInspectorParams(GameObject scrollContent, JSONArray parameters)
+    public void LoadInspectorParams(JSONArray parameters)
     {
         foreach (JSONObject p in parameters)
         {
@@ -241,7 +249,7 @@ public class UIController : MonoBehaviour
                     default:
                         continue;
                 }
-                param.transform.SetParent(scrollContent.transform);
+                param.transform.SetParent(InspectorContent.transform);
                 if (!((string)p["type"]).Equals("System.Boolean"))
                 {
                     param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
@@ -251,9 +259,9 @@ public class UIController : MonoBehaviour
                 }
             }
         }
-        if (scrollContent.transform.childCount == 0)
+        if (InspectorContent.transform.childCount == 0)
         {
-            //if no params
+            // TODO Mostrare la scritta "Nessun parametro da mostrare"
         }
     }
     public void LoadSimParams(GameObject scrollContent, JSONArray parameters)
@@ -268,7 +276,7 @@ public class UIController : MonoBehaviour
                     case "System.Single":
                         param = Instantiate(SimParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
-                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], float.Parse(value)));
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], float.Parse(value.Replace('.', ','))));
                         break;
                     case "System.Int32":
                         param = Instantiate(SimParamPrefab);
@@ -309,24 +317,29 @@ public class UIController : MonoBehaviour
         }
         if (scrollContent.transform.childCount == 0)
         {
-            //if not params
+            // TODO Mostrare la scritta "Nessun parametro da mostrare"
         }
     }
     
     public void OnSimParamUpdate(string param_name, dynamic value)
     {
-        tempSimParams.Add(param_name, value);
+        if (!tempSimParams.ContainsKey(param_name)) tempSimParams.Add(param_name, value);
+        else tempSimParams[param_name] = value;
     }
-    public void OnSimObjectParamUpdate(string param_name, dynamic value)
-    {
-        tempSimObjectParams.Add(param_name, value);
-    }
-
     public void OnSimParamsApply()
     {
         SimParamsUpdateEventArgs e = new SimParamsUpdateEventArgs();
         e.parameters = tempSimParams;
         OnSimParamsUpdateEventHandler?.BeginInvoke(this, e, null, null); 
+    }
+    public void OnSimParamsDiscard()
+    {
+        tempSimParams.Clear();
+    }
+    public void OnSimObjectParamUpdate(string param_name, dynamic value)
+    {
+        if (!tempSimObjectParams.ContainsKey(param_name)) tempSimObjectParams.Add(param_name, value);
+        else tempSimObjectParams[param_name] = value;
     }
     public void OnSimObjectParamsApply()
     {
@@ -335,23 +348,27 @@ public class UIController : MonoBehaviour
         e.class_name = SceneController.selectedPlaced.SimObject.Class_name;
         e.id = SceneController.selectedPlaced.SimObject.Id;
         e.parameters = tempSimObjectParams;
-    }
-    public void OnSimParamsDiscard()
-    {
-        tempSimParams.Clear();
+        OnSimObjectParamsUpdateEventHandler?.BeginInvoke(this, e, null, null);
     }
     public void OnSimObjectParamsDiscard()
     {
         tempSimObjectParams.Clear();
     }
+    
+    //public void ConfirmEdit()
+    //{
+    //    EventArgs e = new EventArgs();
+    //    OnEditExitEventHandler?.BeginInvoke(this, e, null, null);
+    //}
 
     public void ShowHideEditPanel()
     {
-            panelSimButtons.gameObject.SetActive(showEditPanel);
-            panelEditMode.gameObject.SetActive(!showEditPanel);
-            imgEditMode.gameObject.SetActive(!showEditPanel);
-            imgContour.gameObject.SetActive(!showEditPanel);
-            showEditPanel = !showEditPanel;
+        panelSimButtons.gameObject.SetActive(showEditPanel);
+        panelEditMode.gameObject.SetActive(!showEditPanel);
+        imgEditMode.gameObject.SetActive(!showEditPanel);
+        imgContour.gameObject.SetActive(!showEditPanel);
+        showEditPanel = !showEditPanel;
+        //if (showEditPanel == false) ConfirmEdit();
     }
     public void ShowHidePanelSettings()
     {
@@ -384,11 +401,7 @@ public class UIController : MonoBehaviour
     public void BackToMenu()    //distruggi settaggi prima di uscire
     {
         StoreDataPreferences(nickname.text, showSimSpace, showEnvironment);
-        //foreach (Transform child in settingsScrollContent.transform)
-        //    GameObject.Destroy(child.gameObject);
-        //foreach (Transform child in paramsScrollContent.transform)
-        //    GameObject.Destroy(child.gameObject);
-
+        // TODO Dire a Simulation Controller di mandare Disconnect a MASON
         SceneManager.LoadScene("MenuScene");
     }
 }

@@ -7,18 +7,32 @@ using System.Linq;
 
 public class Utils
 {
+    /// <summary>
+    /// Gets Step 'complete' flag
+    /// </summary>
+    public static bool GetCompleteFlag(byte[] payload)
+    {
+        // Prepare Binary Stream of Gzipped payload
+        using (MemoryStream decompress_inputStream = new MemoryStream(payload))
+        using (GZipStream gZipStream = new GZipStream(decompress_inputStream, CompressionMode.Decompress))
+        using (BinaryReader deserialize_binaryReader = new BinaryReader(gZipStream))
+        {
+            bool complete = BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0);
+            return complete;
+        }
+    }
 
     /// <summary>
     /// Gets Step id from Step Message payload
     /// </summary>
     public static long GetStepId(byte[] payload)
     {
-
         // Prepare Binary Stream of Gzipped payload
         using (MemoryStream decompress_inputStream = new MemoryStream(payload))
         using (GZipStream gZipStream = new GZipStream(decompress_inputStream, CompressionMode.Decompress))
         using (BinaryReader deserialize_binaryReader = new BinaryReader(gZipStream))
         {
+            deserialize_binaryReader.ReadBytes(1);
             long id = BitConverter.ToInt64(deserialize_binaryReader.ReadBytes(8).Reverse().ToArray(), 0);
             return id;
         }
@@ -196,6 +210,8 @@ public class TupleConverter<U,V> : Newtonsoft.Json.JsonConverter
 
 public class MyList<T> : List<T>
 {
+    public MyList() { }
+    public MyList(IEnumerable<T> collection) : base(collection) {}
     public override string ToString()
     {
         return string.Join("  ", this.ToArray());

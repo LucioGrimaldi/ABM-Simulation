@@ -2498,7 +2498,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPreferencesSO: {fileID: 11400000, guid: 5e8f8baebfb8c704893075b20959fb7a,
     type: 2}
-  steps_to_consume: 0
+  defaultSimObject: {fileID: 11400000, guid: fbb61ad45d6d09a43beed74b0b2fb78c, type: 2}
+  stepsConsumed: 0
 --- !u!4 &250028490
 Transform:
   m_ObjectHideFlags: 0

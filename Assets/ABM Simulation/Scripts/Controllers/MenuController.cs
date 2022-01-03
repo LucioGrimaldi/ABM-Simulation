@@ -41,7 +41,6 @@ public class MenuController : MonoBehaviour
     public static event EventHandler<NicknameEnterEventArgs> OnNicknameEnterEventHandler;
     public static event EventHandler<SimPrototypeConfirmedEventArgs> OnSimPrototypeConfirmedEventHandler;
     public static event EventHandler<EventArgs> OnLoadMainMenuHandler;
-    public static event EventHandler<EventArgs> OnLoadNewSimScreenHandler;
 
     // UI Action Queue
     public static readonly ConcurrentQueue<Action> MenuMainThreadQueue = new ConcurrentQueue<Action>();
@@ -354,6 +353,8 @@ public class MenuController : MonoBehaviour
                         param = Instantiate(inMenuTogglePrefab);
                         if (scrollContent.name.Contains("agent")) param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => onAgentParamModified(id, p["name"], value));
                         else param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => onGenericParamModified(id, p["name"], value));
+                        param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
+                        param.GetComponentInChildren<Toggle>().isOn = p["defalut"];
                         break;
                     case "System.String":
                         param = Instantiate(inMenuParamPrefab);
@@ -403,6 +404,8 @@ public class MenuController : MonoBehaviour
                     case "System.Boolean":
                         param = Instantiate(inMenuTogglePrefab);
                         param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => onSimParamModified(p["name"], value));
+                        param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
+                        param.GetComponentInChildren<Toggle>().isOn = p["defalut"];
                         break;
                     case "System.String":
                         param = Instantiate(inMenuParamPrefab);

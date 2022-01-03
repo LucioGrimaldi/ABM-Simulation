@@ -80,8 +80,26 @@ public class CommunicationController
         controlClientThread.Abort();
     }
 
+    // Sim Client
+
     /// <summary>
-    /// SubscribeTopics Wrapper
+    /// Sim Client SubscribeOnly Wrapper
+    /// </summary>
+    public void SubscribeOnly(int[] topics)
+    {
+        simClient.SubscribeOnly(topics);
+    }
+
+    /// <summary>
+    /// Sim Client SubscribeAll Wrapper
+    /// </summary>
+    public void SubscribeAll()
+    {
+        simClient.SubscribeAll();
+    }
+
+    /// <summary>
+    /// Sim Client SubscribeTopics Wrapper
     /// </summary>
     public void SubscribeTopics(int[] topics)
     {
@@ -89,7 +107,17 @@ public class CommunicationController
     }
 
     /// <summary>
-    /// SubscribeTopic Wrapper
+    /// Sim Client UnsubscribeTopics Wrapper
+    /// </summary>
+    public void UnsubscribeTopics(int[] topics)
+    {
+        simClient.UnsubscribeTopics(topics);
+    }
+
+    // Control Client
+
+    /// <summary>
+    /// Control Client SubscribeTopic Wrapper
     /// </summary>
     public void SubscribeTopic(string nickname)
     {
@@ -97,19 +125,11 @@ public class CommunicationController
     }
 
     /// <summary>
-    /// UnsubscribeTopic Wrapper
+    /// Control Client UnsubscribeTopic Wrapper
     /// </summary>
     public void UnsubscribeTopic(string nickname)
     {
         controlClient.UnsubscribeTopic(nickname);
-    }
-
-    /// <summary>
-    /// UnsubscribeTopics Wrapper
-    /// </summary>
-    public void UnsubscribeTopics(int[] topics)
-    {
-        simClient.UnsubscribeTopics(topics);
     }
 
     /// OnEvent Methods ///
@@ -148,7 +168,6 @@ public class CommunicationController
         //UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Trying sending message...");
         controlClient.SendMessage(msg);
     }
-
     /// <summary>
     /// Empty queues
     /// </summary>
@@ -157,7 +176,10 @@ public class CommunicationController
         while (simMessageQueue.TryDequeue(out _)) ;
         SecondaryQueue.Clear();
     }
-
+    public ref int GetStepsReceived()
+    {
+        return ref simClient.stepsReceived;
+    }
     public void Quit()
     {
         simClient.ConnectionSucceeded -= OnSimClientConnected;

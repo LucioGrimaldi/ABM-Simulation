@@ -1,8 +1,7 @@
 ﻿using UnityEngine;
-using System.Collections.Generic;
 using System;
 
-[CreateAssetMenu(fileName = "SimObjectRenders", menuName = "Sim ObjectRenders/Sim Object Render")]
+[CreateAssetMenu(fileName = "SimObjects", menuName = "Sim Objects/Sim Object Render")]
 public class SimObjectRender : ScriptableObject
 {
     [Serializable]

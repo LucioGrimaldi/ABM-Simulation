@@ -5,7 +5,6 @@ using UnityEngine;
 
 public class ContinuousSystem : SimSpaceSystem
 {
-
     public override PlaceableObject CreateGhost(SimObject simObject, PlaceableObject placeableObject, bool isMovable)
     {
         throw new System.NotImplementedException();
@@ -51,7 +50,22 @@ public class ContinuousSystem : SimSpaceSystem
         return new Vector3(sim_position.x, sim_position.z, sim_position.y);
     }
 
-    public override void ConfirmEdited()
+    public override bool CanBuild(PlaceableObject toPlace)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public override ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> GetTemporaryGhosts()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public override PlaceableObject GetGhostFromSO(SimObject so)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public override void CopyRotation(PlaceableObject _old, PlaceableObject _new)
     {
         throw new System.NotImplementedException();
     }

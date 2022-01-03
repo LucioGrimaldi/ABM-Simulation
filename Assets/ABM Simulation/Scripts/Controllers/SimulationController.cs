@@ -1,12 +1,13 @@
-﻿using UnityEngine;
+﻿using Newtonsoft.Json;
 using SimpleJSON;
-using System.Collections.Generic;
 using System;
-using System.Linq;
-using Newtonsoft.Json;
-using System.Threading;
-using uPLibrary.Networking.M2Mqtt.Messages;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using UnityEngine;
+using uPLibrary.Networking.M2Mqtt.Messages;
+using static SimObject;
 
 
 //#### OPERATIONS_LIST ####
@@ -45,21 +46,21 @@ public class SimParamsUpdateEventArgs : EventArgs
 }
 public class SimObjectModifyEventArgs : EventArgs
 {
-    public SimObject.SimObjectType type;
+    public SimObjectType type;
     public string class_name;
     public int id;
     public Dictionary<string, object> parameters;                                    // i parametri sono (string param_name, object value)
 }
 public class SimObjectCreateEventArgs : EventArgs
 {
-    public SimObject.SimObjectType type;
+    public SimObjectType type;
     public string class_name;
     public int id;
-    public ConcurrentDictionary<string, object> parameters;
+    public ConcurrentDictionary<String, object> parameters;
 }
 public class SimObjectDeleteEventArgs : EventArgs
 {
-    public SimObject.SimObjectType type;
+    public SimObjectType type;
     public string class_name;
     public int id;
 }
@@ -80,6 +81,7 @@ public class SimulationController : MonoBehaviour
 {
     // Player Preferences
     [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
+    [SerializeField] public SimObject defaultSimObject;
 
     /// EVENT HANDLERS ///
 
@@ -109,22 +111,21 @@ public class SimulationController : MonoBehaviour
     public static event EventHandler<ReceivedMessageEventArgs> OnClientErrorUnsuccessEventHandler;
 
     /// MANAGERS ///
-    ConnectionManager ConnManager;
-    PerformanceManger PerfManager;
+    private ConnectionManager ConnManager;
+    public PerformanceManger PerfManager;
 
     /// CONTROLLERS ///
     private UIController UIController;
     private MenuController MenuController;
     private SceneController SceneController;
-    private CommunicationController CommController;
+    public CommunicationController CommController;
 
     /// SIM-RELATED VARIABLES ///
 
     /// State
-    public static JSONArray sim_prototypes_list = new JSONArray();
     public static int sim_id = 0;
-    private Simulation simulation = new Simulation();
     private StateEnum state = StateEnum.NOT_READY;
+    private Simulation simulation;
     public enum StateEnum 
     {
         CONN_ERROR = -2,            // Error in connection
@@ -139,22 +140,32 @@ public class SimulationController : MonoBehaviour
         STOP,
         SPEED
     }
-
-    /// Updates
+    
     public static JSONArray sim_list_editable;
+    public static JSONArray sim_prototypes_list = new JSONArray();
     private JSONObject uncommitted_updatesJSON = new JSONObject();
     public ConcurrentDictionary<(string op, (SimObject.SimObjectType type, string class_name, int id) obj), SimObject> uncommitted_updates = new ConcurrentDictionary<(string, (SimObject.SimObjectType, string, int)), SimObject>();
 
     /// Support variables
+    
     long start_millis = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+    
     private static System.Random random = new System.Random();
-    private long latestSimStepArrived = 0;
     private string nickname = RandomString(10);
-    public int steps_to_consume = 0;
+    private long latestSimStepArrived = 0;
+    private int steps_to_consume = 0;
+    public int stepsConsumed = 0;
 
     /// Threads
     private Thread StepQueueHandlerThread;
     private Thread MessageQueueHandlerThread;
+    private Thread PerformanceManagerThread;
+
+    // SimController Action Queue
+    public static readonly ConcurrentQueue<Action> SimControllerThreadQueue = new ConcurrentQueue<Action>();
+
+    public long LatestSimStepArrived { get => latestSimStepArrived; set => latestSimStepArrived = value; }
+    public int Steps_to_consume { get => steps_to_consume; set => steps_to_consume = value; }
 
     /// UNITY LOOP METHODS ///
 
@@ -163,15 +174,19 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     private void Awake()
     {
-        // DONT DESTROY ON LOAD
-        DontDestroyOnLoad(this.gameObject);
+        Debug.developerConsoleVisible = true;
 
-        // Retrieve Controllers
-        //UIController = GameObject.Find("UIController").GetComponent<UIController>();
+        // Instantiate Simulation
+        simulation = new Simulation(defaultSimObject);
+
+        // Retrieve Controllers/Managers
         CommController = new CommunicationController();
         MenuController = GameObject.Find("MenuController").GetComponent<MenuController>();
         PerfManager = new PerformanceManger();
         //ConnManager = new ConnectionManager(CommController, Nickname);
+
+        // DONT DESTROY ON LOAD
+        DontDestroyOnLoad(this.gameObject);
 
         // Bootstrack background tasks
         BootstrapBackgroundTasks();
@@ -187,15 +202,17 @@ public class SimulationController : MonoBehaviour
         MenuController.OnNicknameEnterEventHandler += onNicknameEnter;
         MenuController.OnLoadMainMenuHandler += onLoadMainMenu;
         MenuController.OnSimPrototypeConfirmedEventHandler += onSimPrototypeConfirmed;
+        SceneController.OnLoadSimulationSceneEventHandler += onLoadSimulationScene;
+        SceneController.OnSimObjectModifyEventHandler += onSimObjectModify;
+        SceneController.OnSimObjectCreateEventHandler += onSimObjectCreate;
+        SceneController.OnSimObjectDeleteEventHandler += onSimObjectDelete;
         UIController.OnLoadMainSceneEventHandler += onLoadMainScene;
         UIController.OnPlayEventHandler += onPlay;
         UIController.OnPauseEventHandler += onPause;
         UIController.OnStopEventHandler += onStop;
         UIController.OnSpeedChangeEventHandler += onSpeedChange;
         UIController.OnSimParamsUpdateEventHandler += onSimParamsUpdate;
-        SceneController.OnSimObjectModifyEventHandler += onSimObjectModify;
-        SceneController.OnSimObjectCreateEventHandler += onSimObjectCreate;
-        SceneController.OnSimObjectDeleteEventHandler += onSimObjectDelete;
+        //UIController.OnEditExitEventHandler += onSimParamsUpdate;
         MessageEventHandler += onMessageReceived;
         StepMessageEventHandler += onStepMessageReceived;
     }
@@ -211,8 +228,8 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     private void Update()
     {
-        //long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-        //if (now - start_millis > 1000) { SendCheckStatus(); }
+        long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+        if (now - start_millis > 5000) { SendCheckStatus(); start_millis = now;}
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -242,15 +259,17 @@ public class SimulationController : MonoBehaviour
         MenuController.OnNicknameEnterEventHandler -= onNicknameEnter;
         MenuController.OnLoadMainMenuHandler -= onLoadMainMenu;
         MenuController.OnSimPrototypeConfirmedEventHandler -= onSimPrototypeConfirmed;
+        SceneController.OnLoadSimulationSceneEventHandler -= onLoadSimulationScene;
+        SceneController.OnSimObjectModifyEventHandler -= onSimObjectModify;
+        SceneController.OnSimObjectCreateEventHandler -= onSimObjectCreate;
+        SceneController.OnSimObjectDeleteEventHandler -= onSimObjectDelete;
         UIController.OnLoadMainSceneEventHandler -= onLoadMainScene;
         UIController.OnPlayEventHandler -= onPlay;
         UIController.OnPauseEventHandler -= onPause;
         UIController.OnStopEventHandler -= onStop;
         UIController.OnSpeedChangeEventHandler -= onSpeedChange;
         UIController.OnSimParamsUpdateEventHandler -= onSimParamsUpdate;
-        SceneController.OnSimObjectModifyEventHandler -= onSimObjectModify;
-        SceneController.OnSimObjectCreateEventHandler -= onSimObjectCreate;
-        SceneController.OnSimObjectDeleteEventHandler -= onSimObjectDelete;
+        //UIController.OnEditExitEventHandler -= onSimParamsUpdate;
         MessageEventHandler -= onMessageReceived;
         StepMessageEventHandler -= onStepMessageReceived;
     }
@@ -280,6 +299,7 @@ public class SimulationController : MonoBehaviour
     {
         return simulation.Dimensions;
     }
+
     public static string RandomString(int length)
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -294,11 +314,12 @@ public class SimulationController : MonoBehaviour
     {
         CommController.StartControlClient();
         CommController.StartSimulationClient();
-        StartStepQueueHandlerThread();
+        StartPerformanceManager();
         StartMessageQueueHandlerThread();
+        StartStepQueueHandlerThread();
     }
 
-    /// Queue Handlers
+    /// Queue Handling
 
     /// <summary>
     /// Start steps message handler
@@ -306,9 +327,10 @@ public class SimulationController : MonoBehaviour
     public void StartStepQueueHandlerThread()
     {
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Management Thread started..");
-        StepQueueHandlerThread = new Thread(delegate () { StepQueueHandler(ref simulation.state, ref PerfManager.target_fps); });
+        StepQueueHandlerThread = new Thread(delegate () { StepQueueHandler(ref simulation.state, ref PerformanceManger.SORTING_THRESHOLD); });
         StepQueueHandlerThread.Start();
     }
+
     /// <summary>
     /// Start messages handler
     /// </summary>
@@ -318,6 +340,7 @@ public class SimulationController : MonoBehaviour
         MessageQueueHandlerThread = new Thread(MessageQueueHandler);
         MessageQueueHandlerThread.Start();
     }
+
     /// <summary>
     /// Stop steps message handler
     /// </summary>
@@ -330,6 +353,7 @@ public class SimulationController : MonoBehaviour
         }
         catch (ThreadAbortException e) {}
     }
+
     /// <summary>
     /// Stop messages handler
     /// </summary>
@@ -342,17 +366,18 @@ public class SimulationController : MonoBehaviour
         }
         catch (ThreadAbortException e) { }
     }
+
     /// <summary>
     /// Orders steps and updates last arrived one
     /// </summary>
-    public void StepQueueHandler(ref Simulation.StateEnum sim_state, ref int TARGET_FPS)
+    public void StepQueueHandler(ref Simulation.StateEnum sim_state, ref int SORTING_THRESHOLD)
     {
         JSONObject step = new JSONObject();
         MqttMsgPublishEventArgs message;
 
         while (true)
         {
-            if ((CommController.SecondaryQueue.Count > TARGET_FPS && sim_state.Equals(Simulation.StateEnum.PLAY)) || (CommController.SecondaryQueue.Count > 0 && steps_to_consume > 0 && sim_state.Equals(Simulation.StateEnum.PAUSE)))
+            if ((CommController.SecondaryQueue.Count > SORTING_THRESHOLD && sim_state.Equals(Simulation.StateEnum.PLAY)) || (CommController.SecondaryQueue.Count > 0 && steps_to_consume > 0 && sim_state.Equals(Simulation.StateEnum.PAUSE)))
             {
                 if (sim_state.Equals(Simulation.StateEnum.PAUSE))
                 {
@@ -362,7 +387,8 @@ public class SimulationController : MonoBehaviour
                         {
                             StepMessageEventArgs e = new StepMessageEventArgs();
                             e.Step = CommController.SecondaryQueue.Values[0];
-                            StepMessageEventHandler?.BeginInvoke(this, e, new AsyncCallback((res) => { ChangeState(Command.STEP); }), null);
+                            StepMessageEventHandler?.Invoke(this, e);
+                            ChangeState(Command.STEP);
 
                             CommController.SecondaryQueue.RemoveAt(0);
                             --steps_to_consume;
@@ -399,7 +425,8 @@ public class SimulationController : MonoBehaviour
                     {
                         StepMessageEventArgs e = new StepMessageEventArgs();
                         e.Step = message.Message;
-                        StepMessageEventHandler?.BeginInvoke(this, e, new AsyncCallback((res) => { ChangeState(Command.STEP);}), null);
+                        StepMessageEventHandler?.Invoke(this, e);
+                        ChangeState(Command.STEP);
                         --steps_to_consume;
                     }
                     else
@@ -411,6 +438,7 @@ public class SimulationController : MonoBehaviour
             }
         }
     }
+
     /// <summary>
     /// Handles messages from MASON
     /// </summary>
@@ -440,8 +468,15 @@ public class SimulationController : MonoBehaviour
         }
     }
 
+    /// Performance Monitor
+    public void StartPerformanceManager()
+    {
+        PerformanceManagerThread = new Thread(() => PerfManager.CalculatePerformance(CommController, ref simulation.state, ref stepsConsumed, ref CommController.GetStepsReceived()));
+        PerformanceManagerThread.Start();
+    }
+
     /// CONTROL ///
-    
+
 
     /// <summary>
     /// get one Step of simulation
@@ -455,6 +490,7 @@ public class SimulationController : MonoBehaviour
             SendSimCommand(Command.STEP, 0);
         }
     }
+
     /// <summary>
     /// Play simulation
     /// </summary>
@@ -466,6 +502,7 @@ public class SimulationController : MonoBehaviour
             SendSimCommand(Command.PLAY, 0);
         }
     }
+
     /// <summary>
     /// Pause simulation
     /// </summary>
@@ -475,6 +512,7 @@ public class SimulationController : MonoBehaviour
         if (simulation.State == Simulation.StateEnum.PAUSE) { Step(); return; }
         SendSimCommand(Command.PAUSE, 0);
     }
+
     /// <summary>
     /// Stop simulation
     /// </summary>
@@ -484,6 +522,7 @@ public class SimulationController : MonoBehaviour
         if (simulation.State == Simulation.StateEnum.READY) {return;}
         SendSimCommand(Command.STOP, 0);
     }
+
     /// <summary>
     /// Change simulation state
     /// </summary>
@@ -510,6 +549,7 @@ public class SimulationController : MonoBehaviour
                 break;
         }
     }
+
     /// <summary>
     /// Change simulation speed
     /// </summary>
@@ -548,6 +588,11 @@ public class SimulationController : MonoBehaviour
     {
         SendSimInitialize(e.sim_prototype);
     }
+    private void onLoadSimulationScene(object sender, EventArgs e)
+    {
+        SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
+        UIController = GameObject.Find("UIController").GetComponent<UIController>();
+    }
 
     /// <summary>
     /// UIController Event Handles
@@ -575,18 +620,22 @@ public class SimulationController : MonoBehaviour
     private void onSimParamsUpdate(object sender, SimParamsUpdateEventArgs e)
     {
         StoreSimParamsUpdateToJSON(e);
+        SendSimUpdate();
     }
     private void onSimObjectModify(object sender, SimObjectModifyEventArgs e)
     {
         StoreSimObjectModify(e);
+        SendSimUpdate();
     }
     private void onSimObjectCreate(object sender, SimObjectCreateEventArgs e)
     {
         StoreSimObjectCreate(e);
+        SendSimUpdate();
     }
     private void onSimObjectDelete(object sender, SimObjectDeleteEventArgs e)
     {
         StoreSimObjectDelete(e);
+        SendSimUpdate();
     }
 
     /// <summary>
@@ -648,6 +697,7 @@ public class SimulationController : MonoBehaviour
         try
         {
             simulation.UpdateSimulationFromStep(e.Step, (JSONObject)sim_prototypes_list[sim_id]);
+            stepsConsumed++;
         }
         catch (Exception ex)
         {
@@ -672,6 +722,11 @@ public class SimulationController : MonoBehaviour
     {
         bool result = e.Payload["result"];
         simulation.State = (Simulation.StateEnum) (int) ((JSONObject) e.Payload["payload_data"])["state"];
+        if(!simulation.State.Equals(Simulation.StateEnum.NOT_READY))
+        {
+            PerfManager.PRODUCED_SPS = (int) ((JSONObject)e.Payload["payload_data"])["simStepRate"];
+            simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
+        }
 
         //Check status for errors
 
@@ -805,7 +860,7 @@ public class SimulationController : MonoBehaviour
             
             if (!uncommitted_updates.ContainsKey(("MOD", (e.type, e.class_name, e.id))))
             {
-                SimObject a = new SimObject();
+                SimObject a = defaultSimObject.Clone();
                 a.Type = e.type;
                 a.Class_name = e.class_name;
                 a.Id = e.id;
@@ -825,7 +880,7 @@ public class SimulationController : MonoBehaviour
         else
         {
             KeyValuePair<(string op, (SimObject.SimObjectType, string, int) obj), SimObject> entry;
-            SimObject x = new SimObject();
+            SimObject x = defaultSimObject.Clone();
             try
             {
                 entry = uncommitted_updates.Single(entry => (entry.Key.op.Equals("MOD") || entry.Key.op.Equals("CRT")) && entry.Key.obj.type.Equals(e.type) && entry.Key.obj.class_name.Equals(e.class_name) && entry.Key.obj.id.Equals(e.id));
@@ -897,10 +952,10 @@ public class SimulationController : MonoBehaviour
     }
     public void StoreSimObjectCreate(SimObjectCreateEventArgs e)
     {
-        SimObject x = new SimObject();
+        SimObject x = defaultSimObject.Clone();
         x.Type = e.type;
-        x.Id = e.id;
         x.Class_name = e.class_name;
+        x.Id = e.id;
         x.Parameters = e.parameters;
 
         uncommitted_updates.TryAdd(("CRT", (x.Type, x.Class_name, x.Id)), x);
@@ -909,7 +964,7 @@ public class SimulationController : MonoBehaviour
     public void StoreSimObjectDelete(SimObjectDeleteEventArgs e)
     {
         List<(string, (SimObject.SimObjectType, string, int))> keys_to_remove = new List<(string, (SimObject.SimObjectType, string, int))>();
-        SimObject x = new SimObject();
+        SimObject x = defaultSimObject.Clone();
         if (e.id.Equals(-1))
         {
             foreach (KeyValuePair<(string, (SimObject.SimObjectType, string, int)), SimObject> entry in uncommitted_updates.Where(entry => entry.Key.obj.type.Equals(e.type) && entry.Key.obj.class_name.Equals(e.class_name)))
@@ -942,7 +997,6 @@ public class SimulationController : MonoBehaviour
             uncommitted_updates.TryAdd(("DEL", (e.type, e.class_name, e.id)), x);
             UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Entry: DEL " + e.type + "." + e.class_name + "." + e.id + " created.");
         }
-        
     }
 
     /// <summary>
@@ -952,7 +1006,17 @@ public class SimulationController : MonoBehaviour
     {
         foreach (KeyValuePair<string, object> p in e.parameters)
         {
-            uncommitted_updatesJSON["sim_params"].Add(p.Key, (JSONNode)p.Value);
+            try
+            {
+                if (p.Value.GetType().Equals(typeof(float))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (float)p.Value);
+                if (p.Value.GetType().Equals(typeof(int))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (int)p.Value);
+                if (p.Value.GetType().Equals(typeof(bool))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (bool)p.Value);
+                if (p.Value.GetType().Equals(typeof(string))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (string)p.Value);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+            }
         }
     }
     private void StoreUncommittedUpdatesToJSON()
@@ -988,14 +1052,15 @@ public class SimulationController : MonoBehaviour
                     op = "delete";
                     break;
             }
-            
-            
-            obj.Add("id", entry.Key.obj.id);
+
+            if (!entry.Key.op.Equals("CRT")) obj.Add("id", entry.Key.obj.id);
+            else obj.Add("quantity", 1);
+
             obj.Add("class", entry.Key.obj.class_name);
+
             if (!entry.Key.op.Equals("DEL"))
             {
                 obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>()));
-                UnityEngine.Debug.Log("Params: \n" + obj_params.ToString());
                 obj.Add("params", obj_params);
             }
             uncommitted_updatesJSON[type+"_"+op].Add(obj);           
@@ -1072,8 +1137,8 @@ public class SimulationController : MonoBehaviour
     public void SendSimUpdate()
     {
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending SIM_UPDATE to MASON...");
+        StoreUncommittedUpdatesToJSON();
         CommController.SendMessage(nickname, "005", uncommitted_updatesJSON);
-        uncommitted_updatesJSON = new JSONObject();
     }
 
     /// <summary>
