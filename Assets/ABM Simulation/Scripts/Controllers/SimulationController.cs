@@ -140,7 +140,7 @@ public class SimulationController : MonoBehaviour
         STOP,
         SPEED
     }
-    
+    public static bool admin = true;
     public static JSONArray sim_list_editable;
     public static JSONArray sim_prototypes_list = new JSONArray();
     private JSONObject uncommitted_updatesJSON = new JSONObject();
@@ -202,6 +202,7 @@ public class SimulationController : MonoBehaviour
         MenuController.OnNicknameEnterEventHandler += onNicknameEnter;
         MenuController.OnLoadMainMenuHandler += onLoadMainMenu;
         MenuController.OnSimPrototypeConfirmedEventHandler += onSimPrototypeConfirmed;
+        MenuController.OnJoinSimulationEventHandler += onJoinSimulation;
         SceneController.OnLoadSimulationSceneEventHandler += onLoadSimulationScene;
         SceneController.OnSimObjectModifyEventHandler += onSimObjectModify;
         SceneController.OnSimObjectCreateEventHandler += onSimObjectCreate;
@@ -212,6 +213,7 @@ public class SimulationController : MonoBehaviour
         UIController.OnStopEventHandler += onStop;
         UIController.OnSpeedChangeEventHandler += onSpeedChange;
         UIController.OnSimParamsUpdateEventHandler += onSimParamsUpdate;
+        UIController.OnExitEventHandler += onExit;
         //UIController.OnEditExitEventHandler += onSimParamsUpdate;
         MessageEventHandler += onMessageReceived;
         StepMessageEventHandler += onStepMessageReceived;
@@ -259,6 +261,7 @@ public class SimulationController : MonoBehaviour
         MenuController.OnNicknameEnterEventHandler -= onNicknameEnter;
         MenuController.OnLoadMainMenuHandler -= onLoadMainMenu;
         MenuController.OnSimPrototypeConfirmedEventHandler -= onSimPrototypeConfirmed;
+        MenuController.OnJoinSimulationEventHandler -= onJoinSimulation;
         SceneController.OnLoadSimulationSceneEventHandler -= onLoadSimulationScene;
         SceneController.OnSimObjectModifyEventHandler -= onSimObjectModify;
         SceneController.OnSimObjectCreateEventHandler -= onSimObjectCreate;
@@ -269,6 +272,7 @@ public class SimulationController : MonoBehaviour
         UIController.OnStopEventHandler -= onStop;
         UIController.OnSpeedChangeEventHandler -= onSpeedChange;
         UIController.OnSimParamsUpdateEventHandler -= onSimParamsUpdate;
+        UIController.OnExitEventHandler -= onExit;
         //UIController.OnEditExitEventHandler -= onSimParamsUpdate;
         MessageEventHandler -= onMessageReceived;
         StepMessageEventHandler -= onStepMessageReceived;
@@ -588,6 +592,10 @@ public class SimulationController : MonoBehaviour
     {
         SendSimInitialize(e.sim_prototype);
     }
+    private void onJoinSimulation(object sender, EventArgs e)
+    {
+        simulation.InitSimulationFromPrototype((JSONObject)sim_list_editable[sim_id]);
+    }
     private void onLoadSimulationScene(object sender, EventArgs e)
     {
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
@@ -636,6 +644,10 @@ public class SimulationController : MonoBehaviour
     {
         StoreSimObjectDelete(e);
         SendSimUpdate();
+    }
+    private void onExit(object sender, EventArgs e)
+    {
+        SendDisconnect();
     }
 
     /// <summary>
@@ -713,8 +725,9 @@ public class SimulationController : MonoBehaviour
     private void onNewAdmin(ReceivedMessageEventArgs e)
     {
         string new_admin = e.Payload["new_admin"];
+        admin = new_admin.Equals(nickname);
 
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | NEW_ADMIN MESSAGE RECEIVED. | " + (nickname.Equals(new_admin) ? "You are" : new_admin + " is") + " the new room admin.");
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | NEW_ADMIN MESSAGE RECEIVED. | " + (admin ? "You are" : new_admin + " is") + " the new room admin.");
 
         OnNewAdminEventHandler?.Invoke(this, e);
     }
@@ -724,6 +737,7 @@ public class SimulationController : MonoBehaviour
         simulation.State = (Simulation.StateEnum) (int) ((JSONObject) e.Payload["payload_data"])["state"];
         if(!simulation.State.Equals(Simulation.StateEnum.NOT_READY))
         {
+            sim_id = (int)((JSONObject)e.Payload["payload_data"])["simId"];
             PerfManager.PRODUCED_SPS = (int) ((JSONObject)e.Payload["payload_data"])["simStepRate"];
             simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
         }
@@ -739,6 +753,8 @@ public class SimulationController : MonoBehaviour
     private void onConnectionResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
+        string nick = (string)((JSONObject)e.Payload["payload_data"])["sender"];
+        if(nick.Equals(nickname)) admin = (bool)((JSONObject)e.Payload["payload_data"])["isAdmin"];
 
         state = result ? StateEnum.READY : StateEnum.CONN_ERROR;
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | " + ((JSONObject)e.Payload["payload_data"])["sender"] + " " + (result ? "successfully" : "unsuccessfully") + " connected.");
@@ -1081,6 +1097,7 @@ public class SimulationController : MonoBehaviour
         // Send command
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CHECK_STATUS to MASON...");
         CommController.SendMessage(nickname, "000", payload);
+        CommController.KeepAliveSimController();
     }
 
     /// <summary>

@@ -2,7 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Fixed;
+using SimpleJSON;
 using UnityEngine;
 using uPLibrary.Networking.M2Mqtt;
 using uPLibrary.Networking.M2Mqtt.Messages;
@@ -19,6 +21,8 @@ public class MQTTSimClient
     private bool isEncrypted = false;
     [Tooltip("Topic where Unity receive messages")]
     private List<string> stepTopics = new List<string>();
+    [Tooltip("Topic where Unity send keepAlive messages")]
+    private string keepAliveTopic = "keepAlive";
     [Header("Connection parameters")]
     [Tooltip("Connection to the broker is delayed by the the given milliseconds")]
     public int connectionDelay = 500;
@@ -57,6 +61,16 @@ public class MQTTSimClient
     public event Action DisconnectionSucceeded;
 
     /// Methods ///
+
+    /// <summary>
+    /// Send a keepAlive message to stay awake
+    /// </summary>
+    public void SendKeepAlive(JSONObject msg)
+    {
+        byte[] message = Encoding.ASCII.GetBytes(msg.ToString());
+        client.Publish(keepAliveTopic, message);
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message published to " + keepAliveTopic + " topic, message: " + msg.ToString());
+    }
 
     /// <summary>
     /// Connect to the broker and get Queue ref.

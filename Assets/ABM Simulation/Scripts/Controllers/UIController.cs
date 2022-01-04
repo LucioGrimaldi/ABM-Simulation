@@ -25,6 +25,7 @@ public class UIController : MonoBehaviour
     public static event EventHandler<SimParamsUpdateEventArgs> OnSimParamsUpdateEventHandler;
     public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectParamsUpdateEventHandler;
     public static event EventHandler<EventArgs> OnEditExitEventHandler;
+    public static event EventHandler<EventArgs> OnExitEventHandler;
 
     // Controllers
     private SceneController SceneController;
@@ -398,19 +399,16 @@ public class UIController : MonoBehaviour
         panelInspector.gameObject.SetActive(!showInspectorPanel);
         showInspectorPanel = !showInspectorPanel;
     }
-
     public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
     {
         playerPreferencesSO.nickname = nameString;
         playerPreferencesSO.showSimSpace = toggleSimSpace;
         playerPreferencesSO.showEnvironment = toggleEnvironment;
-
     }
-
     public void BackToMenu()    //distruggi settaggi prima di uscire
     {
         StoreDataPreferences(nickname.text, showSimSpace, showEnvironment);
-        // TODO Dire a Simulation Controller di mandare Disconnect a MASON
+        OnExitEventHandler.BeginInvoke(this, new EventArgs(), null, null);
         SceneManager.LoadScene("MenuScene");
     }
 }

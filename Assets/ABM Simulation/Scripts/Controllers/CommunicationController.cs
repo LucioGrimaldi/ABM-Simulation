@@ -169,6 +169,15 @@ public class CommunicationController
         controlClient.SendMessage(msg);
     }
     /// <summary>
+    /// Send keepAlive message to MQTT Broker
+    /// </summary>
+    public void KeepAliveSimController()
+    {
+        JSONObject msg = new JSONObject();
+        msg.Add("keepAlive", true);
+        simClient.SendKeepAlive(msg);
+    }
+    /// <summary>
     /// Empty queues
     /// </summary>
     public void EmptyQueues()
