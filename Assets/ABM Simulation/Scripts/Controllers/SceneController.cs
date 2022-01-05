@@ -119,6 +119,8 @@ public class SceneController : MonoBehaviour
     /// </summary>
     private void OnApplicationQuit()
     {
+        simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].Dispose();
+        simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].Dispose();
         while (SceneControllerThreadQueue.TryDequeue(out _)) ;
     }
     /// <summary>
@@ -128,7 +130,15 @@ public class SceneController : MonoBehaviour
     {
         // Unregister to EventHandlers
         Simulation.OnSimObjectNotInStepEventHandler -= onSimObjectNotInStep;
-
+    }
+    /// <summary>
+    /// onDestroy routine (Unity Process)
+    /// </summary>
+    private void OnDestroy()
+    {
+        simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].Dispose();
+        simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].Dispose();
+        while (SceneControllerThreadQueue.TryDequeue(out _)) ;
     }
 
 

@@ -118,6 +118,13 @@ public class UIController : MonoBehaviour
         slider.onValueChanged.RemoveAllListeners();
 
     }
+    /// <summary>
+    /// onDestroy routine (Unity Process)
+    /// </summary>
+    private void OnDestroy()
+    {
+        
+    }
 
     //ALTRI METODI
 

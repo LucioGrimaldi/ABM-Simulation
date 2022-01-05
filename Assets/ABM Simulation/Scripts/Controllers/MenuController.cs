@@ -132,8 +132,15 @@ public class MenuController : MonoBehaviour
         SimulationController.OnSimInitSuccessEventHandler -= onSimInitSuccess;
         SimulationController.OnSimInitUnsuccessEventHandler -= onSimInitUnsuccess;
     }
+    /// <summary>
+    /// onDestroy routine (Unity Process)
+    /// </summary>
+    private void OnDestroy()
+    {
+        
+    }
 
- 
+
     // Button Callbacks
 
 

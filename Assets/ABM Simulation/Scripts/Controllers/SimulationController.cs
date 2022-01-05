@@ -243,6 +243,24 @@ public class SimulationController : MonoBehaviour
 
     }
     /// <summary>
+    /// onApplicationQuit routine (Unity Process)
+    /// </summary>
+    void OnApplicationQuit()
+    {
+        // do other stuff
+        SendDisconnect();
+        CommController.DisconnectControlClient();
+        CommController.DisconnectSimulationClient();
+        CommController.EmptyQueues();
+        CommController.Quit();
+        StopMessageQueueHandlerThread();
+        StopStepQueueHandlerThread();
+        StopPerformanceManagerThread();
+        CommController = null;
+        MenuController = null;
+        PerfManager = null;
+    }
+    /// <summary>
     /// onDisable routine (Unity Process)
     /// </summary>
     private void OnDisable()
@@ -268,22 +286,11 @@ public class SimulationController : MonoBehaviour
         StepMessageEventHandler -= onStepMessageReceived;
     }
     /// <summary>
-    /// onApplicationQuit routine (Unity Process)
+    /// onDestroy routine (Unity Process)
     /// </summary>
-    void OnApplicationQuit()
+    private void OnDestroy()
     {
-        // do other stuff
-        SendDisconnect();
-        CommController.DisconnectControlClient();
-        CommController.DisconnectSimulationClient();
-        CommController.EmptyQueues();
-        CommController.Quit();
-        StopMessageQueueHandlerThread();
-        StopStepQueueHandlerThread();
-        StopPerformanceManagerThread();
-        CommController = null;
-        MenuController = null;
-        PerfManager = null;
+        
     }
 
     /// UTILS ///

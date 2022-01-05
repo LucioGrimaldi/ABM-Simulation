@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static SimObjectRender;
 
 public class Obstacle_PO : PO_Discrete2D
 {
@@ -51,7 +52,32 @@ public class Obstacle_PO : PO_Discrete2D
     /// </summary>
     protected override void LateUpdate()
     {
-        base.LateUpdate();
+        if (simObjectRender.RenderType.Equals(RenderTypeEnum.MESH))        // TODO (TEXTURE,PARTICLE_SYSTEM,OTHER..)
+        {
+            if (isGhost)
+            {
+                if (isMovable)
+                {
+                    Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
+                    Vector3 targetPosition = gridSystem.MouseClickToSpawnPosition(this);                                                                                                                // offset escluso
+                    gridSystem.grid.GetXYZ(targetPosition, out int x, out _, out int z);
+                    simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, lenght);
+                    transform.position = Vector3.Lerp(transform.position, targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize, Time.deltaTime * 15f);        // offset incluso
+                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);                                                     // limiti di rotazione gestiti in Rotate()
+                }
+            }
+            else
+            {
+                if (isMovable)
+                {
+                    Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
+                    Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
+                    transform.position = Vector3.Lerp(transform.position, targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize, Time.deltaTime * 15f);        // offset incluso
+                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);
+                    MoveInSimSpace();
+                }
+            }
+        }
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
