@@ -385,9 +385,9 @@ public class SimulationController : MonoBehaviour
 
         while (true)
         {
-            if ((CommController.SecondaryQueue.Count > SORTING_THRESHOLD && sim_state.Equals(Simulation.StateEnum.PLAY)) || (CommController.SecondaryQueue.Count > 0 && steps_to_consume > 0 && sim_state.Equals(Simulation.StateEnum.PAUSE)))
+            if ((CommController.SecondaryQueue.Count > SORTING_THRESHOLD && sim_state.Equals(Simulation.StateEnum.PLAY)) || (CommController.SecondaryQueue.Count > 0 && steps_to_consume > 0))
             {
-                if (sim_state.Equals(Simulation.StateEnum.PAUSE))
+                if (!sim_state.Equals(Simulation.StateEnum.PLAY))
                 {
                     while(steps_to_consume > 0)
                     {
@@ -404,6 +404,7 @@ public class SimulationController : MonoBehaviour
                         catch (ArgumentOutOfRangeException e)
                         {
                             UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Queue Empty!");
+                            --steps_to_consume;
                         }
                     }
                 }
@@ -505,11 +506,8 @@ public class SimulationController : MonoBehaviour
     public void Step()
     {
         // check state
-        if (simulation.State == Simulation.StateEnum.READY || simulation.State == Simulation.StateEnum.PAUSE)
-        {
-            steps_to_consume = 1;
-            SendSimCommand(Command.STEP, 0);
-        }
+        steps_to_consume++;
+        SendSimCommand(Command.STEP, 0);
     }
 
     /// <summary>
@@ -530,7 +528,7 @@ public class SimulationController : MonoBehaviour
     public void Pause()
     {
         // check state
-        if (simulation.State == Simulation.StateEnum.PAUSE) { Step(); return; }
+        if (simulation.State == Simulation.StateEnum.PAUSE || simulation.State == Simulation.StateEnum.STEP || simulation.State == Simulation.StateEnum.READY) { Step(); return; }
         SendSimCommand(Command.PAUSE, 0);
     }
 

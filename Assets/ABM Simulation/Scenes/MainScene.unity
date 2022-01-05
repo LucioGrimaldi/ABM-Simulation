@@ -1571,7 +1571,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -4043,7 +4043,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: -309, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &756456782
 MonoBehaviour:
@@ -4625,7 +4625,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &860489620
 RectTransform:
   m_ObjectHideFlags: 0
@@ -7427,25 +7427,6 @@ MonoBehaviour:
   PO_Prefab_Collection:
   - {fileID: 11400000, guid: 86a9e59149c38404b8e8427ced089295, type: 2}
   - {fileID: 11400000, guid: 662c59bb86fd1554f87e427123b6c531, type: 2}
-  Obstacles:
-    m_keys:
-    - Barrel
-    - Boat
-    - Church
-    - Fence
-    - House
-    - Pond
-    - Rock
-    - Wood
-    m_values:
-    - {fileID: 11400000, guid: 3abf46b0c2d7ae148805eb8aa419edec, type: 2}
-    - {fileID: 11400000, guid: 2abd1f8990cda7947914e00afc5f9214, type: 2}
-    - {fileID: 11400000, guid: 9f91559ff23d3bd42a5ee8b44d90d734, type: 2}
-    - {fileID: 11400000, guid: 77db77c0549d0ec4c95584d0a18e8c5e, type: 2}
-    - {fileID: 11400000, guid: 5d52ddec3250d8f439f095a66070700c, type: 2}
-    - {fileID: 11400000, guid: 072108427a4bd42418952252f1d85fad, type: 2}
-    - {fileID: 11400000, guid: fb87857dcd26c1541aec81bbcc188ec5, type: 2}
-    - {fileID: 11400000, guid: e4c36afa1be68c943aa72a37e1b34ca4, type: 2}
   SimSpace_prefabs_2D:
   - {fileID: 3938228412142364311, guid: 3b372b1e5441f0b4fbb457d2f13b041e, type: 3}
   - {fileID: 818190985185202977, guid: 543675be1be2e3e47a4e3b26e787bdbe, type: 3}

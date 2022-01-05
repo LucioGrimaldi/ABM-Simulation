@@ -450,7 +450,7 @@ public class MenuController : MonoBehaviour
                     case "System.Single":
                         param = Instantiate(inMenuParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
-                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onSimParamModified(p["name"], float.Parse(value)));
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onSimParamModified(p["name"], float.Parse(value.Replace('.', ','))));
                         break;
                     case "System.Int32":
                         param = Instantiate(inMenuParamPrefab);
