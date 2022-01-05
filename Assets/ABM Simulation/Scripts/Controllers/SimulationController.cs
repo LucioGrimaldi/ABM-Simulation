@@ -308,7 +308,7 @@ public class SimulationController : MonoBehaviour
     }
     public Simulation.StateEnum GetSimState()
     {
-        return simulation.state;
+        return Simulation.state;
     }
     public Simulation.SimTypeEnum GetSimType()
     {
@@ -345,7 +345,7 @@ public class SimulationController : MonoBehaviour
     public void StartStepQueueHandlerThread()
     {
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Management Thread started..");
-        StepQueueHandlerThread = new Thread(delegate () { StepQueueHandler(ref simulation.state, ref PerformanceManger.SORTING_THRESHOLD); });
+        StepQueueHandlerThread = new Thread(delegate () { StepQueueHandler(ref Simulation.state, ref PerformanceManger.SORTING_THRESHOLD); });
         StepQueueHandlerThread.Start();
     }
     /// <summary>
@@ -487,7 +487,7 @@ public class SimulationController : MonoBehaviour
     /// Performance Monitor
     public void StartPerformanceManagerThread()
     {
-        PerformanceManagerThread = new Thread(() => PerfManager.CalculatePerformance(CommController, ref simulation.state, ref stepsConsumed, ref CommController.GetStepsReceived()));
+        PerformanceManagerThread = new Thread(() => PerfManager.CalculatePerformance(CommController, ref Simulation.state, ref stepsConsumed, ref CommController.GetStepsReceived()));
         PerformanceManagerThread.Start();
     }
     public void StopPerformanceManagerThread()

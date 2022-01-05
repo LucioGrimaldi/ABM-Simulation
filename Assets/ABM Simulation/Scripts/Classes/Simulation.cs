@@ -49,7 +49,7 @@ public class Simulation
     }
 
     // Runtime data
-    public StateEnum state = StateEnum.NOT_READY;
+    public static StateEnum state = StateEnum.NOT_READY;
     public SpeedEnum speed = SpeedEnum.X1;
     public long currentSimStep = 0;
     public ConcurrentDictionary<string,int> n_agents_for_each_class = new ConcurrentDictionary<string, int>();
@@ -715,9 +715,9 @@ public class Simulation
 
                 if (!Agents.TryGetValue((agent_class_names[i], id), out so))                                          // l'agente è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non dynamic
                 {
-                    Agent_prototypes.TryGetValue(agent_class_names[i], out SimObject g);
+                    Agent_prototypes.TryGetValue(agent_class_names[i], out SimObject a);
                     
-                    so = g.Clone();
+                    so = a.Clone();
                     so.Type = SimObject.SimObjectType.AGENT;
                     so.Class_name = agent_class_names[i];
                     so.Id = id;

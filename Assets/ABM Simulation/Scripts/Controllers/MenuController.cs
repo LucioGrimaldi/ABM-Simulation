@@ -163,8 +163,17 @@ public class MenuController : MonoBehaviour
         {
             MenuMainThreadQueue.Enqueue(() =>
             {
-                ShowHidePanelBusy();
-                mainMenu.SetActive(false);
+                switch (Simulation.state)
+                {
+                    case Simulation.StateEnum.NOT_READY:
+                    case Simulation.StateEnum.BUSY:
+                        ShowHidePanelBusy();
+                        mainMenu.SetActive(false);
+                        break;
+                    default:
+                        JoinSimulation();
+                        break;
+                }                
             });
         }
     }
@@ -182,20 +191,18 @@ public class MenuController : MonoBehaviour
     }
     private void onCheckStatusSuccess(object sender, ReceivedMessageEventArgs e)
     {
-        if (e.Payload["payload_data"]["state"].Equals(-1))
+        if (menuState.Equals(MenuState.MAIN))
         {
-            if (menuState.Equals(MenuState.MAIN))
-                {
-                    MenuMainThreadQueue.Enqueue(() => { SetSimButton(true);});
-                }
-        }
-        else
-        {
-            if (menuState.Equals(MenuState.MAIN))
+            switch (Simulation.state)
             {
-                MenuMainThreadQueue.Enqueue(() => { SetSimButton(false); });
+                case Simulation.StateEnum.NOT_READY:
+                    MenuMainThreadQueue.Enqueue(() => { SetSimButton(true); });
+                    break;
+                default:
+                    MenuMainThreadQueue.Enqueue(() => { SetSimButton(false); });
+                    break;
             }
-        }
+        }        
     }
     private void onCheckStatusUnsuccess(object sender, ReceivedMessageEventArgs e)
     {
@@ -508,7 +515,7 @@ public class MenuController : MonoBehaviour
         else showEnvironment = false;
     }
 
-    public void SetSimButton(Boolean is_new)
+    public void SetSimButton(bool is_new)
     {
         newSimButton.gameObject.SetActive(is_new);
         joinSimButton.gameObject.SetActive(!is_new);
