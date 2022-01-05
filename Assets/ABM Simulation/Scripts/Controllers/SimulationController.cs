@@ -232,25 +232,15 @@ public class SimulationController : MonoBehaviour
     {
         long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
         if (now - start_millis > 5000) { SendCheckStatus(); start_millis = now;}
-    }
-    /// <summary>
-    /// onApplicationQuit routine (Unity Process)
-    /// </summary>
-    void OnApplicationQuit()
-    {
-        // do other stuff
-        if (simulation.state.Equals(Simulation.StateEnum.PLAY)) { Pause(); Stop(); }
-        SendDisconnect();
-        CommController.DisconnectControlClient();
-        CommController.DisconnectSimulationClient();
-        CommController.EmptyQueues();
-        CommController.Quit();
-        StopMessageQueueHandlerThread();
-        StopStepQueueHandlerThread();
-        CommController = null;
-        MenuController = null;
-        PerfManager = null;
-        // Stop Performance Thread
+
+        if (!SimControllerThreadQueue.IsEmpty)
+        {
+            while (SimControllerThreadQueue.TryDequeue(out var action))
+            {
+                action?.Invoke();
+            }
+        }
+
     }
     /// <summary>
     /// onDisable routine (Unity Process)
@@ -276,6 +266,24 @@ public class SimulationController : MonoBehaviour
         //UIController.OnEditExitEventHandler -= onSimParamsUpdate;
         MessageEventHandler -= onMessageReceived;
         StepMessageEventHandler -= onStepMessageReceived;
+    }
+    /// <summary>
+    /// onApplicationQuit routine (Unity Process)
+    /// </summary>
+    void OnApplicationQuit()
+    {
+        // do other stuff
+        SendDisconnect();
+        CommController.DisconnectControlClient();
+        CommController.DisconnectSimulationClient();
+        CommController.EmptyQueues();
+        CommController.Quit();
+        StopMessageQueueHandlerThread();
+        StopStepQueueHandlerThread();
+        StopPerformanceManagerThread();
+        CommController = null;
+        MenuController = null;
+        PerfManager = null;
     }
 
     /// UTILS ///
@@ -303,7 +311,6 @@ public class SimulationController : MonoBehaviour
     {
         return simulation.Dimensions;
     }
-
     public static string RandomString(int length)
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -318,7 +325,7 @@ public class SimulationController : MonoBehaviour
     {
         CommController.StartControlClient();
         CommController.StartSimulationClient();
-        StartPerformanceManager();
+        StartPerformanceManagerThread();
         StartMessageQueueHandlerThread();
         StartStepQueueHandlerThread();
     }
@@ -334,7 +341,6 @@ public class SimulationController : MonoBehaviour
         StepQueueHandlerThread = new Thread(delegate () { StepQueueHandler(ref simulation.state, ref PerformanceManger.SORTING_THRESHOLD); });
         StepQueueHandlerThread.Start();
     }
-
     /// <summary>
     /// Start messages handler
     /// </summary>
@@ -344,7 +350,6 @@ public class SimulationController : MonoBehaviour
         MessageQueueHandlerThread = new Thread(MessageQueueHandler);
         MessageQueueHandlerThread.Start();
     }
-
     /// <summary>
     /// Stop steps message handler
     /// </summary>
@@ -355,9 +360,8 @@ public class SimulationController : MonoBehaviour
         {
             StepQueueHandlerThread.Abort();
         }
-        catch (ThreadAbortException e) {}
+        catch (ThreadAbortException e) { Debug.LogError(e); }
     }
-
     /// <summary>
     /// Stop messages handler
     /// </summary>
@@ -368,7 +372,7 @@ public class SimulationController : MonoBehaviour
         {
             MessageQueueHandlerThread.Abort();
         }
-        catch (ThreadAbortException e) { }
+        catch (ThreadAbortException e) { Debug.LogError(e); }
     }
 
     /// <summary>
@@ -451,7 +455,7 @@ public class SimulationController : MonoBehaviour
         JSONObject json_response, payload;
         MqttMsgPublishEventArgs msg;
         string sender, op;
-        while (CommController.messageQueue == null) {;}
+        while (CommController.messageQueue == null) {}
         while (true)
         {
             if (CommController.messageQueue.TryDequeue(out msg))
@@ -473,14 +477,27 @@ public class SimulationController : MonoBehaviour
     }
 
     /// Performance Monitor
-    public void StartPerformanceManager()
+    public void StartPerformanceManagerThread()
     {
         PerformanceManagerThread = new Thread(() => PerfManager.CalculatePerformance(CommController, ref simulation.state, ref stepsConsumed, ref CommController.GetStepsReceived()));
         PerformanceManagerThread.Start();
     }
+    public void StopPerformanceManagerThread()
+    {
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Performance Manager Thread stopped.");
+
+        try
+        {
+            PerformanceManagerThread.Abort();
+        }
+        catch (ThreadAbortException e) { }
+    }
+    public void ResetPreformanceManager()
+    {
+        PerfManager.Reset();
+    }
 
     /// CONTROL ///
-
 
     /// <summary>
     /// get one Step of simulation
@@ -647,7 +664,12 @@ public class SimulationController : MonoBehaviour
     }
     private void onExit(object sender, EventArgs e)
     {
-        SendDisconnect();
+        OnDisable();
+        OnApplicationQuit();
+        SimControllerThreadQueue.Enqueue(() =>
+        {
+            Destroy(gameObject);
+        });
     }
 
     /// <summary>

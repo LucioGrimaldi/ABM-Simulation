@@ -79,4 +79,18 @@ public class PerformanceManger
 
         if (!TOPICS.Contains(0)) TOPICS[0] = 0;
     }
+    public void Reset()
+    {
+        SORTING_THRESHOLD = 15;
+        MAX_SPS = 60;
+        MIN_SPS = 15;
+        produced_sps = 60;
+        received_sps = 60;
+        consumed_sps = 60;
+        attempted_sps = 60;
+        consume_rate = 1d;
+        timeout_target_up = 0;
+        timeout_target_down = 0;
+        timestamp_last_update = 0;
+    }
 }

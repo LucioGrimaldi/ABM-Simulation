@@ -108,7 +108,6 @@ public class MenuController : MonoBehaviour
 
         backgroundMusic.volume = musicVolume;
         testAudioEffect.volume = effectsVolume;
-
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)

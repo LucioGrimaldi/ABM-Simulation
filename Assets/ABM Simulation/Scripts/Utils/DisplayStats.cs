@@ -23,7 +23,6 @@ public class DisplayStats : MonoBehaviour
         received_sps = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().PerfManager.RECEIVED_SPS;
         consumed_sps = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().PerfManager.CONSUMED_SPS;
         consume_rate = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().PerfManager.CONSUME_RATE;
-
     }
 
     void OnGUI()
