@@ -171,7 +171,7 @@ public class CommunicationController
     /// <summary>
     /// Send keepAlive message to MQTT Broker
     /// </summary>
-    public void KeepAliveSimController()
+    public void KeepAliveSimClient()
     {
         JSONObject msg = new JSONObject();
         msg.Add("keepAlive", true);

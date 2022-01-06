@@ -231,7 +231,7 @@ public class SimulationController : MonoBehaviour
     private void Update()
     {
         long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-        if (now - start_millis > 5000) { SendCheckStatus(); start_millis = now;}
+        if (now - start_millis > 1000) { SendCheckStatus(); start_millis = now;}
 
         if (!SimControllerThreadQueue.IsEmpty)
         {
@@ -436,6 +436,11 @@ public class SimulationController : MonoBehaviour
             {
                 if (CommController.SimMessageQueue.TryDequeue(out message))
                 {
+                    if (Utils.GetStepId(message.Message) < simulation.currentSimStep)
+                    {
+                        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | GOT AN OLD STEP!");
+                        continue;
+                    }
                     latestSimStepArrived = Utils.GetStepId(message.Message);
                     if(latestSimStepArrived.Equals(1))
                     {
@@ -1124,7 +1129,7 @@ public class SimulationController : MonoBehaviour
         // Send command
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CHECK_STATUS to MASON...");
         CommController.SendMessage(nickname, "000", payload);
-        CommController.KeepAliveSimController();
+        CommController.KeepAliveSimClient();
     }
 
     /// <summary>
