@@ -465,44 +465,10 @@ public class Simulation
     /// </summary>
     public void UpdateParamsFromJSON(JSONObject sim_params)
     {
-        // variables
-        object value;
-
-        // Get Sim parameters
-        foreach (JSONObject p in sim_params)
+        // Update Sim parameters
+        foreach (var p in sim_params)
         {
-            switch ((string)p["type"])
-            {
-                case "System.Single":
-                    value = (float)p["default"];
-                    break;
-                case "System.Int32":
-                    value = (int)p["default"];
-                    break;
-                case "System.Boolean":
-                    value = (bool)p["default"];
-                    break;
-                case "System.String":
-                    value = (string)p["default"];
-                    break;
-                default:
-                    value = null;
-                    break;
-            }
-            AddParameter(p["name"], value);
-            if ((bool)p["editable_in_play"])
-
-            {
-                EditableInPlay.Add(p["name"]);
-            }
-            if ((bool)p["editable_in_init"])
-            {
-                EditableInInit.Add(p["name"]);
-            }
-            if ((bool)p["editable_in_pause"])
-            {
-                EditableInPause.Add(p["name"]);
-            }
+            UpdateParameter(p.Key, p.Value);
         }
     }
 
@@ -1107,7 +1073,6 @@ public class Simulation
                 }                    
             }
         }
-
     }
 
     public override string ToString()

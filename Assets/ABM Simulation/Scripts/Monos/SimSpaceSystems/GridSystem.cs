@@ -149,12 +149,8 @@ public class GridSystem : SimSpaceSystem
     {
         if (toDelete != null)
         {
-            if (!toDelete.IsGhost)
-            {
-                foreach (Vector2Int cell in (MyList<Vector2Int>)((PO_Discrete)toDelete).GetCells()) grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject((PO_Discrete)toDelete);
-                placedObjectsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
-            }
-            else placedGhostsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
+            foreach (Vector2Int cell in (MyList<Vector2Int>)((PO_Discrete)toDelete).GetCells()) grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject((PO_Discrete)toDelete);
+            placedObjectsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
         }
     }
     public override Vector3 MouseClickToSpawnPosition(PlaceableObject po)

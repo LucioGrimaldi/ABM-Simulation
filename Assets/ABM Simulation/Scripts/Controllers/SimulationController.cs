@@ -124,13 +124,20 @@ public class SimulationController : MonoBehaviour
 
     /// State
     public static int sim_id = 0;
-    private StateEnum state = StateEnum.NOT_READY;
+    private StateEnum clientState = StateEnum.NOT_READY;
     private Simulation simulation;
+
+    public static int serverSide_simId = 0;
+    public static Simulation.StateEnum serverSide_simState = Simulation.StateEnum.NOT_READY;
     public enum StateEnum 
     {
         CONN_ERROR = -2,            // Error in connection
         NOT_READY = -1,             // Client is not connected
-        READY = 0                   // Client is ready to create a simulation
+        CONNECTED_MQTT = 0,         // Client is connected to MQTT Broker
+        LOGGED_IN = 1,              // Client is connected to Simulation Server
+        READY = 2,                  // Client is ready to join a Simulation
+        INIT = 3,                   // Client is Initializing a Simulation
+        IN_GAME = 4                 // Client has created/joined a Simulation
     }
     public enum Command
     {
@@ -191,7 +198,7 @@ public class SimulationController : MonoBehaviour
         // Bootstrack background tasks
         BootstrapBackgroundTasks();
 
-        state = StateEnum.READY;
+        clientState = StateEnum.CONNECTED_MQTT;
     }
     /// <summary>
     /// onEnable routine (Unity Process)
@@ -199,10 +206,9 @@ public class SimulationController : MonoBehaviour
     private void OnEnable()
     {
         // Register to EventHandlers
+        CommunicationController.OnControlClientConnectedHandler += onControlClientConnected;
         MenuController.OnNicknameEnterEventHandler += onNicknameEnter;
-        MenuController.OnLoadMainMenuHandler += onLoadMainMenu;
         MenuController.OnSimPrototypeConfirmedEventHandler += onSimPrototypeConfirmed;
-        MenuController.OnJoinSimulationEventHandler += onJoinSimulation;
         SceneController.OnLoadSimulationSceneEventHandler += onLoadSimulationScene;
         SceneController.OnSimObjectModifyEventHandler += onSimObjectModify;
         SceneController.OnSimObjectCreateEventHandler += onSimObjectCreate;
@@ -266,10 +272,9 @@ public class SimulationController : MonoBehaviour
     private void OnDisable()
     {
         // Unregister to EventHandlers
+        CommunicationController.OnControlClientConnectedHandler -= onControlClientConnected;
         MenuController.OnNicknameEnterEventHandler -= onNicknameEnter;
-        MenuController.OnLoadMainMenuHandler -= onLoadMainMenu;
         MenuController.OnSimPrototypeConfirmedEventHandler -= onSimPrototypeConfirmed;
-        MenuController.OnJoinSimulationEventHandler -= onJoinSimulation;
         SceneController.OnLoadSimulationSceneEventHandler -= onLoadSimulationScene;
         SceneController.OnSimObjectModifyEventHandler -= onSimObjectModify;
         SceneController.OnSimObjectCreateEventHandler -= onSimObjectCreate;
@@ -304,7 +309,7 @@ public class SimulationController : MonoBehaviour
     }
     public StateEnum GetState()
     {
-        return state;
+        return clientState;
     }
     public Simulation.StateEnum GetSimState()
     {
@@ -392,6 +397,7 @@ public class SimulationController : MonoBehaviour
 
         while (true)
         {
+            if (!clientState.Equals(StateEnum.IN_GAME)) continue;
             if ((CommController.SecondaryQueue.Count > SORTING_THRESHOLD && sim_state.Equals(Simulation.StateEnum.PLAY)) || (CommController.SecondaryQueue.Count > 0 && steps_to_consume > 0))
             {
                 if (!sim_state.Equals(Simulation.StateEnum.PLAY))
@@ -603,7 +609,7 @@ public class SimulationController : MonoBehaviour
     {
         SendCheckStatus();
     }
-    private void onLoadMainMenu(object sender, EventArgs e)
+    private void onControlClientConnected(object sender, EventArgs e)
     {
         CommController.SubscribeTopic(nickname);
     }
@@ -619,16 +625,13 @@ public class SimulationController : MonoBehaviour
     {
         SendSimInitialize(e.sim_prototype);
     }
-    private void onJoinSimulation(object sender, EventArgs e)
-    {
-        simulation.InitSimulationFromPrototype((JSONObject)sim_list_editable[sim_id]);
-    }
     private void onLoadSimulationScene(object sender, EventArgs e)
     {
+        clientState = StateEnum.IN_GAME;
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
         UIController = GameObject.Find("UIController").GetComponent<UIController>();
     }
-
+    
     /// <summary>
     /// UIController Event Handles
     /// </summary>
@@ -740,7 +743,7 @@ public class SimulationController : MonoBehaviour
     {
         try
         {
-            simulation.UpdateSimulationFromStep(e.Step, (JSONObject)sim_prototypes_list[sim_id]);
+            simulation.UpdateSimulationFromStep(e.Step, (JSONObject)sim_prototypes_list[serverSide_simId]);
             stepsConsumed++;
         }
         catch (Exception ex)
@@ -766,17 +769,23 @@ public class SimulationController : MonoBehaviour
     private void onCheckStatusResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
-        simulation.State = (Simulation.StateEnum) (int) ((JSONObject) e.Payload["payload_data"])["state"];
-        if(!simulation.State.Equals(Simulation.StateEnum.NOT_READY))
+
+        serverSide_simState = (Simulation.StateEnum) (int) ((JSONObject) e.Payload["payload_data"])["state"];
+        if(!serverSide_simState.Equals(Simulation.StateEnum.NOT_READY))
         {
-            sim_id = (int)((JSONObject)e.Payload["payload_data"])["simId"];
+            serverSide_simId = (int)((JSONObject)e.Payload["payload_data"])["simId"];
             PerfManager.PRODUCED_SPS = (int) ((JSONObject)e.Payload["payload_data"])["simStepRate"];
-            simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
+            if(clientState.Equals(StateEnum.IN_GAME)) simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
+        }
+        if (clientState.Equals(StateEnum.LOGGED_IN))
+        {
+            sim_id = serverSide_simId;
+            simulation.State = serverSide_simState;
         }
 
         //Check status for errors
 
-        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Server status checked: " + simulation.State + " .");
+        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Server status checked: " + serverSide_simState + " .");
 
         if (result) OnCheckStatusSuccessEventHandler?.Invoke(null, e);
         else OnCheckStatusUnsuccessEventHandler?.Invoke(null, e);
@@ -786,32 +795,41 @@ public class SimulationController : MonoBehaviour
     {
         bool result = e.Payload["result"];
         string nick = (string)((JSONObject)e.Payload["payload_data"])["sender"];
-        if(nick.Equals(nickname)) admin = (bool)((JSONObject)e.Payload["payload_data"])["isAdmin"];
 
-        state = result ? StateEnum.READY : StateEnum.CONN_ERROR;
+        if(nick.Equals(nickname)) admin = (bool)((JSONObject)e.Payload["payload_data"])["isAdmin"];
+        clientState = result ? StateEnum.LOGGED_IN : StateEnum.CONN_ERROR;
+        if (result) SendSimListRequest();
+
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | " + ((JSONObject)e.Payload["payload_data"])["sender"] + " " + (result ? "successfully" : "unsuccessfully") + " connected.");
 
         if (result) OnConnectionSuccessEventHandler?.Invoke(this, e);
         else OnConnectionUnsuccessEventHandler?.Invoke(this, e);
-
     }
     private void onDisconnectionResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
-        state = result ? StateEnum.NOT_READY : StateEnum.CONN_ERROR;
+        if(e.Payload["payload_data"]["sender"].Equals(nickname)) clientState = result ? StateEnum.NOT_READY : StateEnum.CONN_ERROR;
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | " + ((JSONObject)e.Payload["payload_data"])["sender"] + " " + (result ? "successfully" : "unsuccessfully") + " disconnected.");
 
         if (result) OnDisonnectionSuccessEventHandler?.Invoke(this, e);
         else OnDisconnectionUnsuccessEventHandler?.Invoke(this, e);
-
     }
     private void onSimListResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
 
-        if(result) sim_prototypes_list = result ? (JSONArray)((JSONObject)e.Payload["payload_data"])["list"] : new JSONArray();
+        clientState = result&&admin ? StateEnum.INIT : result ? StateEnum.READY : StateEnum.CONN_ERROR;
+
+        if (result)
+        {
+            sim_prototypes_list = (JSONArray)((JSONObject)e.Payload["payload_data"])["list"];
+            sim_list_editable = (JSONArray)sim_prototypes_list.Clone();
+        }
+        if (clientState.Equals(StateEnum.READY) && !serverSide_simState.Equals(Simulation.StateEnum.NOT_READY) && !serverSide_simState.Equals(Simulation.StateEnum.BUSY)) onJoinSimulation();
+
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Prototypes list " + (result ? "successfully" : "unsuccessfully") + " received from " + e.Sender + ".");
+
 
         if (result) OnSimListSuccessEventHandler?.Invoke(this, e);
         else OnSimListUnsuccessEventHandler?.Invoke(this, e);
@@ -821,9 +839,13 @@ public class SimulationController : MonoBehaviour
         bool result = e.Payload["result"];
 
         if (result) {
-            
-            if (e.Msg.Topic.Equals(nickname)) simulation.InitSimulationFromPrototype((JSONObject)sim_list_editable[sim_id]);
-            else simulation.InitSimulationFromPrototype((JSONObject)e.Payload["payload_data"]);
+
+            if (e.Payload["payload_data"]["sender"].Equals(nickname)) simulation.InitSimulationFromPrototype((JSONObject)sim_list_editable[sim_id]);
+            else
+            {
+                sim_id = e.Payload["payload_data"]["payload"]["id"];
+                simulation.InitSimulationFromPrototype((JSONObject)e.Payload["payload_data"]["payload"]);
+            }
 
             UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
 
@@ -837,7 +859,7 @@ public class SimulationController : MonoBehaviour
 
         if (result)
         {
-            simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
+            //simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
             uncommitted_updatesJSON.Clear();
             uncommitted_updates.Clear();
         }
@@ -882,6 +904,16 @@ public class SimulationController : MonoBehaviour
         if (result) OnClientErrorSuccessEventHandler?.Invoke(this, e);
         else OnClientErrorUnsuccessEventHandler?.Invoke(this, e);
 
+    }
+
+    /// Support Methods
+    private void onJoinSimulation()
+    {
+        Simulation.state = serverSide_simState;
+        sim_id = serverSide_simId;
+        // sendCheckStatus and wait for response
+        simulation.InitSimulationFromPrototype((JSONObject)sim_list_editable[serverSide_simId]);
+        MenuController.JoinSimulation();
     }
 
     /// Store Methods
@@ -1212,7 +1244,7 @@ public class SimulationController : MonoBehaviour
         // Create payload
         JSONObject payload = new JSONObject();
         payload.Add("response_to_op", response_to_op);
-        payload.Add("response", state.ToString());
+        payload.Add("response", clientState.ToString());
         // Send command
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending RESPONSE to MASON...");
         CommController.SendMessage(nickname, "007", payload);

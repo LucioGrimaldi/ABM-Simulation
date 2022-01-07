@@ -17,6 +17,7 @@ public class MenuController : MonoBehaviour
     public enum MenuState
     {
         MAIN,
+        WAITING,
         SETTINGS,
         NEWSIM,
         SIM_SETTINGS,
@@ -40,8 +41,6 @@ public class MenuController : MonoBehaviour
     // UI Events
     public static event EventHandler<NicknameEnterEventArgs> OnNicknameEnterEventHandler;
     public static event EventHandler<SimPrototypeConfirmedEventArgs> OnSimPrototypeConfirmedEventHandler;
-    public static event EventHandler<EventArgs> OnJoinSimulationEventHandler;
-    public static event EventHandler<EventArgs> OnLoadMainMenuHandler;
 
     // UI Action Queue
     public static readonly ConcurrentQueue<Action> MenuMainThreadQueue = new ConcurrentQueue<Action>();
@@ -83,7 +82,6 @@ public class MenuController : MonoBehaviour
     private void OnEnable()
     {
         // Register to EventHandlers
-        CommunicationController.OnControlClientConnectedHandler += onControlClientConnected;
         SimulationController.OnConnectionSuccessEventHandler += onConnectionSuccess;
         SimulationController.OnConnectionUnsuccessEventHandler += onConnectionUnsuccess;
         SimulationController.OnCheckStatusSuccessEventHandler += onCheckStatusSuccess;
@@ -112,7 +110,7 @@ public class MenuController : MonoBehaviour
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
     /// </summary>
-    void OnApplicationQuit()
+    private void OnApplicationQuit()
     {
         while(MenuMainThreadQueue.TryDequeue(out _));
     }
@@ -122,7 +120,6 @@ public class MenuController : MonoBehaviour
     private void OnDisable()
     {
         // Unregister to EventHandlers
-        CommunicationController.OnControlClientConnectedHandler -= onControlClientConnected;
         SimulationController.OnConnectionSuccessEventHandler -= onConnectionSuccess;
         SimulationController.OnConnectionUnsuccessEventHandler -= onConnectionUnsuccess;
         SimulationController.OnCheckStatusSuccessEventHandler -= onCheckStatusSuccess;
@@ -146,10 +143,6 @@ public class MenuController : MonoBehaviour
 
     // Event Callbacks (NOT ON MAIN THREAD!)
 
-    private void onControlClientConnected(object sender, EventArgs e)
-    {
-        OnLoadMainMenuHandler?.BeginInvoke(sender, e, EndInvoke, null);
-    }
     private void onConnectionSuccess(object sender, ReceivedMessageEventArgs e)
     {
         if (SimulationController.admin)
@@ -163,17 +156,15 @@ public class MenuController : MonoBehaviour
         {
             MenuMainThreadQueue.Enqueue(() =>
             {
-                switch (Simulation.state)
+                switch (SimulationController.serverSide_simState)
                 {
                     case Simulation.StateEnum.NOT_READY:
                     case Simulation.StateEnum.BUSY:
+                        menuState = MenuState.WAITING;
                         ShowHidePanelBusy();
                         mainMenu.SetActive(false);
                         break;
-                    default:
-                        JoinSimulation();
-                        break;
-                }                
+                }         
             });
         }
     }
@@ -193,7 +184,7 @@ public class MenuController : MonoBehaviour
     {
         if (menuState.Equals(MenuState.MAIN))
         {
-            switch (Simulation.state)
+            switch ((Simulation.StateEnum)(int)((JSONObject)e.Payload["payload_data"])["state"])
             {
                 case Simulation.StateEnum.NOT_READY:
                     MenuMainThreadQueue.Enqueue(() => { SetSimButton(true); });
@@ -209,9 +200,7 @@ public class MenuController : MonoBehaviour
         // TODO
     }
     private void onSimListSuccess(object sender, ReceivedMessageEventArgs e)
-    {
-        SimulationController.sim_list_editable = (JSONArray)e.Payload["payload_data"]["list"].Clone();
-        
+    {        
         if (SimulationController.admin)
         {
             MenuMainThreadQueue.Enqueue(() => { ChangeMenuState(); });
@@ -232,12 +221,8 @@ public class MenuController : MonoBehaviour
     {
         // TODO
     }
-    private void EndInvoke(IAsyncResult result)
-    {
-        OnLoadMainMenuHandler?.EndInvoke(result);
-    }
 
-    //ALTRI METODI
+    // ALTRI METODI
 
     public void CheckNickname()
     {
@@ -292,6 +277,11 @@ public class MenuController : MonoBehaviour
             }
         }
     }
+    public void OnLoadSimulationScene()
+    {
+        ConfirmEditedPrototype();
+        StoreDataPreferences(nicknameField.text, showSimSpace, showEnvironment, musicVolume, effectsVolume);
+    }
     public void ConfirmEditedPrototype()
     {
         SimPrototypeConfirmedEventArgs e = new SimPrototypeConfirmedEventArgs();
@@ -306,6 +296,11 @@ public class MenuController : MonoBehaviour
         playerPreferencesSO.musicVolume = musicVolume;
         playerPreferencesSO.effectsVolume = effectsVolume;
 
+    }
+    public void JoinSimulation()
+    {
+        StoreDataPreferences(nicknameField.text, showSimSpace, showEnvironment, musicVolume, effectsVolume);
+        MenuMainThreadQueue.Enqueue(() => { SceneManager.LoadScene("MainScene"); });
     }
     public void ChangeMenuState()
     {
@@ -337,12 +332,6 @@ public class MenuController : MonoBehaviour
                 return;
             } 
         } 
-    }
-    public void JoinSimulation()
-    {
-        OnJoinSimulationEventHandler.BeginInvoke(this, new EventArgs(), null, null);
-        OnLoadSimulationScene();
-        MenuMainThreadQueue.Enqueue(() => { SceneManager.LoadScene("MainScene"); });
     }
 
     private void LoadSimNames(JSONArray simList)
@@ -612,11 +601,6 @@ public class MenuController : MonoBehaviour
 
         //agentImage.sprite = spriteBirdModel;
 
-    }
-    public void OnLoadSimulationScene()
-    {
-        ConfirmEditedPrototype();
-        StoreDataPreferences(nicknameField.text, showSimSpace, showEnvironment, musicVolume, effectsVolume);
     }
     public void SetMusicVolume(float volume)
     {
