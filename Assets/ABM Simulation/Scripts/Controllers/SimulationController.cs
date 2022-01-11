@@ -796,9 +796,12 @@ public class SimulationController : MonoBehaviour
         bool result = e.Payload["result"];
         string nick = (string)((JSONObject)e.Payload["payload_data"])["sender"];
 
-        if(nick.Equals(nickname)) admin = (bool)((JSONObject)e.Payload["payload_data"])["isAdmin"];
-        clientState = result ? StateEnum.LOGGED_IN : StateEnum.CONN_ERROR;
-        if (result) SendSimListRequest();
+        if (nick.Equals(nickname))
+        {
+            clientState = result ? StateEnum.LOGGED_IN : StateEnum.CONN_ERROR;
+            admin = (bool)((JSONObject)e.Payload["payload_data"])["isAdmin"];
+            if (result) SendSimListRequest();
+        }
 
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | " + ((JSONObject)e.Payload["payload_data"])["sender"] + " " + (result ? "successfully" : "unsuccessfully") + " connected.");
 
@@ -818,7 +821,6 @@ public class SimulationController : MonoBehaviour
     private void onSimListResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
-
         clientState = result&&admin ? StateEnum.INIT : result ? StateEnum.READY : StateEnum.CONN_ERROR;
 
         if (result)
@@ -829,7 +831,6 @@ public class SimulationController : MonoBehaviour
         if (clientState.Equals(StateEnum.READY) && !serverSide_simState.Equals(Simulation.StateEnum.NOT_READY) && !serverSide_simState.Equals(Simulation.StateEnum.BUSY)) onJoinSimulation();
 
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Prototypes list " + (result ? "successfully" : "unsuccessfully") + " received from " + e.Sender + ".");
-
 
         if (result) OnSimListSuccessEventHandler?.Invoke(this, e);
         else OnSimListUnsuccessEventHandler?.Invoke(this, e);
