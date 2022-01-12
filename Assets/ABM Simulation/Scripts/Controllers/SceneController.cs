@@ -119,8 +119,6 @@ public class SceneController : MonoBehaviour
     /// </summary>
     private void OnApplicationQuit()
     {
-        simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].Dispose();
-        simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].Dispose();
         while (SceneControllerThreadQueue.TryDequeue(out _)) ;
     }
     /// <summary>
@@ -136,8 +134,6 @@ public class SceneController : MonoBehaviour
     /// </summary>
     private void OnDestroy()
     {
-        simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].Dispose();
-        simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].Dispose();
         while (SceneControllerThreadQueue.TryDequeue(out _)) ;
     }
 
@@ -393,7 +389,11 @@ public class SceneController : MonoBehaviour
     }
     public void DeleteTempGhost(SimObject.SimObjectType type, String class_name, int id)
     {
-        if(SimSpaceSystem.GetTemporaryGhosts().TryGetValue((type, class_name, id), out (bool, PlaceableObject) x)) x.Item2.Destroy();
+        if (SimSpaceSystem.GetTemporaryGhosts().TryGetValue((type, class_name, id), out (bool, PlaceableObject) x))
+        {
+            SimSpaceSystem.DeleteSimObject(x.Item2);
+            SceneControllerThreadQueue.Enqueue(() => { x.Item2.Destroy(); });
+        }
     }
     public void ConfirmTempGhosts()
     {

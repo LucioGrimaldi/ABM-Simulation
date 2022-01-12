@@ -10,5 +10,10 @@ public class ShaderManager : MonoBehaviour
         simulationSpace = this.gameObject;
     }
 
+    private void OnDestroy()
+    {
+        computeBuffers[0].Dispose();
+        computeBuffers[1].Dispose();
+    }
 
 }

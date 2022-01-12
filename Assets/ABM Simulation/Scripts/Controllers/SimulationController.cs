@@ -196,7 +196,7 @@ public class SimulationController : MonoBehaviour
         DontDestroyOnLoad(this.gameObject);
 
         // Bootstrack background tasks
-        BootstrapBackgroundTasks();
+        BootstrapControlTasks();
 
         clientState = StateEnum.CONNECTED_MQTT;
     }
@@ -333,12 +333,15 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// Bootstrap background tasks
     /// </summary>
-    private void BootstrapBackgroundTasks()
+    private void BootstrapControlTasks()
     {
         CommController.StartControlClient();
+        StartMessageQueueHandlerThread();
+    }
+    private void BootstrapSimulationTasks()
+    {
         CommController.StartSimulationClient();
         StartPerformanceManagerThread();
-        StartMessageQueueHandlerThread();
         StartStepQueueHandlerThread();
     }
 
@@ -627,6 +630,7 @@ public class SimulationController : MonoBehaviour
     }
     private void onLoadSimulationScene(object sender, EventArgs e)
     {
+        BootstrapSimulationTasks();
         clientState = StateEnum.IN_GAME;
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
         UIController = GameObject.Find("UIController").GetComponent<UIController>();
@@ -777,7 +781,7 @@ public class SimulationController : MonoBehaviour
             PerfManager.PRODUCED_SPS = (int) ((JSONObject)e.Payload["payload_data"])["simStepRate"];
             if(clientState.Equals(StateEnum.IN_GAME)) simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
         }
-        if (clientState.Equals(StateEnum.LOGGED_IN))
+        if (clientState.Equals(StateEnum.READY) || clientState.Equals(StateEnum.IN_GAME))
         {
             sim_id = serverSide_simId;
             simulation.State = serverSide_simState;
@@ -1162,7 +1166,10 @@ public class SimulationController : MonoBehaviour
         // Send command
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CHECK_STATUS to MASON...");
         CommController.SendMessage(nickname, "000", payload);
-        CommController.KeepAliveSimClient();
+        if (clientState.Equals(StateEnum.IN_GAME))
+        {
+            CommController.KeepAliveSimClient();
+        }
     }
 
     /// <summary>

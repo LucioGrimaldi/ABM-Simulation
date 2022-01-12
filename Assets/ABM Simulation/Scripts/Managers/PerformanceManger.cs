@@ -43,16 +43,15 @@ public class PerformanceManger
                 stopwatch.Stop();
                 timestamp_last_update = stopwatch.ElapsedMilliseconds;
                 stopwatch.Start();
-                if (CONSUME_RATE >= 1d && timestamp_last_update > TIMEOUT_TARGET_UP)
+                if (CONSUME_RATE >= 1d && timestamp_last_update > TIMEOUT_TARGET_UP && !(CommController.SimMessageQueue.Count + CommController.SecondaryQueue.Count >= 2 * SORTING_THRESHOLD))
                 {
-                    if (CommController.SimMessageQueue.Count + CommController.SecondaryQueue.Count >= SORTING_THRESHOLD) continue;
                     ATTEMPTED_SPS = (CommController.SimMessageQueue.Count == 0) ? Math.Min(TOPICS.Length + 2, MAX_SPS) : Math.Min(TOPICS.Length + 1, MAX_SPS);
                     CalculateTargetTopics();
                     CommController.SubscribeOnly(TOPICS);
                 }
                 else if (CONSUME_RATE < 1d && timestamp_last_update > TIMEOUT_TARGET_DOWN)
                 {
-                    ATTEMPTED_SPS = (CommController.SimMessageQueue.Count + CommController.SecondaryQueue.Count >= SORTING_THRESHOLD) ? Math.Max(TOPICS.Length - 4, MIN_SPS) : Math.Max(TOPICS.Length - 2, MIN_SPS);
+                    ATTEMPTED_SPS = (CommController.SimMessageQueue.Count + CommController.SecondaryQueue.Count >= 2*SORTING_THRESHOLD) ? Math.Max(TOPICS.Length - 4, MIN_SPS) : Math.Max(TOPICS.Length - 2, MIN_SPS);
                     CalculateTargetTopics();
                     CommController.SubscribeOnly(TOPICS);
                 }

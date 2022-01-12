@@ -989,7 +989,6 @@ public class Simulation
         toDeleteIfNotInStep.Clear();
         toDeleteIfNotInStep.AddRange(temp);
         temp.Clear();
-
     }
 
     /// <summary>
