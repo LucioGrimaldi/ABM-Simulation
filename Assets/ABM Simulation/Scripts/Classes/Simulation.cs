@@ -152,7 +152,6 @@ public class Simulation
     }
 
     /// Get/Add/Update Sim params ///
-
     public object GetParameter(string param_name)
     {
         object parameter;
@@ -168,9 +167,7 @@ public class Simulation
 
     }
 
-
-    /// Utils ///
-
+    /// Init/Update methods ///
     /// <summary>
     /// Load/Init Simulation from JSON
     /// </summary>
@@ -459,7 +456,6 @@ public class Simulation
 
         UnityEngine.Debug.Log("SIMULATION UPDATED FROM PROTOTYPE: " + this.ToString());
     }
-
     /// <summary>
     /// Load Simulation Params from JSON
     /// </summary>
@@ -471,7 +467,6 @@ public class Simulation
             UpdateParameter(p.Key, p.Value);
         }
     }
-
     /// <summary>
     /// Extract byte[] step and update Simulation accordingly 
     /// </summary>
@@ -989,8 +984,9 @@ public class Simulation
         toDeleteIfNotInStep.Clear();
         toDeleteIfNotInStep.AddRange(temp);
         temp.Clear();
-    }
 
+        UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP " + currentSimStep + " : ed è " + (complete ? "completo" : "non completo."));
+    }
     /// <summary>
     /// Update Simulation from uncommited_update
     /// </summary>
@@ -1074,6 +1070,7 @@ public class Simulation
         }
     }
 
+    /// Utils ///
     public override string ToString()
     {
         return

@@ -63,6 +63,7 @@ public class SceneController : MonoBehaviour
     {
         // Ignore collisions for performance
         Physics.IgnoreLayerCollision(9, 9, true);
+        Physics.IgnoreLayerCollision(9, 10, true);
 
         // Bind Controllers
         SimulationController = GameObject.Find("SimulationController").GetComponent<SimulationController>();
@@ -78,7 +79,6 @@ public class SceneController : MonoBehaviour
         isDiscrete = simType.Equals(Simulation.SimTypeEnum.DISCRETE);
         InitSimSpaceSystem();
         InitScene();
-
     }
     /// <summary>
     /// onEnable routine (Unity Process)
@@ -373,6 +373,21 @@ public class SceneController : MonoBehaviour
         ShowInspector(selectedGhost);
     }
 
+    // Inspector
+    public void ShowInspector(PlaceableObject po)
+    {
+        PopulateInspector(po);
+        if (!UIController.showInspectorPanel) UIController.ShowHidePanelInspector();
+    }
+    public void HideInspector()
+    {
+        if (UIController.showInspectorPanel) UIController.ShowHidePanelInspector();
+    }
+    public void PopulateInspector(PlaceableObject po)
+    {
+        UIController.PopulateInspector(po);
+    }
+
     // PlacedObjects
     public PlaceableObject CreateGhost(SimObject simObject, PlaceableObject ghost, bool isMovable)
     {
@@ -556,25 +571,6 @@ public class SceneController : MonoBehaviour
         simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetCounterValue(0);
         simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(f_cells);
         simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(h_cells);
-
-        //Debug.Log("Pheromones to Food: " + fn);
-        //Debug.Log("Pheromones to Home: " + (pheromones.Count - fn));
-
-    }
-
-    // Inspector
-    public void ShowInspector(PlaceableObject po)
-    {
-        PopulateInspector(po);
-        if (!UIController.showInspectorPanel) UIController.ShowHidePanelInspector();
-    }
-    public void HideInspector()
-    {
-        if (UIController.showInspectorPanel) UIController.ShowHidePanelInspector();
-    }
-    public void PopulateInspector(PlaceableObject po)
-    {
-        UIController.PopulateInspector(po);
     }
 
     // Utils

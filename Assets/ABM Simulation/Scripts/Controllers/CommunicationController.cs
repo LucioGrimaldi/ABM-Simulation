@@ -21,7 +21,7 @@ public class CommunicationController
     /// MQTT CLIENTS ///
     private MQTTControlClient controlClient = new MQTTControlClient();
     private MQTTSimClient simClient = new MQTTSimClient();
-    private static Boolean sim_client_ready = false, control_client_ready = false;
+    private static bool sim_client_ready = false, control_client_ready = false;
 
     /// THREADS ///
     private Thread controlClientThread;
@@ -31,8 +31,8 @@ public class CommunicationController
     public ConcurrentQueue<MqttMsgPublishEventArgs> MessageQueue { get => messageQueue; set => messageQueue = value; }
     public ConcurrentQueue<MqttMsgPublishEventArgs> SimMessageQueue { get => simMessageQueue; set => simMessageQueue = value; }
     public SortedList<long, byte[]> SecondaryQueue { get => secondaryQueue; set => secondaryQueue = value; }
-    public static Boolean SIM_CLIENT_READY { get => sim_client_ready; set => sim_client_ready = value; }
-    public static Boolean CONTROL_CLIENT_READY { get => control_client_ready; set => control_client_ready = value; }
+    public static bool SIM_CLIENT_READY { get => sim_client_ready; set => sim_client_ready = value; }
+    public static bool CONTROL_CLIENT_READY { get => control_client_ready; set => control_client_ready = value; }
     
     /// METHODS ///
     

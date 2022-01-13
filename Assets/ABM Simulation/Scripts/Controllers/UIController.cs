@@ -17,7 +17,6 @@ public class UIController : MonoBehaviour
     [SerializeField] private PlayerPreferencesSO playerPreferencesSO;
 
     // UI Events
-    public static event EventHandler<EventArgs> OnLoadMainSceneEventHandler;
     public static event EventHandler<EventArgs> OnPlayEventHandler;
     public static event EventHandler<EventArgs> OnPauseEventHandler;
     public static event EventHandler<EventArgs> OnStopEventHandler;
@@ -79,7 +78,6 @@ public class UIController : MonoBehaviour
     /// </summary>
     void Start()
     {
-        OnLoadMainSceneEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
         AgentsData = SceneController.PO_Prefab_Collection[simId].PO_AgentPrefabs;
         GenericsData = SceneController.PO_Prefab_Collection[simId].PO_GenericPrefabs;
         ObstaclesData = SceneController.PO_Prefab_Collection[simId].PO_ObstaclePrefabs;

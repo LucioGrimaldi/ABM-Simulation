@@ -213,7 +213,6 @@ public class SimulationController : MonoBehaviour
         SceneController.OnSimObjectModifyEventHandler += onSimObjectModify;
         SceneController.OnSimObjectCreateEventHandler += onSimObjectCreate;
         SceneController.OnSimObjectDeleteEventHandler += onSimObjectDelete;
-        UIController.OnLoadMainSceneEventHandler += onLoadMainScene;
         UIController.OnPlayEventHandler += onPlay;
         UIController.OnPauseEventHandler += onPause;
         UIController.OnStopEventHandler += onStop;
@@ -279,7 +278,6 @@ public class SimulationController : MonoBehaviour
         SceneController.OnSimObjectModifyEventHandler -= onSimObjectModify;
         SceneController.OnSimObjectCreateEventHandler -= onSimObjectCreate;
         SceneController.OnSimObjectDeleteEventHandler -= onSimObjectDelete;
-        UIController.OnLoadMainSceneEventHandler -= onLoadMainScene;
         UIController.OnPlayEventHandler -= onPlay;
         UIController.OnPauseEventHandler -= onPause;
         UIController.OnStopEventHandler -= onStop;
@@ -389,7 +387,34 @@ public class SimulationController : MonoBehaviour
         }
         catch (ThreadAbortException e) { Debug.LogError(e); }
     }
+    /// <summary>
+    /// Handles messages from MASON
+    /// </summary>
+    public void MessageQueueHandler()
+    {
+        JSONObject json_response, payload;
+        MqttMsgPublishEventArgs msg;
+        string sender, op;
+        while (CommController.messageQueue == null) {}
+        while (true)
+        {
+            if (CommController.messageQueue.TryDequeue(out msg))
+            {
+                json_response = (JSONObject)JSON.Parse(System.Text.Encoding.Unicode.GetString(Utils.DecompressStepPayload(msg.Message)));
+                sender = json_response["sender"];
+                op = json_response["op"];
+                payload = (JSONObject)json_response["payload"];
 
+                ReceivedMessageEventArgs e = new ReceivedMessageEventArgs();
+                e.Msg = msg;
+                e.Sender = sender;
+                e.Op = op;
+                e.Payload = payload;
+
+                MessageEventHandler.BeginInvoke(this, e, null, null);
+            }
+        }
+    }
     /// <summary>
     /// Orders steps and updates last arrived one
     /// </summary>
@@ -412,7 +437,6 @@ public class SimulationController : MonoBehaviour
                             StepMessageEventArgs e = new StepMessageEventArgs();
                             e.Step = CommController.SecondaryQueue.Values[0];
                             StepMessageEventHandler?.Invoke(this, e);
-                            ChangeState(Command.STEP);
 
                             CommController.SecondaryQueue.RemoveAt(0);
                             --steps_to_consume;
@@ -439,7 +463,6 @@ public class SimulationController : MonoBehaviour
                         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Step Queue Empty!");
                     }
                 }
-
             }
             if (CommController.SimMessageQueue.Count > 0)
             {
@@ -469,34 +492,6 @@ public class SimulationController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Handles messages from MASON
-    /// </summary>
-    public void MessageQueueHandler()
-    {
-        JSONObject json_response, payload;
-        MqttMsgPublishEventArgs msg;
-        string sender, op;
-        while (CommController.messageQueue == null) {}
-        while (true)
-        {
-            if (CommController.messageQueue.TryDequeue(out msg))
-            {
-                json_response = (JSONObject)JSON.Parse(System.Text.Encoding.Unicode.GetString(Utils.DecompressStepPayload(msg.Message)));
-                sender = json_response["sender"];
-                op = json_response["op"];
-                payload = (JSONObject)json_response["payload"];
-
-                ReceivedMessageEventArgs e = new ReceivedMessageEventArgs();
-                e.Msg = msg;
-                e.Sender = sender;
-                e.Op = op;
-                e.Payload = payload;
-
-                MessageEventHandler.BeginInvoke(this, e, null, null);
-            }
-        }
-    }
 
     /// Performance Monitor
     public void StartPerformanceManagerThread()
@@ -527,10 +522,8 @@ public class SimulationController : MonoBehaviour
     public void Step()
     {
         // check state
-        steps_to_consume++;
         SendSimCommand(Command.STEP, 0);
     }
-
     /// <summary>
     /// Play simulation
     /// </summary>
@@ -542,7 +535,6 @@ public class SimulationController : MonoBehaviour
             SendSimCommand(Command.PLAY, 0);
         }
     }
-
     /// <summary>
     /// Pause simulation
     /// </summary>
@@ -552,7 +544,6 @@ public class SimulationController : MonoBehaviour
         if (simulation.State == Simulation.StateEnum.PAUSE || simulation.State == Simulation.StateEnum.STEP || simulation.State == Simulation.StateEnum.READY) { Step(); return; }
         SendSimCommand(Command.PAUSE, 0);
     }
-
     /// <summary>
     /// Stop simulation
     /// </summary>
@@ -562,7 +553,6 @@ public class SimulationController : MonoBehaviour
         if (simulation.State == Simulation.StateEnum.READY) {return;}
         SendSimCommand(Command.STOP, 0);
     }
-
     /// <summary>
     /// Change simulation state
     /// </summary>
@@ -572,6 +562,7 @@ public class SimulationController : MonoBehaviour
         {
             case Command.STEP:
                 simulation.State = Simulation.StateEnum.STEP;
+                steps_to_consume++;
                 break;
             case Command.PLAY:
                 simulation.State = Simulation.StateEnum.PLAY;
@@ -582,14 +573,13 @@ public class SimulationController : MonoBehaviour
             case Command.STOP:
                 simulation.State = Simulation.StateEnum.READY;
                 latestSimStepArrived = 0;
-                simulation.CurrentSimStep = -1;
+                simulation.CurrentSimStep = 0;
                 CommController.EmptyQueues();
                 break;
             case Command.SPEED:
                 break;
         }
     }
-
     /// <summary>
     /// Change simulation speed
     /// </summary>
@@ -634,6 +624,8 @@ public class SimulationController : MonoBehaviour
         clientState = StateEnum.IN_GAME;
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
         UIController = GameObject.Find("UIController").GetComponent<UIController>();
+        while(!CommunicationController.SIM_CLIENT_READY) { }
+        Step();
     }
     
     /// <summary>
@@ -654,10 +646,6 @@ public class SimulationController : MonoBehaviour
     private void onSpeedChange(object sender, SpeedChangeEventArgs e)
     {
         ChangeSpeed((Simulation.SpeedEnum)e.Speed);
-    }
-    private void onLoadMainScene(object sender, EventArgs e)
-    {
-        Step();
     }
     private void onSimParamsUpdate(object sender, SimParamsUpdateEventArgs e)
     {
@@ -764,6 +752,7 @@ public class SimulationController : MonoBehaviour
     private void onNewAdmin(ReceivedMessageEventArgs e)
     {
         string new_admin = e.Payload["new_admin"];
+        UIController.nickname.text = new_admin;
         admin = new_admin.Equals(nickname);
 
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | NEW_ADMIN MESSAGE RECEIVED. | " + (admin ? "You are" : new_admin + " is") + " the new room admin.");
@@ -892,7 +881,7 @@ public class SimulationController : MonoBehaviour
                 Simulation.SpeedEnum value = (Simulation.SpeedEnum)((int)payload["value"]);
                 simulation.speed = value;
             }
-            else if (!command.Equals(Command.STEP)) ChangeState(command);
+            else ChangeState(command);
         }
 
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Command: " + command + " " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");

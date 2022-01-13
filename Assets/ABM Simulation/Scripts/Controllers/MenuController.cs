@@ -277,6 +277,11 @@ public class MenuController : MonoBehaviour
             }
         }
     }
+    public void JoinSimulation()
+    {
+        StoreDataPreferences(nicknameField.text, showSimSpace, showEnvironment, musicVolume, effectsVolume);
+        MenuMainThreadQueue.Enqueue(() => { SceneManager.LoadScene("MainScene"); });
+    }
     public void OnLoadSimulationScene()
     {
         ConfirmEditedPrototype();
@@ -296,11 +301,6 @@ public class MenuController : MonoBehaviour
         playerPreferencesSO.musicVolume = musicVolume;
         playerPreferencesSO.effectsVolume = effectsVolume;
 
-    }
-    public void JoinSimulation()
-    {
-        StoreDataPreferences(nicknameField.text, showSimSpace, showEnvironment, musicVolume, effectsVolume);
-        MenuMainThreadQueue.Enqueue(() => { SceneManager.LoadScene("MainScene"); });
     }
     public void ChangeMenuState()
     {
