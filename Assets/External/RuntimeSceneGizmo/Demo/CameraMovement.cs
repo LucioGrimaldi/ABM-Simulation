@@ -5,7 +5,7 @@ namespace RuntimeSceneGizmo
 	public class CameraMovement : MonoBehaviour
 	{
 #pragma warning disable 0649
-		[SerializeField] private float normalSpeed = 0.1f, fastSpeed = 0.3f, scrollSpeed = 8;
+		[SerializeField] private float normalSpeed = 0.2f, fastSpeed = 0.5f, scrollSpeed = 8;
 		[SerializeField] private Camera mainCamera;
 		[SerializeField] private float movementTime = 10f;
 
@@ -23,7 +23,7 @@ namespace RuntimeSceneGizmo
         }
         private void Update()
 		{
-
+			
 		}
 
         private void LateUpdate()
@@ -42,13 +42,13 @@ namespace RuntimeSceneGizmo
             {
 				speed = normalSpeed;
             }
-			if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+			if (Input.GetKey(KeyCode.W))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.forward * speed);
 				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
-			if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+			if (Input.GetKey(KeyCode.S))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.forward * -speed);
@@ -66,13 +66,13 @@ namespace RuntimeSceneGizmo
 					newPosition += new Vector3(0, speed, 0);
 				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
-			if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+			if (Input.GetKey(KeyCode.A))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.right * -speed);
 				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
-			if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+			if (Input.GetKey(KeyCode.D))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.right * speed);

@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInfosSO
   nickname: ISISLab
   showSimSpace: 1
-  effectsVolume: 0.5
-  musicVolume: 0.3
   showEnvironment: 0
+  musicVolume: 0.3
+  effectsVolume: 0.5
   Environment: 0
   SimSpace2D: 0
   SimSpace3D: 0

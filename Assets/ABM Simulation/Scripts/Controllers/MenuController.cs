@@ -47,16 +47,17 @@ public class MenuController : MonoBehaviour
 
     // Variables
     public TMP_Dropdown dropdownSimTypes, dropdownAgents, dropdownObjects;
-    public TMP_Text simDescription, simDescription2, simName, emptyScrollText;
+    public TMP_Text simDescription, simDescription2, simName, emptyScrollText, currentAdminLabel;
+    public Sprite[] nickCheckSprite, muteUnmuteSprites;
     public Image simImage1, simImage2, agentImage;
-    public GameObject nickCheckSign, inMenuParamPrefab, inMenuTogglePrefab, settingsScrollContent, agentsScrollContent, objectsScrollContent, simToggle, envToggle;
+    public GameObject nickCheckSign, inMenuParamPrefab, inMenuTogglePrefab, settingsScrollContent, dimensionsScrollContent, agentsAmountsScrollContent, agentsScrollContent, objectsScrollContent, simToggle, envToggle, muteUnmuteAudio;
     public InputField nicknameField;
     public Button newSimButton, joinSimButton, simSettingsButton, agentsSettingsButton, objectsSettingsButton;
     public AudioSource backgroundMusic, testAudioEffect;
     public Slider musicSlider, effectsSlider;
     public GameObject mainMenu, newSimScreen, panelBusy;
-    private float musicVolume, effectsVolume;
-    private bool showSimSpace, showEnvironment, showPanelBusy = false;
+    private float musicVolume, effectsVolume, audioVolumeTemp;
+    private bool showSimSpace, showEnvironment, muteAudio = true, showPanelBusy = false;
     
     
     // UNITY LOOP METHODS
@@ -106,6 +107,16 @@ public class MenuController : MonoBehaviour
 
         backgroundMusic.volume = musicVolume;
         testAudioEffect.volume = effectsVolume;
+
+        if (musicSlider.value == 0)
+        {
+            muteUnmuteAudio.GetComponent<Image>().sprite = muteUnmuteSprites[1];
+            muteAudio = false;
+        }
+        else {
+            muteUnmuteAudio.GetComponent<Image>().sprite = muteUnmuteSprites[0];
+            muteAudio = true;
+        }
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -229,15 +240,26 @@ public class MenuController : MonoBehaviour
         bool nickAvail = true;
         if (nicknameField.text.Length > 0 && nicknameField.text.Length < 16 && !nicknameField.text.Contains(" ") && nickAvail)
         {
-            nickCheckSign.SetActive(true);
+            //nickCheckSign.SetActive(true);
+            nickCheckSign.GetComponent<Image>().color = Color.green;
+            nickCheckSign.GetComponent<Image>().sprite = nickCheckSprite[0];
             newSimButton.interactable = true;
             joinSimButton.interactable = true;
         }
         else
         {
-            nickCheckSign.SetActive(false);
+            //nickCheckSign.SetActive(false);
+            nickCheckSign.GetComponent<Image>().color = Color.red;
+            nickCheckSign.GetComponent<Image>().sprite = nickCheckSprite[1];
             newSimButton.interactable = false;
             joinSimButton.interactable = false;
+
+            if (nicknameField.text.Contains(" "))
+                nicknameField.placeholder.GetComponent<Text>().text = "Cannot contain spaces";
+            else if (!nickAvail)
+                nicknameField.placeholder.GetComponent<Text>().text = "Nick already taken";
+            else if (nicknameField.text.Length > 15)
+                nicknameField.placeholder.GetComponent<Text>().text = "Nick too long!";
         }
     }
     public void SavePlayerName()
@@ -490,6 +512,54 @@ public class MenuController : MonoBehaviour
             emptyScrollText.gameObject.SetActive(true);
         }
     }
+
+    public void LoadSimDimentions(GameObject scrollContent, JSONArray dimensions)
+    {
+        foreach (JSONObject p in dimensions)
+        {
+            GameObject param;
+            switch ((string)p["type"])
+            {
+                case "System.Single":
+                    param = Instantiate(inMenuParamPrefab);
+                    param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
+                    param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onSimParamModified(p["name"], float.Parse(value.Replace('.', ','))));  // TODO ----------------
+                    break;
+                case "System.Int32":
+                    param = Instantiate(inMenuParamPrefab);
+                    param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
+                    param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onSimParamModified(p["name"], int.Parse(value))); // TODO ----------------
+                    break;
+                default:
+                    return;
+            }
+            param.transform.SetParent(scrollContent.transform);
+
+            param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
+            param.GetComponentInChildren<InputField>().characterLimit = 20;
+            param.transform.Find("Param Name").GetComponent<Text>().text = (p["name"] == "x") ? "Width" : (p["name"] == "y") ? "Lenght" : "Height";
+            param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+        }
+    }
+
+    public void LoadAgentAmounts(GameObject scrollContent, JSONArray agentPrototypes)
+    {
+        foreach (JSONObject p in agentPrototypes)
+        {
+            GameObject param;
+            param = Instantiate(inMenuParamPrefab);
+            param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
+            param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onSimParamModified(p["name"], int.Parse(value))); //TODO ---------------
+
+            param.transform.SetParent(scrollContent.transform);
+
+            param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
+            param.GetComponentInChildren<InputField>().characterLimit = 20;
+            param.transform.Find("Param Name").GetComponent<Text>().text = p["class"] + "s amount";
+            param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+        }
+    }
+
     public void OnToggleSimSpaceChanged(bool value)
     {
         if (simToggle.GetComponent<Toggle>().isOn)
@@ -508,6 +578,8 @@ public class MenuController : MonoBehaviour
     {
         newSimButton.gameObject.SetActive(is_new);
         joinSimButton.gameObject.SetActive(!is_new);
+        currentAdminLabel.GetComponent<TextMeshProUGUI>().text = "Current Admin: CHTULLU";
+        currentAdminLabel.gameObject.SetActive(!is_new);
     }
     public void SetButtonsInteractivity()
     {
@@ -554,15 +626,29 @@ public class MenuController : MonoBehaviour
             GameObject.Destroy(child.gameObject);
         }
         settingsScrollContent.transform.DetachChildren();
+        foreach (Transform child in dimensionsScrollContent.transform)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
+        dimensionsScrollContent.transform.DetachChildren();
+        foreach (Transform child in agentsAmountsScrollContent.transform)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
+        agentsAmountsScrollContent.transform.DetachChildren();
         foreach (Transform child in agentsScrollContent.transform)
         {
             GameObject.Destroy(child.gameObject);
         }
         agentsScrollContent.transform.DetachChildren();
         
+
+
         SimulationController.sim_id = index;
         LoadSimInfos((JSONObject)SimulationController.sim_list_editable[index]);
         LoadSimParams(settingsScrollContent, (JSONArray)SimulationController.sim_list_editable[index]["sim_params"]);
+        LoadSimDimentions(dimensionsScrollContent, (JSONArray)SimulationController.sim_list_editable[index]["dimensions"]);
+        LoadAgentAmounts(agentsAmountsScrollContent, (JSONArray)SimulationController.sim_list_editable[index]["agent_prototypes"]);
 
         // set Buttons interactable
         SetButtonsInteractivity();
@@ -606,6 +692,11 @@ public class MenuController : MonoBehaviour
     {
         musicVolume = volume;
     }
+
+    public float GetMusicVolume()
+    {
+        return musicVolume;
+    }
     public void SetEffectsVolume(float volume)
     {
         effectsVolume = volume;
@@ -613,6 +704,28 @@ public class MenuController : MonoBehaviour
     public void TestAudioEffect()
     {
         testAudioEffect.Play();
+    }
+    public void MuteUnmuteAudio()
+    {
+        if (muteAudio)
+        {
+            muteUnmuteAudio.GetComponent<Image>().sprite = muteUnmuteSprites[1];
+            audioVolumeTemp = GetMusicVolume();
+            SetMusicVolume(0);
+            musicSlider.value = 0;
+            muteAudio = false;
+        }
+        else //smuta
+        {
+            if (audioVolumeTemp != 0)
+                SetMusicVolume(audioVolumeTemp);
+            else SetMusicVolume(0.3f);
+            
+            muteUnmuteAudio.GetComponent<Image>().sprite = muteUnmuteSprites[0];
+            musicSlider.value = musicVolume;
+            muteAudio = true;
+        }
+            
     }
     public void Quit()
     {

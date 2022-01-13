@@ -38,17 +38,19 @@ public class UIController : MonoBehaviour
     public TMP_Text nickname;
     public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSimParams, panelBackToMenu, panelFPS, 
-        InspectorParamPrefab, InspectorTogglePrefab, InspectorContent, SimParamPrefab, SimTogglePrefab, SimParamsContent,
+        InspectorParamPrefab, InspectorTogglePrefab, InspectorContent, SimParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, SimParamsContent,
         simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab;
     public Slider slider;
     public Image imgEditMode, imgSimState, imgContour;
-    public Button buttonEdit;
+    public Button buttonEdit, muteUnmuteButton;
     public AudioSource backgroundMusic;
     public Sprite[] commandSprites;
+    public Sprite[] muteUnmuteSprites;
     public Text inspectorType, inspectorClass, inspectorId, emptyScrollTextInspector, emptyScrollTextSimParams;
     public static bool showSimSpace, showEnvironment;
     public Dictionary<string, object> tempSimParams = new Dictionary<string, object>();
     public Dictionary<string, object> tempSimObjectParams = new Dictionary<string, object>();
+
     private float musicVolume;
 
     private void Awake()
@@ -57,6 +59,12 @@ public class UIController : MonoBehaviour
         showSimSpace = playerPreferencesSO.showSimSpace;
         showEnvironment = playerPreferencesSO.showEnvironment;
         musicVolume = playerPreferencesSO.musicVolume;
+
+        if (musicVolume == 0f)
+        {
+            muteUnmuteButton.GetComponent<Image>().sprite = muteUnmuteSprites[1];
+            backgroundMusic.mute = true;
+        }
 
         // Bind Controllers
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
@@ -84,7 +92,11 @@ public class UIController : MonoBehaviour
 
         PopulateEditPanel();
         emptyScrollTextSimParams.gameObject.SetActive(false);
+
+        LoadSimDimentions(SimParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"]);
+        LoadAgentAmounts(SimParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["agent_prototypes"]);
         LoadSimParams(SimParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["sim_params"]);
+                
     }
     /// <summary>
     /// Update routine (Unity Process)
@@ -334,7 +346,53 @@ public class UIController : MonoBehaviour
             emptyScrollTextSimParams.gameObject.SetActive(true);
         }
     }
-    
+    public void LoadSimDimentions(GameObject scrollContent, JSONArray dimensions)
+    {
+        foreach (JSONObject p in dimensions)
+        {
+            GameObject param;
+            switch ((string)p["type"])
+            {
+                case "System.Single":
+                    param = Instantiate(SimParamPrefab_Disabled);
+                    param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
+                    param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], float.Parse(value.Replace('.', ','))));  // TODO ----------------
+                    break;
+                case "System.Int32":
+                    param = Instantiate(SimParamPrefab_Disabled);
+                    param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
+                    param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], int.Parse(value))); // TODO ----------------
+                    break;
+                default:
+                    return;
+            }
+            param.transform.SetParent(scrollContent.transform);
+
+            param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
+            param.GetComponentInChildren<InputField>().characterLimit = 20;
+            param.transform.Find("Param Name").GetComponent<Text>().text = (p["name"] == "x") ? "Width" : (p["name"] == "y") ? "Lenght" : "Height";
+            param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+        }
+    }
+
+    public void LoadAgentAmounts(GameObject scrollContent, JSONArray agentPrototypes)
+    {
+        foreach (JSONObject p in agentPrototypes)
+        {
+            GameObject param;
+            param = Instantiate(SimParamPrefab_Disabled);
+            param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
+            param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], int.Parse(value))); //TODO ---------------
+
+            param.transform.SetParent(scrollContent.transform);
+
+            param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
+            param.GetComponentInChildren<InputField>().characterLimit = 20;
+            param.transform.Find("Param Name").GetComponent<Text>().text = p["class"] + "s amount";
+            param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+        }
+    }
+
     public void OnSimParamUpdate(string param_name, dynamic value)
     {
         if (!tempSimParams.ContainsKey(param_name)) tempSimParams.Add(param_name, value);
@@ -369,6 +427,7 @@ public class UIController : MonoBehaviour
         tempSimObjectParams.Clear();
     }
     
+
     //public void ConfirmEdit()
     //{
     //    EventArgs e = new EventArgs();
@@ -403,6 +462,20 @@ public class UIController : MonoBehaviour
     {
         panelInspector.gameObject.SetActive(!showInspectorPanel);
         showInspectorPanel = !showInspectorPanel;
+    }
+    public void MuteUnmuteAudio()
+    {
+        if (backgroundMusic.mute)
+        {
+            muteUnmuteButton.GetComponent<Image>().sprite = muteUnmuteSprites[0];
+            backgroundMusic.mute = false;
+        }
+        else
+        {
+            muteUnmuteButton.GetComponent<Image>().sprite = muteUnmuteSprites[1];
+            backgroundMusic.volume = 0.3f;
+            backgroundMusic.mute = true;
+        }
     }
     public void StoreDataPreferences(string nameString, bool toggleSimSpace, bool toggleEnvironment)
     {

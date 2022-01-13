@@ -169,7 +169,7 @@ public class PO_Discrete2D : PO_Discrete
         switch (direction)
         {
             default:
-            case PO_Discrete2D.DirEnum.NORD: return new Vector3Int(0, 0, 0);
+            case PO_Discrete2D.DirEnum.NORD: return new Vector3Int(0, 0, 0);            //width = x, lenght = z
             case PO_Discrete2D.DirEnum.EST: return new Vector3Int(0, 0, width);
             case PO_Discrete2D.DirEnum.SUD: return new Vector3Int(width, 0, lenght);
             case PO_Discrete2D.DirEnum.OVEST: return new Vector3Int(lenght, 0, 0);
