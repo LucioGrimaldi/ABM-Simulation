@@ -108,7 +108,7 @@ public class SceneController : MonoBehaviour
             }
         }
 
-        //LockUp();
+        LockUp();
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.PLAY)) StepUp();
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.STEP)) { StepUp(); if(SimulationController.Steps_to_consume==0) SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE); }
         ShowHideSimEnvironment();      // può essere sostituito con event
@@ -149,7 +149,7 @@ public class SceneController : MonoBehaviour
         }
         else
         {
-            SimSpaceSystem = GameObject.Find("SimSpaceSystem").AddComponent<ContinuousSystem>();
+            SimSpaceSystem = new GameObject("SimSpaceSystem").AddComponent<ContinuousSystem>();
             SimSpaceSystem.simSpaceType = SimSpaceSystem.SimSpaceTypeEnum.CONTINUOUS;
         }
         if (simDimensions.Count == 2) SimSpaceSystem.simSpaceDimensions = SimSpaceSystem.SimSpaceDimensionsEnum._2D;
@@ -212,7 +212,10 @@ public class SceneController : MonoBehaviour
             }
 
             // init CountinuosSystem
-
+            ContinuousSystem.width = width;
+            ContinuousSystem.height = height;
+            ContinuousSystem.lenght = lenght;
+            ContinuousSystem.simSpace = simulationSpace;
         }
     }
     public void InitShader()
@@ -475,7 +478,7 @@ public class SceneController : MonoBehaviour
     public void StepUp()
     {
         UpdatePlacedObjects(SimSpaceSystem.GetPlacedObjects(), true);
-        UpdatePheromones(SimulationController.GetSimulation().Generics.Values.Where((g) => { if (g.Class_name.Contains("Pheromone")) return true; else return false; }).ToArray());
+        if(SimSpaceSystem.simSpaceDimensions.Equals(SimSpaceSystem.SimSpaceDimensionsEnum._2D)) UpdatePheromones(SimulationController.GetSimulation().Generics.Values.Where((g) => { if (g.Class_name.Contains("Pheromone")) return true; else return false; }).ToArray());
     }
     public void LockUp()
     {

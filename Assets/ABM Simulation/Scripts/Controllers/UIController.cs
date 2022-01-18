@@ -35,7 +35,7 @@ public class UIController : MonoBehaviour
     private List<NamedPrefab> ObstaclesData;
 
     // Variables
-    public TMP_Text nickname;
+    public TMP_Text nickname, admin_nickname;
     public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSimParams, panelBackToMenu, panelFPS, 
         InspectorParamPrefab, InspectorTogglePrefab, InspectorContent, SimParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, SimParamsContent,
@@ -59,6 +59,7 @@ public class UIController : MonoBehaviour
         showSimSpace = playerPreferencesSO.showSimSpace;
         showEnvironment = playerPreferencesSO.showEnvironment;
         musicVolume = playerPreferencesSO.musicVolume;
+        admin_nickname.text = SimulationController.admin_name;
 
         if (musicVolume == 0f)
         {
@@ -93,7 +94,7 @@ public class UIController : MonoBehaviour
         PopulateEditPanel();
         emptyScrollTextSimParams.gameObject.SetActive(false);
 
-        LoadSimDimentions(SimParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"]);
+        LoadSimDimensions(SimParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"]);
         LoadAgentAmounts(SimParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["agent_prototypes"]);
         LoadSimParams(SimParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["sim_params"]);
                 
@@ -112,6 +113,7 @@ public class UIController : MonoBehaviour
         else showEnvironment = false;
 
         backgroundMusic.volume = musicVolume;
+        admin_nickname.text = SimulationController.admin_name;
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -346,22 +348,22 @@ public class UIController : MonoBehaviour
             emptyScrollTextSimParams.gameObject.SetActive(true);
         }
     }
-    public void LoadSimDimentions(GameObject scrollContent, JSONArray dimensions)
+    public void LoadSimDimensions(GameObject scrollContent, JSONArray dimensions)
     {
-        foreach (JSONObject p in dimensions)
+        foreach (JSONObject d in dimensions)
         {
             GameObject param;
-            switch ((string)p["type"])
+            switch ((string)d["type"])
             {
                 case "System.Single":
                     param = Instantiate(SimParamPrefab_Disabled);
                     param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
-                    param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], float.Parse(value.Replace('.', ','))));  // TODO ----------------
+                    param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(d["name"], float.Parse(value.Replace('.', ','))));  // TODO ----------------
                     break;
                 case "System.Int32":
                     param = Instantiate(SimParamPrefab_Disabled);
                     param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
-                    param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], int.Parse(value))); // TODO ----------------
+                    param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(d["name"], int.Parse(value))); // TODO ----------------
                     break;
                 default:
                     return;
@@ -370,11 +372,10 @@ public class UIController : MonoBehaviour
 
             param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
             param.GetComponentInChildren<InputField>().characterLimit = 20;
-            param.transform.Find("Param Name").GetComponent<Text>().text = (p["name"] == "x") ? "Width" : (p["name"] == "y") ? "Lenght" : "Height";
-            param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+            param.transform.Find("Param Name").GetComponent<Text>().text = (d["name"] == "x") ? "Width" : (d["name"] == "z") ? "Lenght" : "Height";
+            param.transform.Find("InputField").GetComponent<InputField>().text = d["default"];
         }
     }
-
     public void LoadAgentAmounts(GameObject scrollContent, JSONArray agentPrototypes)
     {
         foreach (JSONObject p in agentPrototypes)

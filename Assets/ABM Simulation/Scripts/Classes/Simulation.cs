@@ -677,7 +677,6 @@ public class Simulation
                 if (!Agents.TryGetValue((agent_class_names[i], id), out so))                                          // l'agente è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non dynamic
                 {
                     Agent_prototypes.TryGetValue(agent_class_names[i], out SimObject a);
-                    
                     so = a.Clone();
                     so.Type = SimObject.SimObjectType.AGENT;
                     so.Class_name = agent_class_names[i];
@@ -696,7 +695,6 @@ public class Simulation
 
                 // all/object params
                 foreach ((string, string) p in parameters[i])
-
                 {
                     switch (p.Item2)
                     {
@@ -985,7 +983,7 @@ public class Simulation
         toDeleteIfNotInStep.AddRange(temp);
         temp.Clear();
 
-        UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP " + currentSimStep + " : ed è " + (complete ? "completo" : "non completo."));
+        //UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP " + currentSimStep + " : ed è " + (complete ? "completo" : "non completo."));
     }
     /// <summary>
     /// Update Simulation from uncommited_update

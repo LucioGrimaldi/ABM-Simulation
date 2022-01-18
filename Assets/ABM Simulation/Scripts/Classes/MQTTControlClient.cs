@@ -65,7 +65,7 @@ public class MQTTControlClient
     {
         byte[] message = Encoding.ASCII.GetBytes(msg.ToString());
         client.Publish(controlTopic, message);
-        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message published to " + controlTopic + " topic, message: " + msg.ToString());
+        //Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message published to " + controlTopic + " topic, message: " + msg.ToString());
     }
 
     /// <summary>

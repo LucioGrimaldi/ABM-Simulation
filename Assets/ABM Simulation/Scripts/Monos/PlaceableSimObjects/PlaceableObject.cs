@@ -53,11 +53,21 @@ public class PlaceableObject : MonoBehaviour
     }
     public virtual void SetScale(float scale)
     {
-        transform.localScale = new Vector3(scale/10f, scale/10f, scale/10f);
+
+    }
+    public virtual void SetScale(float scale_x, float scale_y)
+    {
+
+    }
+    public virtual void SetScale(float scale_x, float scale_y, float scale_z)
+    {
+
     }
     public virtual void SetMaterialRecursive(GameObject targetGameObject, Material material)
     {
         if(targetGameObject.GetComponent<MeshRenderer>() != null) targetGameObject.GetComponent<MeshRenderer>().material = material;
+        Material[] new_mats = new Material[] { material };
+        if (targetGameObject.GetComponent<SkinnedMeshRenderer>() != null) targetGameObject.GetComponent<SkinnedMeshRenderer>().materials = new_mats;
         foreach (Transform child in targetGameObject.transform)
         {
             SetMaterialRecursive(child.gameObject, material);

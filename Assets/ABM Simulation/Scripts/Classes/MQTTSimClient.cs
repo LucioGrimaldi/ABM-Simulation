@@ -69,7 +69,7 @@ public class MQTTSimClient
     {
         byte[] message = Encoding.ASCII.GetBytes(msg.ToString());
         client.Publish(keepAliveTopic, message);
-        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message published to " + keepAliveTopic + " topic, message: " + msg.ToString());
+        //Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Message published to " + keepAliveTopic + " topic, message: " + msg.ToString());
     }
 
     /// <summary>

@@ -148,6 +148,7 @@ public class SimulationController : MonoBehaviour
         SPEED
     }
     public static bool admin = true;
+    public static string admin_name;
     public static JSONArray sim_list_editable;
     public static JSONArray sim_prototypes_list = new JSONArray();
     private JSONObject uncommitted_updatesJSON = new JSONObject();
@@ -735,7 +736,7 @@ public class SimulationController : MonoBehaviour
     {
         try
         {
-            simulation.UpdateSimulationFromStep(e.Step, (JSONObject)sim_prototypes_list[serverSide_simId]);
+            simulation.UpdateSimulationFromStep(e.Step, (JSONObject)sim_prototypes_list[sim_id]);
             stepsConsumed++;
         }
         catch (Exception ex)
@@ -751,11 +752,10 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     private void onNewAdmin(ReceivedMessageEventArgs e)
     {
-        string new_admin = e.Payload["new_admin"];
-        UIController.nickname.text = new_admin;
-        admin = new_admin.Equals(nickname);
+        admin_name = e.Payload["new_admin"];
+        admin = admin_name.Equals(nickname);
 
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | NEW_ADMIN MESSAGE RECEIVED. | " + (admin ? "You are" : new_admin + " is") + " the new room admin.");
+        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | NEW_ADMIN MESSAGE RECEIVED. | " + (admin ? "You are" : admin_name + " is") + " the new room admin.");
 
         OnNewAdminEventHandler?.Invoke(this, e);
     }
@@ -764,21 +764,23 @@ public class SimulationController : MonoBehaviour
         bool result = e.Payload["result"];
 
         serverSide_simState = (Simulation.StateEnum) (int) ((JSONObject) e.Payload["payload_data"])["state"];
-        if(!serverSide_simState.Equals(Simulation.StateEnum.NOT_READY))
+        if(!serverSide_simState.Equals(Simulation.StateEnum.NOT_READY) && !serverSide_simState.Equals(Simulation.StateEnum.BUSY))
         {
+            admin_name = (string)((JSONObject)e.Payload["payload_data"])["adminName"];
             serverSide_simId = (int)((JSONObject)e.Payload["payload_data"])["simId"];
-            PerfManager.PRODUCED_SPS = (int) ((JSONObject)e.Payload["payload_data"])["simStepRate"];
+            PerfManager.PRODUCED_SPS = (int)((JSONObject)e.Payload["payload_data"])["simStepRate"];
+
             if(clientState.Equals(StateEnum.IN_GAME)) simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
-        }
-        if (clientState.Equals(StateEnum.READY) || clientState.Equals(StateEnum.IN_GAME))
-        {
-            sim_id = serverSide_simId;
-            simulation.State = serverSide_simState;
+            if(clientState.Equals(StateEnum.READY) || clientState.Equals(StateEnum.IN_GAME))
+            {
+                sim_id = serverSide_simId;
+                simulation.State = serverSide_simState;
+            }
         }
 
         //Check status for errors
 
-        Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Server status checked: " + serverSide_simState + " .");
+        //Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Server status checked: " + serverSide_simState + " .");
 
         if (result) OnCheckStatusSuccessEventHandler?.Invoke(null, e);
         else OnCheckStatusUnsuccessEventHandler?.Invoke(null, e);
@@ -1134,10 +1136,10 @@ public class SimulationController : MonoBehaviour
 
             if (!entry.Key.op.Equals("DEL"))
             {
-                obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>()));
+                obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>(), new TupleConverter<string, Vector3>(), new Vec3Conv()));
                 obj.Add("params", obj_params);
             }
-            uncommitted_updatesJSON[type+"_"+op].Add(obj);           
+            uncommitted_updatesJSON[type+"_"+op].Add(obj);       
         }
     }
    
@@ -1153,7 +1155,7 @@ public class SimulationController : MonoBehaviour
         JSONObject payload = new JSONObject();
         payload.Add("type", "heartbeat");
         // Send command
-        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CHECK_STATUS to MASON...");
+        //UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CHECK_STATUS to MASON...");
         CommController.SendMessage(nickname, "000", payload);
         if (clientState.Equals(StateEnum.IN_GAME))
         {

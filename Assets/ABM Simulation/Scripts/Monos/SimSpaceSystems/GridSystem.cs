@@ -137,6 +137,15 @@ public class GridSystem : SimSpaceSystem
     {
         return Create(simObject, po, false, isMovable);
     }
+    public override void DeleteSimObject(PlaceableObject toDelete)
+    {
+        if (toDelete != null)
+        {
+            foreach (Vector2Int cell in (MyList<Vector2Int>)((PO_Discrete)toDelete).GetCells()) grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject((PO_Discrete)toDelete);
+            if(toDelete.IsGhost) placedGhostsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
+            else placedObjectsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
+        }
+    }
     public override void RotatePlacedObject(PlaceableObject toRotate)
     {
         toRotate.Rotate();
@@ -144,14 +153,6 @@ public class GridSystem : SimSpaceSystem
     public override void CopyRotation(PlaceableObject _old, PlaceableObject _new)
     {
         if (simSpaceDimensions.Equals(SimSpaceDimensionsEnum._2D)) ((PO_Discrete2D)_new).Direction = ((PO_Discrete2D)_old).Direction;
-    }
-    public override void DeleteSimObject(PlaceableObject toDelete)
-    {
-        if (toDelete != null)
-        {
-            foreach (Vector2Int cell in (MyList<Vector2Int>)((PO_Discrete)toDelete).GetCells()) grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject((PO_Discrete)toDelete);
-            placedObjectsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
-        }
     }
     public override Vector3 MouseClickToSpawnPosition(PlaceableObject po)
     {
@@ -161,14 +162,6 @@ public class GridSystem : SimSpaceSystem
         if (po != null) return Grid3D<GridObject>.GetWorldPosition(x, y, z);
         else return mousePosition;
     }
-    public static Vector3 MasonToUnityPosition2D(MyList<Vector2Int> sim_position)
-    {
-        return Grid3D<GridObject>.GetWorldPosition(sim_position[0].x, 0, sim_position[0].y);
-    }
-    public static Vector3 MasonToUnityPosition3D(MyList<Vector3Int> sim_position)
-    {
-        return Grid3D<GridObject>.GetWorldPosition(sim_position[0].x, sim_position[0].z, sim_position[0].y);
-    }
     public override bool CanBuild(PlaceableObject toPlace)
     {
         if (simSpaceDimensions.Equals(SimSpaceDimensionsEnum._2D)) return CanBuild2D(toPlace.SimObject);
@@ -177,17 +170,20 @@ public class GridSystem : SimSpaceSystem
     }
     public override PlaceableObject GetGhostFromSO(SimObject so)
     {
-        int x = ((MyList<Vector2Int>)so.Parameters["position"])[0].x;
-        int y = ((MyList<Vector2Int>)so.Parameters["position"])[0].y;
-        PO_Discrete[] ghosts = grid.GetGridObject(x, 0, y).GetPlacedObjectsByLayer(so.Layer).Where((po, index) => po.IsGhost).ToArray();
-
-        if (ghosts.Length > 0)
+        int max_id = int.MinValue;
+        foreach ((bool isGhost, PlaceableObject g) in placedGhostsDict.Values)
         {
-            return ghosts[0];
+            if (g.SimObject.Type.Equals(so.Type) && g.SimObject.Class_name.Equals(so.Class_name))
+            {
+                if (g.SimObject.Id > max_id)
+                {
+                    max_id = g.SimObject.Id;
+                }
+            }
         }
-        else return null;
+        placedGhostsDict.TryGetValue((so.Type, so.Class_name, max_id), out (bool, PlaceableObject) x);
+        return x.Item2;
     }
-
     // Other Methods
     public PlaceableObject Create(SimObject simObject, PlaceableObject po, bool isGhost, bool isMovable)
     {
@@ -251,5 +247,13 @@ public class GridSystem : SimSpaceSystem
                 break;
         }
         return positions;
+    }
+    public static Vector3 MasonToUnityPosition2D(MyList<Vector2Int> sim_position)
+    {
+        return Grid3D<GridObject>.GetWorldPosition(sim_position[0].x, 0, sim_position[0].y);
+    }
+    public static Vector3 MasonToUnityPosition3D(MyList<Vector3Int> sim_position)
+    {
+        return Grid3D<GridObject>.GetWorldPosition(sim_position[0].x, sim_position[0].z, sim_position[0].y);
     }
 }

@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 734843782d8e41240a27682be9e4c64e, type: 3}
   m_Name: Flocker
   m_EditorClassIdentifier: 
+  ghostMaterial: {fileID: 2100000, guid: eeaf0bbd6ca8494469aea720613ddb1b, type: 2}
+  outlineShader: {fileID: 0}
   renderType: 0
   meshes:
     m_keys:

@@ -24,7 +24,7 @@ public abstract class SimSpaceSystem : MonoBehaviour
     public abstract PlaceableObject CreateGhost(SimObject simObject, PlaceableObject po, bool isMovable);
     public abstract PlaceableObject CreateSimObject(SimObject simObject, PlaceableObject po, bool isMovable);
     public abstract void DeleteSimObject(PlaceableObject toDelete);
-    public abstract void RotatePlacedObject(PlaceableObject roRotate);
+    public abstract void RotatePlacedObject(PlaceableObject toRotate);
     public abstract void CopyRotation(PlaceableObject _old, PlaceableObject _new);
     public abstract Vector3 MouseClickToSpawnPosition(PlaceableObject toSpawn);
     public abstract bool CanBuild(PlaceableObject toPlace);

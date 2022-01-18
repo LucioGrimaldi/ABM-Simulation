@@ -152,7 +152,7 @@ public class PO_Discrete2D : PO_Discrete
     }
     public override void SetScale(float scale)
     {
-        base.SetScale(scale);
+        transform.localScale = new Vector3(scale / 10f, scale / 10f, scale / 10f);
     }
     public override void Highlight()
     {
