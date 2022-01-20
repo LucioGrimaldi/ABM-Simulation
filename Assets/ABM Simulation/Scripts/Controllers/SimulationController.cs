@@ -246,7 +246,6 @@ public class SimulationController : MonoBehaviour
                 action?.Invoke();
             }
         }
-
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -469,9 +468,14 @@ public class SimulationController : MonoBehaviour
             {
                 if (CommController.SimMessageQueue.TryDequeue(out message))
                 {
-                    if (Utils.GetStepId(message.Message) < simulation.currentSimStep)
+                    if (message.Message.Length.Equals(0))
                     {
-                        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | GOT AN OLD STEP!");
+                        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Found a blank Step");
+                        continue;
+                    }
+                    if (Utils.GetStepId(message.Message) <= simulation.currentSimStep)
+                    {
+                        UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Found an old Step: n° " + Utils.GetStepId(message.Message));
                         continue;
                     }
                     latestSimStepArrived = Utils.GetStepId(message.Message);

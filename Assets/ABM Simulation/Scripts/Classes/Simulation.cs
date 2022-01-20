@@ -983,7 +983,7 @@ public class Simulation
         toDeleteIfNotInStep.AddRange(temp);
         temp.Clear();
 
-        //UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP " + currentSimStep + " : ed è " + (complete ? "completo" : "non completo."));
+        if(complete) UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP " + currentSimStep + " : ed è " + (complete ? "completo" : "non completo."));
     }
     /// <summary>
     /// Update Simulation from uncommited_update

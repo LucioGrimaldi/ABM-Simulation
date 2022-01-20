@@ -75,8 +75,6 @@ public class PerformanceManger
         {
             topics[t - 1] = t * MAX_SPS / (ATTEMPTED_SPS + 1);
         }
-
-        if (!TOPICS.Contains(0)) TOPICS[0] = 0;
     }
     public void Reset()
     {

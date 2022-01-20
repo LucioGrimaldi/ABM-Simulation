@@ -130,7 +130,8 @@ public class MQTTSimClient
     {
         byte[] QosArray = new byte[topics.Length];
 
-        UnsubscribeAll();
+        client.Unsubscribe(stepTopics.ToArray());
+        stepTopics.Clear();
 
         for (int i = 0; i < topics.Length; i++)
         {
@@ -146,10 +147,12 @@ public class MQTTSimClient
     /// </summary>
     public virtual void SubscribeAll()
     {
-        byte[] QosArray = new byte[60];
-        for (int i = 0; i < 60; i++)
+        client.Subscribe(new string[]{ "Topic0" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+
+        byte[] QosArray = new byte[59];
+        for (int i = 0; i < 59; i++)
         {
-            stepTopics.Add("Topic" + i);
+            stepTopics.Add("Topic" + i+1);
             QosArray[i] = MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE;
         }
         client.Subscribe(stepTopics.ToArray(), QosArray);
@@ -181,6 +184,7 @@ public class MQTTSimClient
     /// </summary>
     protected virtual void UnsubscribeAll()
     {
+        stepTopics.Add("Topic0");
         client.Unsubscribe(stepTopics.ToArray());
         stepTopics.Clear();
     }

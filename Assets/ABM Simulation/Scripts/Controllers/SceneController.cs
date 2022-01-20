@@ -228,6 +228,8 @@ public class SceneController : MonoBehaviour
             simulationSpace.GetComponent<ShaderManager>().computeBuffers = new ComputeBuffer[2];
             simulationSpace.GetComponent<ShaderManager>().computeBuffers[0] = new ComputeBuffer((int)width * (int)width, sizeof(float), ComputeBufferType.Append);          // food
             simulationSpace.GetComponent<ShaderManager>().computeBuffers[1] = new ComputeBuffer((int)width * (int)width, sizeof(float), ComputeBufferType.Append);          // home
+            simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(new float[(int)width * (int)width]);
+            simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(new float[(int)width * (int)width]);
             simulationSpace.GetComponent<Renderer>().sharedMaterial.SetBuffer("_FoodGrid", simulationSpace.GetComponent<ShaderManager>().computeBuffers[0]);
             simulationSpace.GetComponent<Renderer>().sharedMaterial.SetBuffer("_HomeGrid", simulationSpace.GetComponent<ShaderManager>().computeBuffers[1]);
         }
