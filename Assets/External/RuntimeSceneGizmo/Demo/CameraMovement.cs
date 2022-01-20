@@ -66,16 +66,30 @@ namespace RuntimeSceneGizmo
 					newPosition += new Vector3(0, speed, 0);
 				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
-			if (Input.GetKey(KeyCode.A))
+			if (Input.GetKey(KeyCode.A) || (Input.GetKey(KeyCode.LeftArrow)))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.right * -speed);
 				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
-			if (Input.GetKey(KeyCode.D))
+			if (Input.GetKey(KeyCode.D) || (Input.GetKey(KeyCode.RightArrow)))
 			{
 				if (mainCamera.isActiveAndEnabled)
 					newPosition += (transform.right * speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
+			}
+
+			//
+			if (Input.GetKey(KeyCode.UpArrow))
+			{
+				if (mainCamera.isActiveAndEnabled)
+					newPosition += (transform.up * speed);
+				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
+			}
+			if (Input.GetKey(KeyCode.DownArrow))
+			{
+				if (mainCamera.isActiveAndEnabled)
+					newPosition += (transform.up * -speed);
 				transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementTime);
 			}
 
