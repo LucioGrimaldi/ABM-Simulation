@@ -108,7 +108,7 @@ public class SceneController : MonoBehaviour
             }
         }
 
-        LockUp();
+        //LockUp();
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.PLAY)) StepUp();
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.STEP)) { StepUp(); if(SimulationController.Steps_to_consume==0) SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE); }
         ShowHideSimEnvironment();      // può essere sostituito con event
@@ -484,7 +484,7 @@ public class SceneController : MonoBehaviour
     }
     public void LockUp()
     {
-        UpdatePlacedObjects(SimSpaceSystem.GetPlacedObjects(), false);
+        LockPlacedObjects(SimSpaceSystem.GetPlacedObjects());
     }
     public void UpdatePlacedObjects(ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> placedObjects, bool movable)
     {
@@ -533,6 +533,14 @@ public class SceneController : MonoBehaviour
                 }
                 CreatePlaceableObject(so, _new, movable);
             }
+        }
+    }
+    public void LockPlacedObjects(ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> placedObjects)
+    {
+
+        foreach ((bool isGhost, PlaceableObject po) entry in placedObjects.Values)
+        {
+           entry.po.IsMovable = false;
         }
     }
     public void UpdatePheromones(ICollection<SimObject> pheromones)

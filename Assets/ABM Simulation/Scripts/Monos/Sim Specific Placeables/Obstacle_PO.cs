@@ -73,7 +73,7 @@ public class Obstacle_PO : PO_Discrete2D
                     Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
                     Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
                     transform.position = Vector3.Lerp(transform.position, targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize, Time.deltaTime * 15f);        // offset incluso
-                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);
+                    transform.rotation = Quaternion.Lerp(transform.rotation, (Quaternion)simObject.Parameters["rotation"], Time.deltaTime * 15f);
                     MoveInSimSpace();
                 }
             }

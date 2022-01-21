@@ -309,7 +309,39 @@ public class Vec2Conv : Newtonsoft.Json.JsonConverter
     }
 }
 
+public class QuaternionConv : Newtonsoft.Json.JsonConverter
+{
+    public override bool CanConvert(Type objectType)
+    {
+        return typeof(Quaternion) == objectType;
+    }
 
+    public override object ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
+    {
+        if (reader.TokenType == Newtonsoft.Json.JsonToken.Null) return null;
+
+        var jObject = Newtonsoft.Json.Linq.JObject.Load(reader);
+        var properties = jObject.Properties().ToList();
+        return new Quaternion(jObject[properties[0].Name].ToObject<float>(), jObject[properties[1].Name].ToObject<float>(), jObject[properties[2].Name].ToObject<float>(), jObject[properties[3].Name].ToObject<float>());
+    }
+
+    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object value, Newtonsoft.Json.JsonSerializer serializer)
+    {
+        Quaternion v = (Quaternion)value;
+
+        writer.WriteStartObject();
+        writer.WritePropertyName("x");
+        writer.WriteValue(v.x);
+        writer.WritePropertyName("y");
+        writer.WriteValue(v.y);
+        writer.WritePropertyName("z");
+        writer.WriteValue(v.z);
+        writer.WritePropertyName("w");
+        writer.WriteValue(v.w);
+        writer.WriteEndObject();
+    }
+
+}
 
 
 

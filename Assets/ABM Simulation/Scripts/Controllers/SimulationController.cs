@@ -1140,7 +1140,7 @@ public class SimulationController : MonoBehaviour
 
             if (!entry.Key.op.Equals("DEL"))
             {
-                obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>(), new TupleConverter<string, Vector3>(), new Vec3Conv()));
+                obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>(), new TupleConverter<string, Vector3>(), new TupleConverter<string, Quaternion>(), new Vec3Conv(), new QuaternionConv()));
                 obj.Add("params", obj_params);
             }
             uncommitted_updatesJSON[type+"_"+op].Add(obj);       

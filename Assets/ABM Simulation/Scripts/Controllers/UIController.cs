@@ -487,7 +487,7 @@ public class UIController : MonoBehaviour
     public void BackToMenu()    //distruggi settaggi prima di uscire
     {
         StoreDataPreferences(nickname.text, showSimSpace, showEnvironment);
-        OnExitEventHandler.BeginInvoke(this, new EventArgs(), null, null);
+        OnExitEventHandler.Invoke(this, new EventArgs());
         SceneManager.LoadScene("MenuScene");
     }
 }

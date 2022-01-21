@@ -272,6 +272,9 @@ public class Simulation
                             }
                             if (Dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x, y, z);
                             break;
+                        case "System.Rotation":
+                            value = new Quaternion(p["default"]["x"], p["default"]["y"], p["default"]["z"], p["default"]["w"]);
+                            break;
                         case "System.Cells":
                             if (Dimensions.Count == 2) value = new MyList<Vector2Int>(); else value = new MyList<Vector3Int>();
                             foreach (JSONNode c in (JSONArray)p["default"])
@@ -349,6 +352,9 @@ public class Simulation
                         if (Dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x, y, z);
                         x = 0; y = 0; z = 0;
                         break;
+                    case "System.Rotation":
+                        value = new Quaternion(p["default"]["x"], p["default"]["y"], p["default"]["z"], p["default"]["w"]);
+                        break;
                     case "System.Cells":
                         if (Dimensions.Count == 2) value = new MyList<Vector2Int>(); else value = new MyList<Vector3Int>();
                         foreach (JSONNode c in (JSONArray)p["default"])
@@ -419,6 +425,9 @@ public class Simulation
                         }
                         if (Dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x, y, z);
                         x = 0; y = 0; z = 0;
+                        break;
+                    case "System.Rotation":
+                        value = new Quaternion(p["default"]["x"], p["default"]["y"], p["default"]["z"], p["default"]["w"]);
                         break;
                     case "System.Cells":
                         if (Dimensions.Count == 2) value = new MyList<Vector2Int>(); else value = new MyList<Vector3Int>();
@@ -672,7 +681,20 @@ public class Simulation
             {
                 int id = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
 
-                parameters = complete ? agent_params_for_each_class : BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0) ? agent_params_for_each_class : d_agent_params_for_each_class;
+                if (complete)
+                {
+                    parameters = agent_params_for_each_class;
+                }
+                else if (BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0))
+                {
+                    parameters = agent_params_for_each_class;
+                }
+                else
+                {
+                    parameters = d_agent_params_for_each_class;
+                }
+
+                //parameters = complete ? agent_params_for_each_class : BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0) ? agent_params_for_each_class : d_agent_params_for_each_class;
 
                 if (!Agents.TryGetValue((agent_class_names[i], id), out so))                                          // l'agente è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non dynamic
                 {
@@ -710,6 +732,13 @@ public class Simulation
                             }
                             if (dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x, y, z);
                             so.UpdateParameter("position", value);
+                            break;
+                        case "System.Rotation":
+                            value = new Quaternion(BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
+                                                   BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
+                                                   BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
+                                                   BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
+                            so.UpdateParameter("rotation", value);
                             break;
                         case "System.Cells":
                             JSONObject a_p = (JSONObject)agent_prototypes.ElementAt(i);
@@ -811,6 +840,13 @@ public class Simulation
                             if (dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x, y, z);
                             so.UpdateParameter("position", value);
                             break;
+                        case "System.Rotation":
+                            value = new Quaternion(BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
+                                                   BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
+                                                   BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
+                                                   BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
+                            so.UpdateParameter("rotation", value);
+                            break;
                         case "System.Cells":
                             JSONObject g_p = (JSONObject)generic_prototypes.ElementAt(i);
                             int count = ((JSONObject)((JSONArray)g_p["params"]).Linq.ToList()[0])["cells_number"];
@@ -908,6 +944,13 @@ public class Simulation
                             }
                             if (dimensions.Count == 2) value = new Vector2(x, y); else value = new Vector3(x, y, z);
                             so.UpdateParameter("position", value);
+                            break;
+                        case "System.Rotation":
+                            value = new Quaternion(BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
+                                                   BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
+                                                   BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
+                                                   BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
+                            so.UpdateParameter("rotation", value);
                             break;
                         case "System.Cells":
                             JSONObject o_p = (JSONObject)obstacle_prototypes.ElementAt(i);

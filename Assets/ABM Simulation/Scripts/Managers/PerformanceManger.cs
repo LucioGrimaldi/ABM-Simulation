@@ -73,7 +73,7 @@ public class PerformanceManger
 
         for (int t = 1; t <= ATTEMPTED_SPS; t++)
         {
-            topics[t - 1] = t * MAX_SPS / (ATTEMPTED_SPS + 1);
+            if (t * MAX_SPS / (ATTEMPTED_SPS + 1) != 0) topics[t - 1] = t * MAX_SPS / (ATTEMPTED_SPS + 1);
         }
     }
     public void Reset()

@@ -75,6 +75,7 @@ public class Ant_PO : PO_Discrete2D
     public override void Rotate()
     {
         direction = (DirEnum)(((int)direction + 1) % 8);
+        simObject.Parameters["rotation"] = (Quaternion)simObject.Parameters["rotation"] * Quaternion.Euler(0, 45, 0);
         UtilsClass.CreateWorldTextPopup("" + direction, Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(gridSystem.grid.CellSize / 10 * 40), Color.green);
     }
     public override Vector3 GetRotationVector(DirEnum dir)

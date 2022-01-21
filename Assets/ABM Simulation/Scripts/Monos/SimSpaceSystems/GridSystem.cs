@@ -184,6 +184,7 @@ public class GridSystem : SimSpaceSystem
         placedGhostsDict.TryGetValue((so.Type, so.Class_name, max_id), out (bool, PlaceableObject) x);
         return x.Item2;
     }
+
     // Other Methods
     public PlaceableObject Create(SimObject simObject, PlaceableObject po, bool isGhost, bool isMovable)
     {

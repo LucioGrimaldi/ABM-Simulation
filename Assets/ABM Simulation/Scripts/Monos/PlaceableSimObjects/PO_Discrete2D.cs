@@ -98,10 +98,11 @@ public class PO_Discrete2D : PO_Discrete
             {
                 if (isMovable)
                 {
+                    GetFacingDirection((Quaternion)simObject.Parameters["rotation"]);
+                    Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
                     Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
-                    direction = GetFacingDirection(transform.position, targetPosition);
-                    transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 15f);
-                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);
+                    transform.position = Vector3.Lerp(transform.position, targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize, Time.deltaTime * 15f);
+                    transform.rotation = Quaternion.Lerp(transform.rotation, (Quaternion)simObject.Parameters["rotation"], Time.deltaTime * 15f);
                     MoveInSimSpace();
                 }
             }
@@ -143,6 +144,7 @@ public class PO_Discrete2D : PO_Discrete
     public override void Rotate()
     {
         direction = (DirEnum)(((int)direction + 2) % 8);
+        simObject.Parameters["rotation"] = (Quaternion)simObject.Parameters["rotation"] * Quaternion.Euler(0, 90, 0);
         UtilsClass.CreateWorldTextPopup("" + direction, Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(gridSystem.grid.CellSize / 10 * 40), Color.green);
     }
     public override void Rotate(DirEnum dir)
@@ -189,6 +191,10 @@ public class PO_Discrete2D : PO_Discrete
             return dir.Equals(Vector3.zero) ? direction : (DirEnum)Mathf.Floor(rotation / 45);
         }
         else return direction;
+    }
+    public DirEnum GetFacingDirection(Quaternion rotation)
+    {
+        return rotation.eulerAngles.y.Equals(0) ? DirEnum.NORD : (DirEnum)Mathf.Floor(rotation.eulerAngles.y / 45);
     }
     public virtual Vector3 GetRotationVector(DirEnum dir)
     {
