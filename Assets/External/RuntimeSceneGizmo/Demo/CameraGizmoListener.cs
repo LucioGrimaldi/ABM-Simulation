@@ -30,6 +30,9 @@ namespace RuntimeSceneGizmo
 
 		public void OnGizmoComponentClicked( GizmoComponent component )
 		{
+			//disable inspector toggle
+			mainCamera.GetComponent<CameraTarget>().follow = false;
+
 			if( component == GizmoComponent.Center )
 				SwitchOrthographicMode();
 			else if( component == GizmoComponent.XNegative )

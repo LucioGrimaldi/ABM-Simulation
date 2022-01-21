@@ -11,26 +11,35 @@ public class CameraTarget : MonoBehaviour {
     }
 
     [SerializeField] private Axis axis = Axis.XZ;
-    [SerializeField] private float moveSpeed = 5f;
-
+    [SerializeField] private float moveSpeed = 20f;
+    
+    public bool follow;
+    public Transform target;
+    public float smoothSpeed = 0.150f;
+    [SerializeField] Vector3 offset = new Vector3(0f, 2f, -5f);
 
 
     private void Update() {
         float moveX = 0f;
         float moveY = 0f;
 
-        if (Input.GetKey(KeyCode.UpArrow)) {
-            moveY = +1f;
-        }
-        if (Input.GetKey(KeyCode.DownArrow)) {
-            moveY = -1f;
-        }
-        if (Input.GetKey(KeyCode.LeftArrow)) {
-            moveX = -1f;
-        }
-        if (Input.GetKey(KeyCode.RightArrow)) {
-            moveX = +1f;
-        }
+
+        //if (Input.GetKey(KeyCode.UpArrow))
+        //{
+        //    moveY = +1f;
+        //}
+        //if (Input.GetKey(KeyCode.DownArrow))
+        //{
+        //    moveY = -1f;
+        //}
+        //if (Input.GetKey(KeyCode.LeftArrow))
+        //{
+        //    moveX = -1f;
+        //}
+        //if (Input.GetKey(KeyCode.RightArrow))
+        //{
+        //    moveX = +1f;
+        //}
 
         Vector3 moveDir;
 
@@ -43,10 +52,11 @@ public class CameraTarget : MonoBehaviour {
                 moveDir = new Vector3(moveX, moveY).normalized;
                 break;
         }
-        
-        //if (moveX != 0 || moveY != 0) {
-        //    // Not idle
-        //}
+
+        if (moveX != 0 || moveY != 0)
+        {
+            // Not idle
+        }
 
         if (axis == Axis.XZ) {
             moveDir = UtilsClass.ApplyRotationToVectorXZ(moveDir, 0f);
@@ -55,4 +65,22 @@ public class CameraTarget : MonoBehaviour {
         transform.position += moveDir * moveSpeed * Time.deltaTime;
     }
 
+
+    private void LateUpdate()
+    {
+        if (follow)
+        {
+            Vector3 desiredPosition = target.position + offset;
+            Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed);
+            transform.position = smoothedPosition;
+
+            transform.LookAt(target);
+        }
+    }
+
+    private void SetNewCameraTarget(Transform newTransform)
+    {
+        target = newTransform;
+        follow = true;
+    }
 }
