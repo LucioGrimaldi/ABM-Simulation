@@ -6910,6 +6910,19 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 1678385942}
+        m_TargetAssemblyTypeName: UnityEngine.UI.Image, UnityEngine.UI
+        m_MethodName: set_sprite
+        m_Mode: 2
+        m_Arguments:
+          m_ObjectArgument: {fileID: 21300000, guid: d3e0a18d066f2db4e80a03ddcb63fd2a,
+            type: 3}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Sprite, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1297573954
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8457,6 +8470,19 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 1678385942}
+        m_TargetAssemblyTypeName: UnityEngine.UI.Image, UnityEngine.UI
+        m_MethodName: set_sprite
+        m_Mode: 2
+        m_Arguments:
+          m_ObjectArgument: {fileID: 21300000, guid: 9ef2d67dfba56144092f1a6645c94c6b,
+            type: 3}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Sprite, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1678385942
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9422,19 +9448,18 @@ MonoBehaviour:
   showInfoPanel: 0
   showQuitPanel: 0
   showInspectorPanel: 0
-  admin: 0
   panelSimButtons: {fileID: 2142324587}
   panelEditMode: {fileID: 466397189}
   panelInspector: {fileID: 860489619}
   panelSimParams: {fileID: 747016276}
   panelBackToMenu: {fileID: 791093025}
   panelFPS: {fileID: 622645561}
-  InspectorParamPrefab: {fileID: 6618800096723767927, guid: 786b5969cb4427b4db7e88964a032126,
+  inspectorParamPrefab: {fileID: 6618800096723767927, guid: 786b5969cb4427b4db7e88964a032126,
     type: 3}
   InspectorTogglePrefab: {fileID: 770977050684323453, guid: b4ad81d945afa3a4281656681e239d87,
     type: 3}
-  InspectorContent: {fileID: 756456780}
-  SimParamPrefab: {fileID: 845009612216816279, guid: 90b0030de95d59b47952f80010841ff6,
+  inspectorContent: {fileID: 756456780}
+  simParamPrefab: {fileID: 845009612216816279, guid: 90b0030de95d59b47952f80010841ff6,
     type: 3}
   SimParamPrefab_Disabled: {fileID: 7084060514929450581, guid: 1fcc380a28d2a1f4498df238b6588bc9,
     type: 3}
@@ -9454,11 +9479,16 @@ MonoBehaviour:
   imgContour: {fileID: 282169781}
   buttonEdit: {fileID: 125140633}
   muteUnmuteButton: {fileID: 1119879807}
+  discardParamButton: {fileID: 2089354061}
+  applyParamButton: {fileID: 1056325881}
+  discardInspectorButton: {fileID: 555805314}
+  applyInspectorButton: {fileID: 2072153528}
   backgroundMusic: {fileID: 1070457358}
   commandSprites:
   - {fileID: 21300000, guid: d6258bba44b6bca4980db06c1e05e510, type: 3}
   - {fileID: 21300000, guid: e7a36fd303aae6c4fab731d6f90b1dd3, type: 3}
   - {fileID: 21300000, guid: 14044579468d73d43a5e91b03963326b, type: 3}
+  - {fileID: 21300000, guid: 1cba3b2c12d8cd748b2c667241858833, type: 3}
   muteUnmuteSprites:
   - {fileID: 21300000, guid: 002d5636972b1bd40a4cf06e3dba3292, type: 3}
   - {fileID: 21300000, guid: 0e6db9218a6a67a409b2a8af95bea279, type: 3}

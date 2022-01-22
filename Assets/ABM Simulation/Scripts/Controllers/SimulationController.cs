@@ -90,7 +90,7 @@ public class SimulationController : MonoBehaviour
     public event EventHandler<StepMessageEventArgs> StepMessageEventHandler;
 
     /// Messages
-    public event EventHandler<ReceivedMessageEventArgs> OnNewAdminEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnNewAdminEventHandler;
 
     /// Responses
     public static event EventHandler<ReceivedMessageEventArgs> OnCheckStatusSuccessEventHandler;
