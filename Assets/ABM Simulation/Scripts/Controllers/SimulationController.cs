@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using SimpleJSON;
 using System;
 using System.Collections.Concurrent;
@@ -774,7 +774,11 @@ public class SimulationController : MonoBehaviour
             serverSide_simId = (int)((JSONObject)e.Payload["payload_data"])["simId"];
             PerfManager.PRODUCED_SPS = (int)((JSONObject)e.Payload["payload_data"])["simStepRate"];
 
-            if(clientState.Equals(StateEnum.IN_GAME)) simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
+            if (clientState.Equals(StateEnum.IN_GAME))
+            {
+                simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
+                sim_list_editable["sim_params"] = (JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"];
+            }
             if(clientState.Equals(StateEnum.READY) || clientState.Equals(StateEnum.IN_GAME))
             {
                 sim_id = serverSide_simId;

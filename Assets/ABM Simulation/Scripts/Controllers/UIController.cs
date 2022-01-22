@@ -97,6 +97,8 @@ public class UIController : MonoBehaviour
         SimulationController.OnNewAdminEventHandler += onNewAdmin;
         SimulationController.OnCheckStatusSuccessEventHandler += onNewAdmin;
     }
+
+
     /// <summary>
     /// Start routine (Unity Process)
     /// </summary>
