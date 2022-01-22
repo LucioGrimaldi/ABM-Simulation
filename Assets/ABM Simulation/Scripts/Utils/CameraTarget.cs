@@ -78,9 +78,9 @@ public class CameraTarget : MonoBehaviour {
         }
     }
 
-    private void SetNewCameraTarget(Transform newTransform)
+    public void SetNewCameraTarget(Transform newTarget)
     {
-        target = newTransform;
+        target = newTarget;
         follow = true;
     }
 }

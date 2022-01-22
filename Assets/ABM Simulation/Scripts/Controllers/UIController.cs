@@ -28,25 +28,30 @@ public class UIController : MonoBehaviour
 
     // Controllers
     private SceneController SceneController;
-
+    private Simulation.StateEnum state;
     // Sprites Collection
     private List<NamedPrefab> AgentsData;
     private List<NamedPrefab> GenericsData;
     private List<NamedPrefab> ObstaclesData;
 
     // Variables
+    //Scene Background Colors
     Color32 cyan = new Color32(146, 212, 219, 0);
     Color32 black_gray = new Color32(56, 61, 63, 0);
+
+    //Sim Params prefab Colors
+    Color32 black = new Color32(0, 0, 0, 130);
+    Color32 white = new Color32(255, 255, 255, 33);
 
     public Camera camera;
     public TMP_Text nickname, admin_nickname;
     public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false, admin;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSimParams, panelBackToMenu, panelFPS, 
-        InspectorParamPrefab, InspectorTogglePrefab, InspectorContent, SimParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, simParamsContent,
+        inspectorParamPrefab, InspectorTogglePrefab, inspectorContent, simParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, simParamsContent,
         simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab;
     public Slider slider;
     public Image imgEditMode, imgSimState, imgContour;
-    public Button buttonEdit, muteUnmuteButton;
+    public Button buttonEdit, muteUnmuteButton, discardParamButton, applyParamButton, discardInspectorButton, applyInspectorButton;
     public AudioSource backgroundMusic;
     public Sprite[] commandSprites;
     public Sprite[] muteUnmuteSprites;
@@ -83,7 +88,9 @@ public class UIController : MonoBehaviour
         if (envToggle.GetComponent<Toggle>().isOn)
             camera.backgroundColor = cyan;
         else camera.backgroundColor = black_gray;
-
+        
+        admin = SimulationController.admin;
+        if (!admin) LockUI();
     }
     /// <summary>
     /// onEnable routine (Unity Process)
@@ -91,7 +98,10 @@ public class UIController : MonoBehaviour
     private void OnEnable()
     {
         slider.onValueChanged.AddListener(delegate { MoveSlider(); });
+        SimulationController.OnNewAdminEventHandler += onNewAdmin;
     }
+
+
     /// <summary>
     /// Start routine (Unity Process)
     /// </summary>
@@ -127,15 +137,13 @@ public class UIController : MonoBehaviour
         {
             showEnvironment = false;
             camera.backgroundColor = black_gray;
-
         }
 
         backgroundMusic.volume = musicVolume;
 
-        admin_nickname.text = "Admin: " + SimulationController.admin_name;
-        admin = SimulationController.admin;
+        state = Simulation.state;
 
-        CheckIfAdmin(admin);
+        CheckSimState(state);
     }
 
 
@@ -152,6 +160,7 @@ public class UIController : MonoBehaviour
     private void OnDisable()
     {
         slider.onValueChanged.RemoveAllListeners();
+        SimulationController.OnNewAdminEventHandler -= onNewAdmin;
 
     }
     /// <summary>
@@ -163,6 +172,88 @@ public class UIController : MonoBehaviour
     }
 
     //ALTRI METODI
+
+    private void onNewAdmin(object sender, ReceivedMessageEventArgs e)
+    {
+        admin_nickname.text = "Admin: " + SimulationController.admin_name;
+        admin = SimulationController.admin;
+
+        UnlockUIIfAdmin();
+    }
+
+    public void LockUI()
+    {
+        panelSimButtons.gameObject.SetActive(false);
+        panelEditMode.gameObject.SetActive(false);
+        buttonEdit.interactable = false;
+        discardParamButton.interactable = false;
+        applyParamButton.interactable = false;
+        discardInspectorButton.interactable = false;
+        applyInspectorButton.interactable = false;
+
+        foreach (Transform child in simParamsContent.transform)
+        {
+            child.GetComponentInChildren<InputField>().interactable = false;
+            child.GetComponent<Image>().color = black;
+        }
+    }
+
+    public void UnlockUIIfAdmin()
+    {
+        if (admin)
+        {
+            panelSimButtons.gameObject.SetActive(true);
+            buttonEdit.interactable = true;
+            discardParamButton.interactable = true;
+            applyParamButton.interactable = true;
+            discardInspectorButton.interactable = true;
+            applyInspectorButton.interactable = true;
+
+            foreach (Transform child in simParamsContent.transform)
+            {
+                if (child.GetComponentInChildren<Text>().text.Contains("Width") || child.GetComponentInChildren<Text>().text.Contains("Height") ||
+                    child.GetComponentInChildren<Text>().text.Contains("Length") || child.GetComponentInChildren<Text>().text.Contains("amount"))
+                {
+                    child.GetComponentInChildren<InputField>().interactable = false;
+                    child.GetComponent<Image>().color = black;
+                }
+                else
+                {
+                    child.GetComponentInChildren<InputField>().interactable = true;
+                    child.GetComponent<Image>().color = white;
+                }
+            }
+
+            foreach (Transform child in inspectorContent.transform)
+            {
+                child.GetComponentInChildren<InputField>().interactable = true;
+                child.GetComponentInChildren<Toggle>().interactable = true;
+                child.GetComponent<Image>().color = white;
+            }
+        }
+    }
+    private void CheckSimState(Simulation.StateEnum state)
+    {
+        switch (state)
+        {
+            case Simulation.StateEnum.PLAY:
+                imgSimState.GetComponent<Image>().color = Color.green;
+                imgSimState.GetComponent<Image>().sprite = commandSprites[1];
+                break;
+            case Simulation.StateEnum.PAUSE:
+                imgSimState.GetComponent<Image>().color = Color.yellow;
+                imgSimState.GetComponent<Image>().sprite = commandSprites[0];
+                break;
+            case Simulation.StateEnum.STEP:
+                imgSimState.GetComponent<Image>().color = Color.yellow;
+                imgSimState.GetComponent<Image>().sprite = commandSprites[3];
+                break;
+            default:
+                imgSimState.GetComponent<Image>().color = Color.red;
+                imgSimState.GetComponent<Image>().sprite = commandSprites[2];
+                break;
+        }
+    }
 
     public void OnToggleSimSpaceChanged(bool value)
     {
@@ -189,6 +280,17 @@ public class UIController : MonoBehaviour
         imgSimState.GetComponent<Image>().color = Color.green;
         imgSimState.GetComponent<Image>().sprite = commandSprites[1];
         buttonEdit.interactable = false;
+
+        foreach (Transform child in simParamsContent.transform)
+        {
+            if(child.GetComponentInChildren<Text>().text.Contains("Width") || child.GetComponentInChildren<Text>().text.Contains("Height") ||
+                child.GetComponentInChildren<Text>().text.Contains("Lenght") || child.GetComponentInChildren<Text>().text.Contains("amount"))
+            {
+                child.GetComponentInChildren<InputField>().interactable = false;
+                child.GetComponent<Image>().color = black;
+
+            }
+        }
         OnPlayEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
     }
     public void PauseSimulation()
@@ -196,6 +298,17 @@ public class UIController : MonoBehaviour
         imgSimState.GetComponent<Image>().color = Color.yellow;
         imgSimState.GetComponent<Image>().sprite = commandSprites[0];
         buttonEdit.interactable = true;
+
+        foreach (Transform child in simParamsContent.transform)
+        {
+            if (child.GetComponentInChildren<Text>().text.Contains("Width") || child.GetComponentInChildren<Text>().text.Contains("Height") ||
+                child.GetComponentInChildren<Text>().text.Contains("Lenght") || child.GetComponentInChildren<Text>().text.Contains("amount"))
+            {
+                child.GetComponentInChildren<InputField>().interactable = false;
+                child.GetComponent<Image>().color = black;
+
+            }
+        }
         OnPauseEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
     }
     public void StopSimulation()
@@ -203,26 +316,13 @@ public class UIController : MonoBehaviour
         imgSimState.GetComponent<Image>().color = Color.red;
         imgSimState.GetComponent<Image>().sprite = commandSprites[2];
         buttonEdit.interactable = true;
-        OnStopEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
-    }
 
-    public void CheckIfAdmin(bool admin)
-    {
-        if (admin)
+        foreach (Transform child in simParamsContent.transform)
         {
-            if (!panelSimButtons.activeSelf && !panelEditMode.activeSelf)
-            {
-                panelSimButtons.gameObject.SetActive(true);
-                buttonEdit.interactable = true;
-            }
+            child.GetComponentInChildren<InputField>().interactable = true;
+            child.GetComponent<Image>().color = white;
         }
-        else
-        {
-            panelSimButtons.gameObject.SetActive(false);
-            panelEditMode.gameObject.SetActive(false);
-            buttonEdit.interactable = false;
-            LoadSimParams(simParamsContent, (JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["sim_params"]);
-        }
+        OnStopEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
     }
 
     public void PopulateEditPanel()
@@ -260,16 +360,19 @@ public class UIController : MonoBehaviour
     }
     public void PopulateInspector(PlaceableObject po)
     {
-        EmptyInspectorParams();
-        tempSimObjectParams.Clear();
-        emptyScrollTextInspector.gameObject.SetActive(false);
-        LoadInspectorInfo(po.SimObject.Type, po.SimObject.Class_name, po.SimObject.Id);
-        LoadInspectorParams(SceneController.GetSimObjectParamsPrototype(po.SimObject.Type, po.SimObject.Class_name));
+        if(po != null)
+        {
+            EmptyInspectorParams();
+            tempSimObjectParams.Clear();
+            emptyScrollTextInspector.gameObject.SetActive(false);
+            LoadInspectorInfo(po.SimObject.Type, po.SimObject.Class_name, po.SimObject.Id);
+            LoadInspectorParams(SceneController.GetSimObjectParamsPrototype(po.SimObject.Type, po.SimObject.Class_name), admin);
+        }
     }
     public void EmptyInspectorParams()
     {
-        foreach (Transform child in InspectorContent.transform) GameObject.Destroy(child.gameObject);
-        InspectorContent.transform.DetachChildren();
+        foreach (Transform child in inspectorContent.transform) GameObject.Destroy(child.gameObject);
+        inspectorContent.transform.DetachChildren();
     }
     public void LoadInspectorInfo(SimObject.SimObjectType type, string class_name, int id)
     {
@@ -277,7 +380,7 @@ public class UIController : MonoBehaviour
         inspectorClass.text = class_name;
         inspectorId.text = id.ToString();
     }
-    public void LoadInspectorParams(JSONArray parameters)
+    public void LoadInspectorParams(JSONArray parameters, bool admin)
     {
         GameObject param;
 
@@ -288,30 +391,57 @@ public class UIController : MonoBehaviour
                 switch ((string)p["type"])
                 {
                     case "System.Single":
-                        param = Instantiate(InspectorParamPrefab);
+                        param = Instantiate(inspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], float.Parse(value)));
+                        if (!admin)
+                        {
+                            param.GetComponentInChildren<InputField>().interactable = false;
+                            param.GetComponent<Image>().color = black;
+                        }
                         break;
                     case "System.Int32":
-                        param = Instantiate(InspectorParamPrefab);
+                        param = Instantiate(inspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], int.Parse(value)));
+                        if (!admin)
+                        {
+                            param.GetComponentInChildren<InputField>().interactable = false;
+                            param.GetComponent<Image>().color = black;
+                        }
                         break;
                     case "System.Boolean":
                         param = Instantiate(InspectorTogglePrefab);
                         param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
                         param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
                         param.GetComponentInChildren<Toggle>().isOn = p["defalut"];
+                        if (!admin)
+                        {
+                            param.GetComponentInChildren<Toggle>().interactable = false;
+                            param.GetComponent<Image>().color = black;
+                        }
                         break;
                     case "System.String":
-                        param = Instantiate(InspectorParamPrefab);
+                        param = Instantiate(inspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
+                        if (!admin) param.GetComponentInChildren<InputField>().interactable = false;
+                        if (!admin)
+                        {
+                            param.GetComponentInChildren<InputField>().interactable = false;
+                            param.GetComponent<Image>().color = black;
+                        }
                         break;
                     case "System.Position":
-                        param = Instantiate(InspectorParamPrefab);
+                        param = Instantiate(inspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
+                        if (!admin) param.GetComponentInChildren<InputField>().interactable = false;
+                        if (!admin)
+                        {
+                            param.GetComponentInChildren<InputField>().interactable = false;
+                            param.GetComponent<Image>().color = black;
+                        }
                         break;
                     case "System.Cells":
                         // multiple elements prefab
@@ -319,7 +449,8 @@ public class UIController : MonoBehaviour
                     default:
                         continue;
                 }
-                param.transform.SetParent(InspectorContent.transform);
+                param.transform.SetParent(inspectorContent.transform);
+
                 if (!((string)p["type"]).Equals("System.Boolean"))
                 {
                     param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
@@ -329,19 +460,12 @@ public class UIController : MonoBehaviour
                 }
             }
         }
-        if (InspectorContent.transform.childCount > 0)
-        {
-            param = Instantiate(InspectorTogglePrefab);
-            //param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => 
-            param.transform.Find("Param Name").GetComponent<Text>().text = "Follow";
-            param.GetComponentInChildren<Toggle>().isOn = false;
-            param.transform.SetParent(InspectorContent.transform);
-        }
-        else
+        if (inspectorContent.transform.childCount == 0)
         {
             emptyScrollTextInspector.text = "No inspector parameters available";
             emptyScrollTextInspector.gameObject.SetActive(true);
         }
+
     }
     public void LoadSimParams(GameObject scrollContent, JSONArray parameters)
     {
@@ -353,12 +477,12 @@ public class UIController : MonoBehaviour
                 switch ((string)p["type"])
                 {
                     case "System.Single":
-                        param = Instantiate(SimParamPrefab);
+                        param = Instantiate(simParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], float.Parse(value.Replace('.', ','))));
                         break;
                     case "System.Int32":
-                        param = Instantiate(SimParamPrefab);
+                        param = Instantiate(simParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], int.Parse(value)));
                         break;
@@ -369,12 +493,12 @@ public class UIController : MonoBehaviour
                         param.GetComponentInChildren<Toggle>().isOn = p["defalut"];
                         break;
                     case "System.String":
-                        param = Instantiate(SimParamPrefab);
+                        param = Instantiate(simParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], value));
                         break;
                     case "System.Position":
-                        param = Instantiate(SimParamPrefab);
+                        param = Instantiate(simParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
                         param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
                         break;
@@ -408,14 +532,18 @@ public class UIController : MonoBehaviour
             switch ((string)d["type"])
             {
                 case "System.Single":
-                    param = Instantiate(SimParamPrefab_Disabled);
+                    param = Instantiate(simParamPrefab);
                     param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
                     param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(d["name"], float.Parse(value.Replace('.', ','))));  // TODO ----------------
+                    param.transform.GetComponentInChildren<InputField>().interactable = false;
+                    param.GetComponent<Image>().color = black;
                     break;
                 case "System.Int32":
-                    param = Instantiate(SimParamPrefab_Disabled);
+                    param = Instantiate(simParamPrefab);
                     param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
                     param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(d["name"], int.Parse(value))); // TODO ----------------
+                    param.transform.GetComponentInChildren<InputField>().interactable = false;
+                    param.GetComponent<Image>().color = black;
                     break;
                 default:
                     return;
@@ -433,7 +561,7 @@ public class UIController : MonoBehaviour
         foreach (JSONObject p in agentPrototypes)
         {
             GameObject param;
-            param = Instantiate(SimParamPrefab_Disabled);
+            param = Instantiate(simParamPrefab);
             param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
             param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimParamUpdate(p["name"], int.Parse(value))); //TODO ---------------
 
@@ -443,6 +571,8 @@ public class UIController : MonoBehaviour
             param.GetComponentInChildren<InputField>().characterLimit = 20;
             param.transform.Find("Param Name").GetComponent<Text>().text = p["class"] + "s amount";
             param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+            param.transform.GetComponentInChildren<InputField>().interactable = false;
+            param.GetComponent<Image>().color = black;
         }
     }
 

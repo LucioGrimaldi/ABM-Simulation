@@ -67,7 +67,6 @@ namespace RuntimeSceneGizmo
 			StartCoroutine( cameraRotateCoroutine );
 		}
 
-		// Credit: https://forum.unity.com/threads/smooth-transition-between-perspective-and-orthographic-modes.32765/#post-212814
 		private IEnumerator SwitchProjection()
 		{
 			bool isOrthographic = mainCamera.orthographic;

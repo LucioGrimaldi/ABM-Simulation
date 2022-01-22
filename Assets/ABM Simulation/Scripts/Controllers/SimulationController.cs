@@ -90,7 +90,7 @@ public class SimulationController : MonoBehaviour
     public event EventHandler<StepMessageEventArgs> StepMessageEventHandler;
 
     /// Messages
-    public event EventHandler<ReceivedMessageEventArgs> OnNewAdminEventHandler;
+    public static event EventHandler<ReceivedMessageEventArgs> OnNewAdminEventHandler;
 
     /// Responses
     public static event EventHandler<ReceivedMessageEventArgs> OnCheckStatusSuccessEventHandler;
@@ -761,7 +761,7 @@ public class SimulationController : MonoBehaviour
 
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | NEW_ADMIN MESSAGE RECEIVED. | " + (admin ? "You are" : admin_name + " is") + " the new room admin.");
 
-        OnNewAdminEventHandler?.Invoke(this, e);
+        OnNewAdminEventHandler?.BeginInvoke(this, e, null, null);
     }
     private void onCheckStatusResponse(ReceivedMessageEventArgs e)
     {
@@ -774,7 +774,11 @@ public class SimulationController : MonoBehaviour
             serverSide_simId = (int)((JSONObject)e.Payload["payload_data"])["simId"];
             PerfManager.PRODUCED_SPS = (int)((JSONObject)e.Payload["payload_data"])["simStepRate"];
 
-            if(clientState.Equals(StateEnum.IN_GAME)) simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
+            if (clientState.Equals(StateEnum.IN_GAME))
+            {
+                simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
+                sim_list_editable["sim_params"] = (JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"];
+            }
             if(clientState.Equals(StateEnum.READY) || clientState.Equals(StateEnum.IN_GAME))
             {
                 sim_id = serverSide_simId;

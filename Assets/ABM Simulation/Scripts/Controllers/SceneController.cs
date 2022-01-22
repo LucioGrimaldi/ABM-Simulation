@@ -50,8 +50,8 @@ public class SceneController : MonoBehaviour
     private static Simulation.SimTypeEnum simType;
     private static ConcurrentDictionary<string, int> simDimensions;
     private int width = 1, height = 1, lenght = 1;
-    public PlaceableObject selectedGhost = null;
-    public PlaceableObject selectedPlaced = null;
+    public static PlaceableObject selectedGhost = null;
+    public static PlaceableObject selectedPlaced = null;
     public AudioSource audioPlacedSound;
 
     /// UNITY LOOP METHODS ///
@@ -291,6 +291,8 @@ public class SceneController : MonoBehaviour
             {
                 DeletePlacedObject(selectedPlaced);
                 DeleteSimObject();
+                
+                selectedPlaced = null;
             }
         }
         // Modify
@@ -344,7 +346,7 @@ public class SceneController : MonoBehaviour
         // Rotate
         if (Input.GetKeyDown(KeyCode.R)) { if (selectedPlaced != null || selectedGhost != null) SimSpaceSystem.RotatePlacedObject((selectedGhost != null) ? selectedGhost : selectedPlaced); }
         // Deselect
-        if (Input.GetKeyDown(KeyCode.Escape)) { if (selectedGhost != null) DeleteGhost(); if(selectedPlaced != null) { DeselectSimObject(); } }
+        if (Input.GetKeyDown(KeyCode.Escape)) { if (selectedGhost != null) { DeleteGhost(); selectedGhost = null; } if(selectedPlaced != null) { DeselectSimObject(); } }
 
 
     }
