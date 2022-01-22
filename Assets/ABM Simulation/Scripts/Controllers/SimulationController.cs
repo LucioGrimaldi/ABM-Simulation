@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using SimpleJSON;
 using System;
 using System.Collections.Concurrent;

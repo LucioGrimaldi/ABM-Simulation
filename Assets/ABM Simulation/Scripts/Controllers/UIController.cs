@@ -6,6 +6,7 @@ using System;
 using static SceneController;
 using System.Collections.Generic;
 using SimpleJSON;
+using System.Collections.Concurrent;
 
 public class SpeedChangeEventArgs : EventArgs
 {
@@ -25,6 +26,9 @@ public class UIController : MonoBehaviour
     public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectParamsUpdateEventHandler;
     public static event EventHandler<EventArgs> OnEditExitEventHandler;
     public static event EventHandler<EventArgs> OnExitEventHandler;
+
+    // UI Action Queue
+    public static readonly ConcurrentQueue<Action> UIControllerThreadQueue = new ConcurrentQueue<Action>();
 
     // Controllers
     private SceneController SceneController;
@@ -97,8 +101,6 @@ public class UIController : MonoBehaviour
         SimulationController.OnNewAdminEventHandler += onNewAdmin;
         SimulationController.OnCheckStatusSuccessEventHandler += onNewAdmin;
     }
-
-
     /// <summary>
     /// Start routine (Unity Process)
     /// </summary>
@@ -121,6 +123,14 @@ public class UIController : MonoBehaviour
     /// </summary>
     void Update()
     {
+        if (!UIControllerThreadQueue.IsEmpty)
+        {
+            while (UIControllerThreadQueue.TryDequeue(out var action))
+            {
+                action?.Invoke();
+            }
+        }
+
         if (simToggle.GetComponent<Toggle>().isOn)
             showSimSpace = true;
         else showSimSpace = false;
@@ -170,9 +180,14 @@ public class UIController : MonoBehaviour
 
     private void onNewAdmin(object sender, ReceivedMessageEventArgs e)
     {
-        admin_nickname.text = "Admin: " + SimulationController.admin_name;
-        if (SimulationController.admin) UnlockUI();
-        else LockUI();
+        UIControllerThreadQueue.Enqueue(() => {
+
+            admin_nickname.text = "Admin: " + SimulationController.admin_name;
+            if (SimulationController.admin) UnlockUI();
+            else LockUI(); 
+
+        });
+
     }
 
     public void LockUI()
