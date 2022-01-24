@@ -253,6 +253,7 @@ public class SimulationController : MonoBehaviour
     void OnApplicationQuit()
     {
         // do other stuff
+        SendSimCommand(Command.STOP, 0);
         SendDisconnect();
         CommController.DisconnectControlClient();
         CommController.DisconnectSimulationClient();

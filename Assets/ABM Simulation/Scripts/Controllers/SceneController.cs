@@ -277,7 +277,7 @@ public class SceneController : MonoBehaviour
                         CreateSimObject(selectedPlaced);             
                         //selectedPlaced.Highlight();
                         ShowInspector(selectedPlaced);
-                        selectedGhost = CreateGhost(selectedGhost.SimObject, selectedGhost, true);
+                        selectedGhost = CreateGhost(GetSimObjectPrototype(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name), GetPlaceableObjectPrefab(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name), true);
                         selectedGhost.SimObject.Id = GetTemporaryId(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name);
                     }
                 }
@@ -499,41 +499,41 @@ public class SceneController : MonoBehaviour
             if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable;
             else
             {
+                PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
                 PlaceableObject _old = GetGhostToReplace(so);
-                PlaceableObject _new = GetPlaceableObjectPrefab(so.Type, so.Class_name);
+                PlaceableObject _new = CreatePlaceableObject(so, _prefab, movable);
                 if (_old != null)
                 {
                     DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
                     SimSpaceSystem.CopyRotation(_old, _new);
                 }
-                CreatePlaceableObject(so, _new, movable);
             }
         }
         foreach (SimObject so in g)
         {
             if (!placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
             {
+                PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
                 PlaceableObject _old = GetGhostToReplace(so);
-                PlaceableObject _new = GetPlaceableObjectPrefab(so.Type, so.Class_name);
+                PlaceableObject _new = CreatePlaceableObject(so, _prefab, movable);
                 if (_old != null)
                 {
                     DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
                     SimSpaceSystem.CopyRotation(_old, _new);
                 }
-                CreatePlaceableObject(so, _new, movable);
             }
         }
         foreach (SimObject so in o) {
             if (!placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
             {
+                PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
                 PlaceableObject _old = GetGhostToReplace(so);
-                PlaceableObject _new = GetPlaceableObjectPrefab(so.Type, so.Class_name);
+                PlaceableObject _new = CreatePlaceableObject(so, _prefab, movable);
                 if (_old != null)
                 {
                     DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
                     SimSpaceSystem.CopyRotation(_old, _new);
-                }
-                CreatePlaceableObject(so, _new, movable);
+                }                
             }
         }
     }
@@ -638,6 +638,26 @@ public class SceneController : MonoBehaviour
                 return g;
             case SimObject.SimObjectType.OBSTACLE:
                 class_name = PO_Prefab_Collection[simId].PO_ObstaclePrefabs[id].name;
+                SimObject o = SimulationController.GetSimulation().Obstacle_prototypes[class_name];
+                o.Id = GetTemporaryId(o.Type, o.Class_name);
+                return o;
+            default:
+                return null;
+        }
+    }
+    public SimObject GetSimObjectPrototype(SimObject.SimObjectType type, string class_name)
+    {
+        switch (type)
+        {
+            case SimObject.SimObjectType.AGENT:
+                SimObject a = SimulationController.GetSimulation().Agent_prototypes[class_name];
+                a.Id = GetTemporaryId(a.Type, a.Class_name);
+                return a;
+            case SimObject.SimObjectType.GENERIC:
+                SimObject g = SimulationController.GetSimulation().Generic_prototypes[class_name];
+                g.Id = GetTemporaryId(g.Type, g.Class_name);
+                return g;
+            case SimObject.SimObjectType.OBSTACLE:
                 SimObject o = SimulationController.GetSimulation().Obstacle_prototypes[class_name];
                 o.Id = GetTemporaryId(o.Type, o.Class_name);
                 return o;

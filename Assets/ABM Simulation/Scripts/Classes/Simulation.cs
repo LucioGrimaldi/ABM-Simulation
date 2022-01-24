@@ -1,4 +1,4 @@
-﻿using SimpleJSON;
+using SimpleJSON;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -951,6 +951,7 @@ public class Simulation
                                                    BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0),
                                                    BitConverter.ToSingle(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0));
                             so.UpdateParameter("rotation", value);
+                            //Debug.Log("Ricevuto SimObject " + so.Type + " " + so.Class_name + " " + so.Id + " con rotazione: " + value);
                             break;
                         case "System.Cells":
                             JSONObject o_p = (JSONObject)obstacle_prototypes.ElementAt(i);
