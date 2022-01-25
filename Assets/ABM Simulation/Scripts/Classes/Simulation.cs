@@ -188,7 +188,7 @@ public class Simulation
         foreach (JSONObject d in dimensions)
         {
             value = (int)d["default"];
-            Dimensions.TryAdd(d["name"], (int)value);
+            Dimensions[d["name"]] = (int)value;
         }
         
         // Get Sim parameters
@@ -1030,86 +1030,16 @@ public class Simulation
         if(complete) UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP " + currentSimStep + " : ed è " + (complete ? "completo" : "non completo."));
     }
     /// <summary>
-    /// Update Simulation from uncommited_update
+    /// Clears Simulation
     /// </summary>
-    public void UpdateSimulationFromEdit(JSONObject sim_updateJSON, ConcurrentDictionary<(string, (SimObject.SimObjectType, string, int)), SimObject> sim_update)
+    public void ClearSimulation()
     {
-        SimObject x = defaultSimObject.Clone();
-        IEnumerable<KeyValuePair<(string class_name, int id), SimObject>> objs;
-        MyList<(string, int)> keys_to_remove = new MyList<(string, int)>();
-        var dict = new ConcurrentDictionary<(string class_name, int id), SimObject>();
-
-
-        // SIM_PARAMS
-        if (!sim_updateJSON["sim_params"].Equals(null))
-        {
-            JSONObject parameters = (JSONObject)sim_updateJSON["sim_params"];
-            foreach (KeyValuePair<string, JSONNode> p in parameters.Dict)
-            {
-                Parameters[p.Key] = p.Value;
-            }
-        }        
-
-        // AGENTS/GENERICS/OBSTACLES
-        foreach (KeyValuePair<(string op, (SimObject.SimObjectType type, string class_name, int id) obj), SimObject> entry in sim_update)
-        {
-            // prendo il dict giusto
-            switch (entry.Key.obj.type)
-            {
-                case SimObject.SimObjectType.AGENT:
-                    dict = Agents;
-                    break;
-                case SimObject.SimObjectType.GENERIC:
-                    dict = Generics;
-                    break;
-                case SimObject.SimObjectType.OBSTACLE:
-                    dict = Obstacles;
-                    break;
-                default:
-                    objs = null;
-                    break;
-            }
-
-            // entry per un'intera classe (questo significa che contiene solo i parametri modificati)
-            if (entry.Key.obj.id.Equals(-1))
-            {
-                objs = dict.Where(obj => obj.Key.class_name.Equals(entry.Key.obj.class_name));
-
-                if (entry.Key.op.Equals("MOD")) {
-                    foreach (KeyValuePair<(string class_name, int id), SimObject> o in objs)
-                    {
-                        foreach (KeyValuePair<string, object> p in entry.Value.Parameters)
-                        {
-                            o.Value.UpdateParameter(p.Key, p.Value);
-                        }
-                    }
-                }
-                else if (entry.Key.op.Equals("DEL"))
-                {
-                    foreach (KeyValuePair<(string class_name, int id), SimObject> e in objs)
-                    {
-                        keys_to_remove.Add(e.Key);
-                    }
-                    foreach((string, int) k in keys_to_remove)
-                    {
-                        dict.TryRemove(k, out _);
-                    }
-                }
-            }
-            // entry per un singolo oggetto
-            else
-            {
-                if (entry.Key.op.Equals("MOD"))
-                {
-                    dict.TryGetValue((entry.Key.obj.class_name, entry.Key.obj.id), out x);
-                    x = entry.Value;
-                }
-                else if (entry.Key.op.Equals("DEL"))
-                {
-                    dict.TryRemove((entry.Key.obj.class_name, entry.Key.obj.id), out _);
-                }                    
-            }
-        }
+        CurrentSimStep = 0;
+        Agents.Clear();
+        Generics.Clear();
+        Obstacles.Clear();
+        toDeleteIfNotInStep.Clear();
+        temp.Clear();
     }
 
     /// Utils ///

@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class ContinuousSystem : SimSpaceSystem
 {
-    public static int width, height, lenght;
+    public static int width, height, length;
     public static GameObject simSpace;
 
     /// <summary>
@@ -59,6 +59,11 @@ public class ContinuousSystem : SimSpaceSystem
     public override ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> GetTemporaryGhosts()
     {
         return placedGhostsDict;
+    }
+    public override void ClearSimSpaceSystem()
+    {
+        placedGhostsDict.Clear();
+        placedObjectsDict.Clear();
     }
     public override PlaceableObject CreateGhost(SimObject simObject, PlaceableObject po, bool isMovable)
     {
@@ -127,14 +132,14 @@ public class ContinuousSystem : SimSpaceSystem
     }
     public static Vector3 MasonToUnityPosition2D(Vector3 sim_position)
     {
-        return new Vector3(sim_position.x / (width / simSpace.transform.localScale.x), sim_position.z / (height / simSpace.transform.localScale.y), sim_position.y / (lenght / simSpace.transform.localScale.z));
+        return new Vector3(sim_position.x / (width / simSpace.transform.localScale.x), sim_position.z / (height / simSpace.transform.localScale.y), sim_position.y / (length / simSpace.transform.localScale.z));
     }
     public static Vector3 MasonToUnityPosition3D(Vector3 sim_position)
     {
-        return new Vector3(sim_position.x / (width / simSpace.transform.localScale.x), sim_position.z / (height / simSpace.transform.localScale.y), sim_position.y / (lenght / simSpace.transform.localScale.z));
+        return new Vector3(sim_position.x / (width / simSpace.transform.localScale.x), sim_position.z / (height / simSpace.transform.localScale.y), sim_position.y / (length / simSpace.transform.localScale.z));
     }
     public static Vector3 UnityToMasonPosition3D(Vector3 sim_position)
     {
-        return new Vector3(sim_position.x * (width / simSpace.transform.localScale.x), sim_position.z * (height / simSpace.transform.localScale.y), sim_position.y * (lenght / simSpace.transform.localScale.z));
+        return new Vector3(sim_position.x * (width / simSpace.transform.localScale.x), sim_position.z * (height / simSpace.transform.localScale.y), sim_position.y * (length / simSpace.transform.localScale.z));
     }
 }

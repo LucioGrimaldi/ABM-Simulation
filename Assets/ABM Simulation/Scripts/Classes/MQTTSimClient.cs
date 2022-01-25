@@ -152,11 +152,11 @@ public class MQTTSimClient
         byte[] QosArray = new byte[59];
         for (int i = 0; i < 59; i++)
         {
-            stepTopics.Add("Topic" + i+1);
+            stepTopics.Add("Topic" + (i+1));
             QosArray[i] = MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE;
         }
         client.Subscribe(stepTopics.ToArray(), QosArray);
-        OnSubscribe(stepTopics);
+        //OnSubscribe(stepTopics);
     }
    
     /// <summary>

@@ -129,6 +129,11 @@ public class GridSystem : SimSpaceSystem
     {
         return placedGhostsDict;
     }
+    public override void ClearSimSpaceSystem()
+    {
+        placedGhostsDict.Clear();
+        placedObjectsDict.Clear();
+    }
     public override PlaceableObject CreateGhost(SimObject simObject, PlaceableObject po, bool isMovable)
     {
         return Create(simObject, po, true, isMovable);
@@ -201,7 +206,7 @@ public class GridSystem : SimSpaceSystem
         bool canBuild = true;
         foreach (Vector2Int cell in (MyList<Vector2Int>)so.Parameters["position"])
         {
-            if (!(cell.x < grid.Width && cell.y < grid.Lenght
+            if (!(cell.x < grid.Width && cell.y < grid.Length
                     && cell.x >= 0 && cell.y >= 0))
             {
                 canBuild = false;

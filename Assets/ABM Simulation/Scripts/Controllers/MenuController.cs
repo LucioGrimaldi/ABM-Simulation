@@ -543,11 +543,6 @@ public class MenuController : MonoBehaviour
             GameObject param;
             switch ((string)d["type"])
             {
-                case "System.Single":
-                    param = Instantiate(inMenuParamPrefab);
-                    param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
-                    param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onSimDimensionsModified(d["name"], float.Parse(value.Replace('.', ','))));
-                    break;
                 case "System.Int32":
                     param = Instantiate(inMenuParamPrefab);
                     param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;

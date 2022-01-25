@@ -145,7 +145,7 @@ MonoBehaviour:
   isMovable: 0
   direction: 0
   width: 10
-  lenght: 10
+  length: 10
   isSquared: 1
 --- !u!114 &5165079284725242109
 MonoBehaviour:

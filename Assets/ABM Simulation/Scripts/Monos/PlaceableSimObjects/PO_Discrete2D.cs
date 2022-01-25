@@ -13,7 +13,7 @@ public class PO_Discrete2D : PO_Discrete
 
         PO_Discrete2D po_clone = Instantiate((PO_Discrete2D)po, GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)simObject.Parameters["position"]), Quaternion.Euler(Vector3.zero));
         po_clone.transform.Find("Model").GetComponent<Outline>().enabled = false;
-        po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f * Mathf.Max(po_clone.width, po_clone.lenght);
+        po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f * Mathf.Max(po_clone.width, po_clone.length);
         po_clone.SetScale(gridSystem.grid.CellSize);
         if (isGhost)
         {
@@ -49,13 +49,13 @@ public class PO_Discrete2D : PO_Discrete
 
     // NON-STATIC
     [SerializeField] protected DirEnum direction;
-    [SerializeField] protected int width, lenght;
+    [SerializeField] protected int width, length;
     protected MyList<Vector2Int> pos;
     [SerializeField] protected bool isSquared = false;
 
     public DirEnum Direction { get => direction; set => direction = value; }
     public int Width { get => width; set => width = value; }
-    public int Lenght { get => lenght; set => lenght = value; }
+    public int Length { get => length; set => length = value; }
     public MyList<Vector2Int> Pos { get => pos; set => pos = value; }
 
 
@@ -66,7 +66,7 @@ public class PO_Discrete2D : PO_Discrete
     /// </summary>
     protected virtual void Start()
     {
-        isSquared = width.Equals(lenght) ? true : false;
+        isSquared = width.Equals(length) ? true : false;
     }
     /// <summary>
     /// onEnable routine (Unity Process)
@@ -89,7 +89,7 @@ public class PO_Discrete2D : PO_Discrete
                     Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
                     Vector3 targetPosition = gridSystem.MouseClickToSpawnPosition(this);                                                                                                                // offset escluso
                     gridSystem.grid.GetXYZ(targetPosition, out int x, out _, out int z);
-                    simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, lenght);
+                    simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, length);
                     transform.position = Vector3.Lerp(transform.position, targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize, Time.deltaTime * 15f);        // offset incluso
                     transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);                                                     // limiti di rotazione gestiti in Rotate()
                 }
@@ -131,7 +131,7 @@ public class PO_Discrete2D : PO_Discrete
     public override bool PlaceGhost(Vector3 position)
     {
         gridSystem.grid.GetXYZ(position, out int x, out _, out int z);
-        simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, lenght);
+        simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, length);
         foreach (Vector2Int cell in pos) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
         gridSystem.placedGhostsDict.TryAdd((simObject.Type, simObject.Class_name, simObject.Id), (isGhost, this));
         base.PlaceGhost(position);
@@ -173,8 +173,8 @@ public class PO_Discrete2D : PO_Discrete
             default:
             case PO_Discrete2D.DirEnum.NORD: return new Vector3Int(0, 0, 0);            //width = x, lenght = z
             case PO_Discrete2D.DirEnum.EST: return new Vector3Int(0, 0, width);
-            case PO_Discrete2D.DirEnum.SUD: return new Vector3Int(width, 0, lenght);
-            case PO_Discrete2D.DirEnum.OVEST: return new Vector3Int(lenght, 0, 0);
+            case PO_Discrete2D.DirEnum.SUD: return new Vector3Int(width, 0, length);
+            case PO_Discrete2D.DirEnum.OVEST: return new Vector3Int(length, 0, 0);
         }
     }
     public override object GetCells()

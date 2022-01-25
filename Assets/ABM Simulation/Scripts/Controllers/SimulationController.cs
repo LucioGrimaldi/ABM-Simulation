@@ -253,7 +253,6 @@ public class SimulationController : MonoBehaviour
     void OnApplicationQuit()
     {
         // do other stuff
-        SendSimCommand(Command.STOP, 0);
         SendDisconnect();
         CommController.DisconnectControlClient();
         CommController.DisconnectSimulationClient();
@@ -540,6 +539,11 @@ public class SimulationController : MonoBehaviour
         {
             SendSimCommand(Command.PLAY, 0);
         }
+        else if(simulation.State == Simulation.StateEnum.NOT_READY)
+        {
+            SendSimInitialize((JSONObject)sim_list_editable[sim_id]);
+            SendSimCommand(Command.PLAY, 0);
+        }
     }
     /// <summary>
     /// Pause simulation
@@ -577,10 +581,11 @@ public class SimulationController : MonoBehaviour
                 simulation.State = Simulation.StateEnum.PAUSE;
                 break;
             case Command.STOP:
-                simulation.State = Simulation.StateEnum.READY;
-                latestSimStepArrived = 0;
-                simulation.CurrentSimStep = 0;
+                simulation.State = Simulation.StateEnum.NOT_READY;
                 CommController.EmptyQueues();
+                latestSimStepArrived = 0;
+                SceneController.ClearSimSpace();
+                simulation.ClearSimulation();
                 break;
             case Command.SPEED:
                 break;
@@ -655,8 +660,42 @@ public class SimulationController : MonoBehaviour
     }
     private void onSimParamsUpdate(object sender, SimParamsUpdateEventArgs e)
     {
-        StoreSimParamsUpdateToJSON(e);
-        SendSimUpdate();
+        if (simulation.State.Equals(Simulation.StateEnum.NOT_READY))
+        {
+            foreach (KeyValuePair<string, object> param in e.parameters)
+            {
+                if (param.Key.Contains("amount"))
+                {
+                    foreach ((int i, KeyValuePair<string, JSONNode> proto) kvp in sim_list_editable[sim_id]["agent_prototypes"].Linq.Select((p, i) => (i, p)))
+                    {
+                        if (kvp.proto.Value["class"].Equals(param.Key.Substring(0, param.Key.Length - 8))) sim_list_editable[sim_id]["agent_prototypes"][kvp.i]["default"] = (int)param.Value;
+                    }
+                }
+                else if (param.Key.Equals("x") || param.Key.Equals("y") || param.Key.Equals("z"))
+                {
+                    sim_list_editable[sim_id]["dimensions"][param.Key.Equals("x") ? 0 : param.Key.Equals("y") ? 1 : 2]["default"] = (int)param.Value;
+                }
+                else
+                {
+                    foreach (JSONObject _param in sim_list_editable[sim_id]["sim_params"])
+                    {
+                        if (param.Key.Equals(_param["name"]))
+                        {
+                            if (param.Value.GetType().Equals(typeof(float))) _param["default"] = (float)param.Value;
+                            else if (param.Value.GetType().Equals(typeof(int))) _param["default"] = (int)param.Value;
+                            else if (param.Value.GetType().Equals(typeof(bool))) _param["default"] = (bool)param.Value;
+                            else if (param.Value.GetType().Equals(typeof(string))) _param["default"] = (string)param.Value;
+                        }
+                    }
+                }                
+            }
+            SendSimInitialize((JSONObject)sim_list_editable[sim_id]);
+        }
+        else
+        {
+            StoreSimParamsUpdateToJSON(e);
+            SendSimUpdate();
+        }        
     }
     private void onSimObjectModify(object sender, SimObjectModifyEventArgs e)
     {
@@ -778,7 +817,15 @@ public class SimulationController : MonoBehaviour
             if (clientState.Equals(StateEnum.IN_GAME))
             {
                 simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
-                sim_list_editable["sim_params"] = (JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"];
+                foreach (var param in (JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"])
+                {
+                    foreach (JSONObject _param in sim_list_editable[sim_id]["sim_params"])
+                    {
+                        if (param.Key.Equals(_param["name"])){
+                            _param["default"] = param.Value;
+                        }
+                    }
+                }
             }
             if(clientState.Equals(StateEnum.READY) || clientState.Equals(StateEnum.IN_GAME))
             {
@@ -789,11 +836,8 @@ public class SimulationController : MonoBehaviour
 
         //Check status for errors
 
-        //Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Server status checked: " + serverSide_simState + " .");
-
         if (result) OnCheckStatusSuccessEventHandler?.Invoke(null, e);
         else OnCheckStatusUnsuccessEventHandler?.Invoke(null, e);
-
     }
     private void onConnectionResponse(ReceivedMessageEventArgs e)
     {
@@ -850,6 +894,10 @@ public class SimulationController : MonoBehaviour
             {
                 sim_id = e.Payload["payload_data"]["payload"]["id"];
                 simulation.InitSimulationFromPrototype((JSONObject)e.Payload["payload_data"]["payload"]);
+            }
+            if (clientState.Equals(StateEnum.IN_GAME))
+            {
+                SimControllerThreadQueue.Enqueue(() => { SceneController.ResetSimSpace(); });
             }
 
             UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
@@ -1094,9 +1142,9 @@ public class SimulationController : MonoBehaviour
             try
             {
                 if (p.Value.GetType().Equals(typeof(float))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (float)p.Value);
-                if (p.Value.GetType().Equals(typeof(int))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (int)p.Value);
-                if (p.Value.GetType().Equals(typeof(bool))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (bool)p.Value);
-                if (p.Value.GetType().Equals(typeof(string))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (string)p.Value);
+                else if (p.Value.GetType().Equals(typeof(int))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (int)p.Value);
+                else if (p.Value.GetType().Equals(typeof(bool))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (bool)p.Value);
+                else if (p.Value.GetType().Equals(typeof(string))) uncommitted_updatesJSON["sim_params"].Add(p.Key, (string)p.Value);
             }
             catch (Exception ex)
             {
@@ -1171,7 +1219,6 @@ public class SimulationController : MonoBehaviour
             CommController.KeepAliveSimClient();
         }
     }
-
     /// <summary>
     /// Send connect message
     /// </summary>
@@ -1185,7 +1232,6 @@ public class SimulationController : MonoBehaviour
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CONNECT to MASON...");
         CommController.SendMessage(nickname, "001", payload);
     }
-    
     /// <summary>
     /// Send disconnect message
     /// </summary>
@@ -1198,7 +1244,6 @@ public class SimulationController : MonoBehaviour
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending DISCONNECT to MASON...");
         CommController.SendMessage(nickname, "002", payload);
     }
-
     /// <summary>
     /// Send sim list request
     /// </summary>
@@ -1210,7 +1255,6 @@ public class SimulationController : MonoBehaviour
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending SIM_LIST_REQUEST to MASON...");
         CommController.SendMessage(nickname, "003", payload);
     }
-
     /// <summary>
     /// Send initialization message
     /// </summary>
@@ -1219,7 +1263,6 @@ public class SimulationController : MonoBehaviour
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending SIM_INITIALIZE to MASON...");
         CommController.SendMessage(nickname, "004", sim_initialized);
     }
-
     /// <summary>
     /// Send sim update
     /// </summary>
@@ -1229,7 +1272,6 @@ public class SimulationController : MonoBehaviour
         StoreUncommittedUpdatesToJSON();
         CommController.SendMessage(nickname, "005", uncommitted_updatesJSON);
     }
-
     /// <summary>
     /// Send sim commands
     /// </summary>
@@ -1243,7 +1285,6 @@ public class SimulationController : MonoBehaviour
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending SIM_COMMAND to MASON...");
         CommController.SendMessage(nickname, "006", payload);
     }
-
     /// <summary>
     /// Send generic response
     /// </summary>
@@ -1257,7 +1298,6 @@ public class SimulationController : MonoBehaviour
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending RESPONSE to MASON...");
         CommController.SendMessage(nickname, "007", payload);
     }                              // response to CHECK_STATUS message
-
     /// <summary>
     /// Send an error message
     /// </summary>
@@ -1272,5 +1312,4 @@ public class SimulationController : MonoBehaviour
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending CLIENT_ERROR to MASON...");
         CommController.SendMessage(nickname, "999", payload);
     }
-
 }

@@ -7822,6 +7822,7 @@ MonoBehaviour:
   PO_Prefab_Collection:
   - {fileID: 11400000, guid: 86a9e59149c38404b8e8427ced089295, type: 2}
   - {fileID: 11400000, guid: 662c59bb86fd1554f87e427123b6c531, type: 2}
+  SimSpaceSystem: {fileID: 0}
   SimSpace_prefabs_2D:
   - {fileID: 3938228412142364311, guid: 3b372b1e5441f0b4fbb457d2f13b041e, type: 3}
   - {fileID: 818190985185202977, guid: 543675be1be2e3e47a4e3b26e787bdbe, type: 3}

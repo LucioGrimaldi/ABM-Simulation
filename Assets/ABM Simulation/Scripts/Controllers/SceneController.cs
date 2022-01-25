@@ -35,7 +35,7 @@ public class SceneController : MonoBehaviour
     // Controllers
     private SimulationController SimulationController;
     private UIController UIController;
-    private SimSpaceSystem SimSpaceSystem;
+    public SimSpaceSystem SimSpaceSystem;
 
     // Prefabs
     public GameObject[] SimSpace_prefabs_2D;
@@ -49,7 +49,7 @@ public class SceneController : MonoBehaviour
     private static bool isDiscrete;
     private static Simulation.SimTypeEnum simType;
     private static ConcurrentDictionary<string, int> simDimensions;
-    private int width = 1, height = 1, lenght = 1;
+    private int width = 1, height = 1, length = 1;
     public static PlaceableObject selectedGhost = null;
     public static PlaceableObject selectedPlaced = null;
     public AudioSource audioPlacedSound;
@@ -161,17 +161,16 @@ public class SceneController : MonoBehaviour
 
         // get sim dimensions (and add z in case)
         if (simDimensions.ContainsKey("x")) simDimensions.TryGetValue("x", out width);
-        if (simDimensions.ContainsKey("y")) simDimensions.TryGetValue("y", out lenght);      // swap y-z
+        if (simDimensions.ContainsKey("y")) simDimensions.TryGetValue("y", out length);      // swap y-z
         if (simDimensions.ContainsKey("z")) simDimensions.TryGetValue("z", out height);
-        if (isDiscrete) { scaleFactor = Mathf.Max((int)width, (int)height, (int)lenght) / 10f; }
-        else { scaleFactor = Mathf.Max((int)width, (int)height, (int)lenght) / 10f; }
+        if (isDiscrete) { scaleFactor = Mathf.Max((int)width, (int)height, (int)length) / 10f; }
+        else { scaleFactor = Mathf.Max((int)width, (int)height, (int)length) / 10f; }
 
         // init env
         InitEnvironment();
 
         // init simSpace
         InitSimSpace(scaleFactor);
-
     }
     public void InitEnvironment()
     {
@@ -196,7 +195,7 @@ public class SceneController : MonoBehaviour
             }
 
             // init GridSystem
-            ((GridSystem)SimSpaceSystem).grid = new Grid3D<GridObject>((int)width, (int)height, (int)lenght, 10f / scaleFactor, choosenSimSpace.transform.position - new Vector3(50, 0, 50), ((g, x, y, z) => new GridObject(g, x, y, z)));
+            ((GridSystem)SimSpaceSystem).grid = new Grid3D<GridObject>((int)width, (int)height, (int)length, 10f / scaleFactor, choosenSimSpace.transform.position - new Vector3(50, 0, 50), ((g, x, y, z) => new GridObject(g, x, y, z)));
         }
         else
         {
@@ -214,7 +213,7 @@ public class SceneController : MonoBehaviour
             // init CountinuosSystem
             ContinuousSystem.width = width;
             ContinuousSystem.height = height;
-            ContinuousSystem.lenght = lenght;
+            ContinuousSystem.length = length;
             ContinuousSystem.simSpace = simulationSpace;
         }
     }
@@ -222,7 +221,7 @@ public class SceneController : MonoBehaviour
     {
         simulationSpace.GetComponent<Renderer>().material.shader = Shaders2D[simId];
         simulationSpace.AddComponent<ShaderManager>();
-        simulationSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_GridSize", Mathf.Max((int)width, (int)height, (int)lenght));
+        simulationSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_GridSize", Mathf.Max((int)width, (int)height, (int)length));
         if(simId == 1)
         {
             simulationSpace.GetComponent<ShaderManager>().computeBuffers = new ComputeBuffer[2];
@@ -234,7 +233,47 @@ public class SceneController : MonoBehaviour
             simulationSpace.GetComponent<Renderer>().sharedMaterial.SetBuffer("_HomeGrid", simulationSpace.GetComponent<ShaderManager>().computeBuffers[1]);
         }
     }
+    public void ResetSimSpace()
+    {
+        simDimensions = SimulationController.GetSimDimensions();
+     
+        float scaleFactor;
 
+        // get sim dimensions (and add z in case)
+        if (simDimensions.ContainsKey("x")) simDimensions.TryGetValue("x", out width);
+        if (simDimensions.ContainsKey("y")) simDimensions.TryGetValue("y", out length);      // swap y-z
+        if (simDimensions.ContainsKey("z")) simDimensions.TryGetValue("z", out height);
+        if (isDiscrete) { scaleFactor = Mathf.Max((int)width, (int)height, (int)length) / 10f; }
+        else { scaleFactor = Mathf.Max((int)width, (int)height, (int)length) / 10f; }
+
+        ClearSimSpace();
+
+        if (isDiscrete)
+        {
+            if(simDimensions.Count == 2) InitShader();
+            ((GridSystem)SimSpaceSystem).grid = new Grid3D<GridObject>((int)width, (int)height, (int)length, 10f / scaleFactor, simulationSpace.transform.position - new Vector3(50, 0, 50), ((g, x, y, z) => new GridObject(g, x, y, z)));
+        }
+        else
+        {
+            ContinuousSystem.width = width;
+            ContinuousSystem.height = height;
+            ContinuousSystem.length = length;
+            ContinuousSystem.simSpace = simulationSpace;
+        }
+    }
+    public void ClearSimSpace()
+    {
+        SceneControllerThreadQueue.Enqueue(() => {
+            foreach ((bool isGhost, PlaceableObject g) x in SimSpaceSystem.GetPlacedObjects().Values) x.g.Destroy();
+            foreach ((bool isGhost, PlaceableObject o) x in SimSpaceSystem.GetTemporaryGhosts().Values) x.o.Destroy();
+            SimSpaceSystem.ClearSimSpaceSystem();
+            if(isDiscrete && simDimensions.Count == 2)
+            {
+                simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(new float[(int)width * (int)width]);
+                simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(new float[(int)width * (int)width]);
+            }
+        });
+    }
 
     // Interaction
     public void SelectGhost(int type, int id)

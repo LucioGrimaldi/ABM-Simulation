@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
 public class DisplayStats : MonoBehaviour
 {
-    private int batch_queue_lenght;
-    private int secondary_queue_lenght;
+    private int batch_queue_length;
+    private int secondary_queue_length;
     private long latestStepArrived;
     private long currentStep;
     private int topics;
@@ -14,8 +14,8 @@ public class DisplayStats : MonoBehaviour
 
     void Update()
     {
-        batch_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().CommController.SimMessageQueue.Count;
-        secondary_queue_lenght = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().CommController.SecondaryQueue.Count;
+        batch_queue_length = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().CommController.SimMessageQueue.Count;
+        secondary_queue_length = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().CommController.SecondaryQueue.Count;
         latestStepArrived = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().LatestSimStepArrived;
         currentStep = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().GetSimulation().CurrentSimStep;
         topics = GameObject.FindGameObjectWithTag("SimulationController").GetComponent<SimulationController>().PerfManager.TOPICS.Length;
@@ -36,8 +36,8 @@ public class DisplayStats : MonoBehaviour
         style.fontSize = 24;
         style.normal.textColor = text_color;
         string debug_infos = string.Format(
-            "Concurrent Queue: " + batch_queue_lenght + "\n" +
-            "Sorted Queue: " + secondary_queue_lenght + "\n" +
+            "Concurrent Queue: " + batch_queue_length + "\n" +
+            "Sorted Queue: " + secondary_queue_length + "\n" +
             "\n" +
             "Latest Step Arrived: " + latestStepArrived + "\n" +
             "Current Step: " + currentStep + "\n" +

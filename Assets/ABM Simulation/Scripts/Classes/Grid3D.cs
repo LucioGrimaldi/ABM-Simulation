@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class Grid3D<TGridObject>                                                 //cambiare da TGRidObject a reference di TGridObject
 {
-    private int width, lenght, height;
+    private int width, length, height;
     private TGridObject[,,] gridArray;
     private static float cellSize;
     private TextMesh[,,] debugTextArray;
@@ -26,7 +26,7 @@ public class Grid3D<TGridObject>                                                
     {
         this.width = width;
         this.height = height;
-        this.lenght = lenght;
+        this.length = lenght;
         Grid3D<TGridObject>.cellSize = cellSize;
         Grid3D<TGridObject>.originPosition = originPosition;
 
@@ -91,7 +91,7 @@ public class Grid3D<TGridObject>                                                
     }
     public void SetGridObject(int x, int y, int z, TGridObject value)
     {
-        if (x >= 0 && y >= 0 && z >= 0 && x < width && y < height && z < lenght)    //ignora valori invalidi
+        if (x >= 0 && y >= 0 && z >= 0 && x < width && y < height && z < length)    //ignora valori invalidi
         {
             
             gridArray[x, y, z] = value;
@@ -118,7 +118,7 @@ public class Grid3D<TGridObject>                                                
     //Get coordinate x,y,z
     public TGridObject GetGridObject(int x, int y, int z)
     {
-        if (x >= 0 && y >= 0 && z >= 0 && x < width && y < height && z < lenght)
+        if (x >= 0 && y >= 0 && z >= 0 && x < width && y < height && z < length)
             return gridArray[x, y, z];
         else
             return default(TGridObject);    //Se è una griglia di interi ritorna 0, se bool ritorna false, altri tipi ritorna null
@@ -135,7 +135,7 @@ public class Grid3D<TGridObject>                                                
 
     public int Width { get => width; set => width = value; }
     public int Height { get => height; set => height = value; }
-    public int Lenght { get => lenght; set => lenght = value; }
+    public int Length { get => length; set => length = value; }
     public float CellSize { get => cellSize; set => cellSize = value; }
     public TGridObject[,,] GridArray { get => gridArray; set => gridArray = value; }
 }

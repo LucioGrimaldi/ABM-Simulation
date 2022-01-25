@@ -5796,7 +5796,7 @@ MonoBehaviour:
   isMovable: 0
   direction: 0
   width: 2
-  lenght: 2
+  length: 2
   isSquared: 1
 --- !u!1 &6364079670098744263
 GameObject:

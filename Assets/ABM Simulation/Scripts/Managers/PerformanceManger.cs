@@ -7,7 +7,7 @@ public class PerformanceManger
     /// Load Balancing
     public static int SORTING_THRESHOLD = 15;
     public static int MAX_SPS = 60;
-    public static int MIN_SPS = 15;
+    public static int MIN_SPS = 8;
     public int produced_sps = 60;
     public int received_sps = 60;
     public int consumed_sps = 60;
@@ -70,11 +70,15 @@ public class PerformanceManger
     public void CalculateTargetTopics()
     {
         TOPICS = new int[ATTEMPTED_SPS];
+        bool zero = false;
 
         for (int t = 1; t <= ATTEMPTED_SPS; t++)
         {
-            if (t * MAX_SPS / (ATTEMPTED_SPS + 1) != 0) topics[t - 1] = t * MAX_SPS / (ATTEMPTED_SPS + 1);
+            int topic = t * MAX_SPS / (ATTEMPTED_SPS + 1);
+            if (topic == 0) zero = true;
+            topics[t - 1] = topic;
         }
+        if (zero) TOPICS = TOPICS.Skip(1).ToArray();
     }
     public void Reset()
     {

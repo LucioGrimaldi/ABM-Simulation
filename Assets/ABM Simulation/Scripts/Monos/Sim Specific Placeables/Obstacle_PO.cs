@@ -11,7 +11,7 @@ public class Obstacle_PO : PO_Discrete2D
 
         Obstacle_PO po_clone = Instantiate((Obstacle_PO)po, GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)simObject.Parameters["position"]), Quaternion.Euler(Vector3.zero));
         po_clone.transform.Find("Model").GetComponent<Outline>().enabled = false;
-        po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f * Mathf.Max(po_clone.width, po_clone.lenght);
+        po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f * Mathf.Max(po_clone.width, po_clone.length);
         po_clone.SetScale(gridSystem.grid.CellSize);
         if (isGhost)
         {
@@ -61,7 +61,7 @@ public class Obstacle_PO : PO_Discrete2D
                     Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
                     Vector3 targetPosition = gridSystem.MouseClickToSpawnPosition(this);                                                                                                                // offset escluso
                     gridSystem.grid.GetXYZ(targetPosition, out int x, out _, out int z);
-                    simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, lenght);
+                    simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, length);
                     transform.position = Vector3.Lerp(transform.position, targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize, Time.deltaTime * 15f);        // offset incluso
                     transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);                                                     // limiti di rotazione gestiti in Rotate()
                 }
