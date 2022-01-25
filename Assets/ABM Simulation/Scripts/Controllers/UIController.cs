@@ -7,6 +7,7 @@ using static SceneController;
 using System.Collections.Generic;
 using SimpleJSON;
 using System.Collections.Concurrent;
+using System.Linq;
 
 public class SpeedChangeEventArgs : EventArgs
 {
@@ -31,8 +32,10 @@ public class UIController : MonoBehaviour
     public static readonly ConcurrentQueue<Action> UIControllerThreadQueue = new ConcurrentQueue<Action>();
 
     // Controllers
+    private SimulationController SimController;
     private SceneController SceneController;
     private Simulation.StateEnum state;
+
     // Sprites Collection
     private List<NamedPrefab> AgentsData;
     private List<NamedPrefab> GenericsData;
@@ -51,20 +54,20 @@ public class UIController : MonoBehaviour
     public TMP_Text nickname, admin_nickname;
     public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false, admin_UI = true;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSimParams, panelBackToMenu, panelFPS,
-        inspectorParamPrefab, InspectorTogglePrefab, inspectorContent, simParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, simParamsContent,
-        simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab;
+        inspectorParamPrefab, inspectorTogglePrefab, inspectorContent, simParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, simParamsContent,
+        simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab, followToggle;
     public Slider slider;
     public Image imgEditMode, imgSimState, imgContour;
     public Button buttonEdit, muteUnmuteButton, discardParamButton, applyParamButton, discardInspectorButton, applyInspectorButton;
-    public AudioSource backgroundMusic;
+    public AudioSource backgroundMusic, effectsAudio;
     public Sprite[] commandSprites;
     public Sprite[] muteUnmuteSprites;
     public Text inspectorType, inspectorClass, inspectorId, emptyScrollTextInspector, emptyScrollTextSimParams;
     public static bool showSimSpace, showEnvironment;
     public Dictionary<string, object> tempSimParams = new Dictionary<string, object>();
     public Dictionary<string, object> tempSimObjectParams = new Dictionary<string, object>();
-    private float musicVolume;
-
+    private float musicVolume, effectsVolume;
+    public PlaceableObject selected = null;
 
     private void Awake()
     {
@@ -72,18 +75,22 @@ public class UIController : MonoBehaviour
         showSimSpace = playerPreferencesSO.showSimSpace;
         showEnvironment = playerPreferencesSO.showEnvironment;
         musicVolume = playerPreferencesSO.musicVolume;
+        effectsVolume = playerPreferencesSO.effectsVolume;
         admin_nickname.text = SimulationController.admin_name;
 
-        if (musicVolume == 0f)
+        backgroundMusic.volume = musicVolume;
+        effectsAudio.volume = effectsVolume;
+
+        if (musicVolume == 0f && effectsVolume == 0f)
         {
-            muteUnmuteButton.GetComponent<Image>().sprite = muteUnmuteSprites[1];
+            muteUnmuteButton.GetComponent<Image>().sprite = muteUnmuteSprites[0];
             backgroundMusic.mute = true;
+            effectsAudio.mute = true;
         }
 
         // Bind Controllers
+        SimController = GameObject.Find("SimulationController").GetComponent<SimulationController>();
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
-
-        Debug.Log("sim space: " + showSimSpace + " env: " + showEnvironment);
 
         simToggle.GetComponent<Toggle>().isOn = showSimSpace;
         envToggle.GetComponent<Toggle>().isOn = showEnvironment;
@@ -98,7 +105,7 @@ public class UIController : MonoBehaviour
     {
         slider.onValueChanged.AddListener(delegate { MoveSlider(); });
         SimulationController.OnNewAdminEventHandler += onNewAdmin;
-        SimulationController.OnCheckStatusSuccessEventHandler += onNewAdmin;
+        SimulationController.OnCheckStatusSuccessEventHandler += onCheckStatusSuccess;
     }
     /// <summary>
     /// Start routine (Unity Process)
@@ -130,26 +137,10 @@ public class UIController : MonoBehaviour
             }
         }
 
-        if (simToggle.GetComponent<Toggle>().isOn)
-            showSimSpace = true;
-        else showSimSpace = false;
-
-        if (envToggle.GetComponent<Toggle>().isOn)
-        {
-            showEnvironment = true;
-            camera.backgroundColor = cyan;
-        }
-        else
-        {
-            showEnvironment = false;
-            camera.backgroundColor = black_gray;
-        }
-
-        backgroundMusic.volume = musicVolume;
-
         state = Simulation.state;
-
         CheckSimState(state);
+        ShowHideEnv_SimSpace();
+        UpdateInspectorParams();
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -165,7 +156,7 @@ public class UIController : MonoBehaviour
     {
         slider.onValueChanged.RemoveAllListeners();
         SimulationController.OnNewAdminEventHandler -= onNewAdmin;
-        SimulationController.OnCheckStatusSuccessEventHandler -= onNewAdmin;
+        SimulationController.OnCheckStatusSuccessEventHandler -= onCheckStatusSuccess;
     }
     /// <summary>
     /// onDestroy routine (Unity Process)
@@ -176,7 +167,7 @@ public class UIController : MonoBehaviour
     }
 
     //ALTRI METODI
-
+    
     private void onNewAdmin(object sender, ReceivedMessageEventArgs e)
     {
         UIControllerThreadQueue.Enqueue(() => {
@@ -185,6 +176,40 @@ public class UIController : MonoBehaviour
             if (SimulationController.admin) UnlockUI();
             else LockUI();
         });
+    }
+    private void onCheckStatusSuccess(object sender, ReceivedMessageEventArgs e)
+    {
+        onNewAdmin(sender, e);
+
+        UIControllerThreadQueue.Enqueue(() => {
+            if (showSettingsPanel)
+            {
+                foreach (Transform child in simParamsContent.transform)
+                {
+                    if (child.Find("Param Name").GetComponent<Text>().text.Equals("Width"))
+                    {
+                        child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[0]["default"];
+                    }
+                    
+                    else if(child.Find("Param Name").GetComponent<Text>().text.Equals("Height"))
+                    {
+                        child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[1]["default"];
+                    }
+
+                    else if (child.Find("Param Name").GetComponent<Text>().text.Equals("Length")) {
+                        child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[2]["default"];
+                    }
+
+                    else if (child.Find("Param Name").GetComponent<Text>().text.Contains("s amount"))
+                    {
+                        string agent_class = child.Find("Param Name").GetComponent<Text>().text.Substring(0, child.Find("Param Name").GetComponent<Text>().text.Length - 8);
+                        child.GetComponentInChildren<InputField>().text = "" + SimController.GetSimulation().agents.Where((a) => a.Key.class_name.Equals(agent_class)).Count();
+                    }
+                    else if (child.GetComponentInChildren<InputField>() != null && !child.GetComponentInChildren<InputField>().isFocused) child.GetComponentInChildren<InputField>().text = "" + ((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"])[child.Find("Param Name").GetComponent<Text>().text];
+                    else if (child.GetComponentInChildren<Toggle>() != null) child.GetComponentInChildren<Toggle>().isOn = ((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"])[child.Find("Param Name").GetComponent<Text>().text];
+                }
+            }
+        });   
     }
 
     public void LockUI()
@@ -201,11 +226,11 @@ public class UIController : MonoBehaviour
             applyInspectorButton.interactable = false;
 
             foreach (Transform child in simParamsContent.transform)
-        {
-            if(child.GetComponentInChildren<InputField>() != null) child.GetComponentInChildren<InputField>().interactable = false;
-            if(child.GetComponentInChildren<Toggle>() != null) child.GetComponentInChildren<Toggle>().interactable = false;
-            child.GetComponent<Image>().color = black;
-        }
+            {
+                if (child.GetComponentInChildren<InputField>() != null) child.GetComponentInChildren<InputField>().interactable = false;
+                if (child.GetComponentInChildren<Toggle>() != null) child.GetComponentInChildren<Toggle>().interactable = false;
+                child.GetComponent<Image>().color = black;
+            }
         }
     }
     public void UnlockUI()
@@ -275,6 +300,19 @@ public class UIController : MonoBehaviour
         }
     }
 
+    public void OnFollowToggleClicked()
+    {
+        if (followToggle.GetComponent<Toggle>().isOn && selected != null)
+        {
+            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.GetChild(1));
+        }
+        else
+        {
+            camera.GetComponent<CameraTarget>().follow = false;
+            camera.transform.position = new Vector3(50, 100, -100);
+            camera.transform.rotation = Quaternion.Euler(new Vector3(20, 0, 0));
+        }
+    }
     public void OnToggleSimSpaceChanged(bool value)
     {
         if (simToggle.GetComponent<Toggle>().isOn)
@@ -374,7 +412,7 @@ public class UIController : MonoBehaviour
             tempSimObjectParams.Clear();
             emptyScrollTextInspector.gameObject.SetActive(false);
             LoadInspectorInfo(po.SimObject.Type, po.SimObject.Class_name, po.SimObject.Id);
-            LoadInspectorParams(SceneController.GetSimObjectParamsPrototype(po.SimObject.Type, po.SimObject.Class_name), SimulationController.admin);
+            LoadInspectorParams(SceneController.GetSimObjectParamsPrototype(po.SimObject.Type, po.SimObject.Class_name), po, SimulationController.admin);
         }
     }
     public void EmptyInspectorParams()
@@ -382,13 +420,40 @@ public class UIController : MonoBehaviour
         foreach (Transform child in inspectorContent.transform) GameObject.Destroy(child.gameObject);
         inspectorContent.transform.DetachChildren();
     }
+    public void UpdateInspectorParams()
+    {
+        if (showInspectorPanel)
+        {
+            if (selectedPlaced != null) selected = selectedPlaced;
+            else if (selectedGhost != null) selected = selectedGhost;
+
+            if(selected != null)
+            {
+                followToggle.GetComponent<Toggle>().interactable = true;
+
+                foreach (Transform child in inspectorContent.transform)
+                {
+                    if (child.GetComponentInChildren<InputField>() != null && !child.GetComponentInChildren<InputField>().isFocused) child.GetComponentInChildren<InputField>().text = "" + selected.SimObject.Parameters[child.Find("Param Name").GetComponent<Text>().text];
+                    if (child.GetComponentInChildren<Toggle>() != null) child.GetComponentInChildren<Toggle>().isOn = (bool)selected.SimObject.Parameters[child.Find("Param Name").GetComponent<Text>().text];
+                }
+            }
+            else
+            {
+                camera.GetComponent<CameraTarget>().follow = false;
+                followToggle.GetComponent<Toggle>().isOn = false;
+                followToggle.GetComponent<Toggle>().interactable = false;
+            }
+
+        }
+    }
+
     public void LoadInspectorInfo(SimObject.SimObjectType type, string class_name, int id)
     {
         inspectorType.text = type.ToString();
         inspectorClass.text = class_name;
         inspectorId.text = id.ToString();
     }
-    public void LoadInspectorParams(JSONArray parameters, bool admin)
+    public void LoadInspectorParams(JSONArray parameters, PlaceableObject po, bool admin)
     {
         GameObject param;
 
@@ -419,10 +484,10 @@ public class UIController : MonoBehaviour
                         }
                         break;
                     case "System.Boolean":
-                        param = Instantiate(InspectorTogglePrefab);
+                        param = Instantiate(inspectorTogglePrefab);
                         param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
                         param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
-                        param.GetComponentInChildren<Toggle>().isOn = p["defalut"];
+                        param.GetComponentInChildren<Toggle>().isOn = (bool) po.SimObject.Parameters[p["name"]];
                         if (!admin)
                         {
                             param.GetComponentInChildren<Toggle>().interactable = false;
@@ -464,7 +529,7 @@ public class UIController : MonoBehaviour
                     param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
                     param.GetComponentInChildren<InputField>().characterLimit = 20;
                     param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
-                    param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
+                    param.transform.Find("InputField").GetComponent<InputField>().text = "" + po.SimObject.Parameters[p["name"]];
                 }
             }
         }
@@ -511,8 +576,8 @@ public class UIController : MonoBehaviour
                 param.transform.SetParent(scrollContent.transform);
                 if (!((string)p["type"]).Equals("System.Boolean"))
                 {
-                    param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
-                    param.GetComponentInChildren<InputField>().characterLimit = 20;
+                    //param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
+                    //param.GetComponentInChildren<InputField>().characterLimit = 20;
                     param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
                     param.transform.Find("InputField").GetComponent<InputField>().text = p["default"];
                 }
@@ -603,6 +668,24 @@ public class UIController : MonoBehaviour
         tempSimObjectParams.Clear();
     }
 
+    public void ShowHideEnv_SimSpace()
+    {
+        if (simToggle.GetComponent<Toggle>().isOn)
+            showSimSpace = true;
+        else showSimSpace = false;
+
+        if (envToggle.GetComponent<Toggle>().isOn)
+        {
+            showEnvironment = true;
+            camera.backgroundColor = cyan;
+        }
+        else
+        {
+            showEnvironment = false;
+            camera.backgroundColor = black_gray;
+        }
+
+    }
     public void ShowHideEditPanel()
     {
         panelSimButtons.gameObject.SetActive(showEditPanel);
@@ -620,6 +703,7 @@ public class UIController : MonoBehaviour
     public void ShowHideInfoPanel()
     {
         panelFPS.gameObject.SetActive(!showInfoPanel);
+        camera.GetComponent<DisplayStats>().enabled = !showInfoPanel;
         showInfoPanel = !showInfoPanel;
     }
     public void ShowHidePanelQuit()
@@ -634,16 +718,19 @@ public class UIController : MonoBehaviour
     }
     public void MuteUnmuteAudio()
     {
-        if (backgroundMusic.mute)
+        if (!backgroundMusic.mute || !effectsAudio.mute)
         {
             muteUnmuteButton.GetComponent<Image>().sprite = muteUnmuteSprites[0];
-            backgroundMusic.mute = false;
+            backgroundMusic.mute = true;
+            effectsAudio.mute = true;
         }
-        else
+        else if (backgroundMusic.mute && effectsAudio.mute)
         {
             muteUnmuteButton.GetComponent<Image>().sprite = muteUnmuteSprites[1];
             backgroundMusic.volume = 0.3f;
-            backgroundMusic.mute = true;
+            backgroundMusic.mute = false;
+            effectsAudio.volume = 0.2f;
+            effectsAudio.mute = false;
         }
     }
     

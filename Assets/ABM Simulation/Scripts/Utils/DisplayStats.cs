@@ -30,8 +30,11 @@ public class DisplayStats : MonoBehaviour
         int w = Screen.width, h = Screen.height;
 
         GUIStyle style = new GUIStyle();
-
-        Rect rect = new Rect(40, h/3, w, h);
+        Rect rect;
+        if(w > 1920 && h > 1080)
+            rect = new Rect(w / 8, 15, w, h);
+        else
+            rect = new Rect(w/6, 15, w, h);
         style.alignment = TextAnchor.UpperLeft;
         style.fontSize = 24;
         style.normal.textColor = text_color;

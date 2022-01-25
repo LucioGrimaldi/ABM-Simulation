@@ -76,7 +76,7 @@ namespace RuntimeSceneGizmo
 				dest = Matrix4x4.Perspective( mainCamera.fieldOfView, mainCamera.aspect, mainCamera.nearClipPlane, mainCamera.farClipPlane );
 			else
 			{
-				float orthographicSize = mainCamera.orthographicSize;
+				float orthographicSize = mainCamera.orthographicSize = 50f;
 				float aspect = mainCamera.aspect;
 				dest = Matrix4x4.Ortho( -orthographicSize * aspect, orthographicSize * aspect, -orthographicSize, orthographicSize, mainCamera.nearClipPlane, mainCamera.farClipPlane );
 			}
