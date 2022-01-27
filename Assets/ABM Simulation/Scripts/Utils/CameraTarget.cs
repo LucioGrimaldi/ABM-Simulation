@@ -16,7 +16,7 @@ public class CameraTarget : MonoBehaviour {
     public bool follow;
     public Transform target;
     public float smoothSpeed = 0.150f;
-    [SerializeField] Vector3 offset = new Vector3(0f, 2f, -5f);
+    [SerializeField] Vector3 offset = new Vector3(10f, 5f, -5f);
 
 
     private void Update() {

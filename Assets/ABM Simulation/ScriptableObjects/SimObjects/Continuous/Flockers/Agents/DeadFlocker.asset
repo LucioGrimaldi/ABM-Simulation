@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 734843782d8e41240a27682be9e4c64e, type: 3}
   m_Name: DeadFlocker
   m_EditorClassIdentifier: 
-  ghostMaterial: {fileID: 0}
+  ghostMaterial: {fileID: 2100000, guid: eeaf0bbd6ca8494469aea720613ddb1b, type: 2}
   outlineShader: {fileID: 0}
   renderType: 0
   meshes:
     m_keys:
     - default
     m_values:
-    - {fileID: 3822513428025527814, guid: abf8935c1dd7a604da287e5b46a20177, type: 3}
+    - {fileID: 3731229582406425436, guid: 5d0a8d567dcd66340a4eecc87782c6f0, type: 3}
   textures:
     m_keys: []
     m_values: []
@@ -32,7 +32,7 @@ MonoBehaviour:
     m_keys:
     - default
     m_values:
-    - {fileID: 21300000, guid: fdfe80b461b3c1c4390d6e51e1c4a300, type: 3}
+    - {fileID: 21300000, guid: a2ddfb3ecb9430145be84494cabb3b22, type: 3}
   particleSystems:
     m_keys: []
     m_values: []

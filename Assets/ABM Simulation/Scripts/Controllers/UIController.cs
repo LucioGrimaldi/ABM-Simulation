@@ -268,13 +268,8 @@ public class UIController : MonoBehaviour
     {
         if (showInspectorPanel)
         {
-            if (selectedPlaced != null) selected = selectedPlaced;
-            else if (selectedGhost != null) selected = selectedGhost;
-
             if(selected != null)
             {
-                followToggle.GetComponent<Toggle>().interactable = true;
-
                 foreach (Transform child in inspectorContent.transform)
                 {
                     if (child.GetComponentInChildren<InputField>() != null && !child.GetComponentInChildren<InputField>().isFocused) child.GetComponentInChildren<InputField>().text = "" + selected.SimObject.Parameters[child.Find("Param Name").GetComponent<Text>().text];
@@ -285,7 +280,6 @@ public class UIController : MonoBehaviour
             {
                 camera.GetComponent<CameraTarget>().follow = false;
                 followToggle.GetComponent<Toggle>().isOn = false;
-                followToggle.GetComponent<Toggle>().interactable = false;
             }
         }
     }
@@ -391,6 +385,17 @@ public class UIController : MonoBehaviour
             camera.transform.rotation = Quaternion.Euler(new Vector3(20, 0, 0));
         }
     }
+
+    public void OnChangeSelectedFollow()
+    {
+        selected = selectedPlaced;
+        
+        if (followToggle.GetComponent<Toggle>().isOn)
+        {
+            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.GetChild(1));
+        }
+    }
+
     public void OnToggleSimSpaceChanged(bool value)
     {
         if (simToggle.GetComponent<Toggle>().isOn)
@@ -769,6 +774,8 @@ public class UIController : MonoBehaviour
     public void ShowHidePanelInspector()
     {
         panelInspector.gameObject.SetActive(!showInspectorPanel);
+        if(selected != null)
+            followToggle.GetComponent<Toggle>().interactable = !showInspectorPanel;
         showInspectorPanel = !showInspectorPanel;
     }
     public void MuteUnmuteAudio()

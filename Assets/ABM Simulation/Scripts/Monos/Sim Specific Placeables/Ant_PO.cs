@@ -6,8 +6,12 @@ public class Ant_PO : PO_Discrete2D
 {
     protected override PlaceableObject Init(SimObject simObject, PlaceableObject po, bool isGhost, bool isMovable)
     {
+        hasFoodItem = (bool) simObject.Parameters["hasFoodItem"];
         return base.Init(simObject, po, isGhost, isMovable);
     }
+
+    //VARIABLES
+    public bool hasFoodItem;
 
     // UNITY LOOP METHODS
 
@@ -42,6 +46,7 @@ public class Ant_PO : PO_Discrete2D
         else
         {
             ChangeColor((bool)simObject.Parameters["hasFoodItem"]);
+
             if (isMovable)
             {
                 Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
@@ -70,7 +75,11 @@ public class Ant_PO : PO_Discrete2D
 
     public void ChangeColor(bool hasFoodItem)
     {
-        transform.Find("Model").gameObject.GetComponent<MeshRenderer>().material = (hasFoodItem) ? simObjectRender.Materials["hasFoodItem"] : simObjectRender.Materials["default"];
+        if (this.hasFoodItem.Equals(hasFoodItem))
+        {
+            transform.Find("Model").gameObject.GetComponent<MeshRenderer>().material = (hasFoodItem) ? simObjectRender.Materials["hasFoodItem"] : simObjectRender.Materials["default"];
+            this.hasFoodItem = hasFoodItem;
+        }
     }
     public override void Rotate()
     {

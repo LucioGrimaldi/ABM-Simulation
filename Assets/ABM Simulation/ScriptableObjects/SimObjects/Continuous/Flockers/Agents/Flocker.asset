@@ -18,8 +18,10 @@ MonoBehaviour:
   meshes:
     m_keys:
     - default
+    - dead
     m_values:
     - {fileID: 3822513428025527814, guid: abf8935c1dd7a604da287e5b46a20177, type: 3}
+    - {fileID: 3731229582406425436, guid: 5d0a8d567dcd66340a4eecc87782c6f0, type: 3}
   textures:
     m_keys: []
     m_values: []

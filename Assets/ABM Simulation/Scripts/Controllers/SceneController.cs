@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 using static GridSystem;
 
 
@@ -307,7 +308,6 @@ public class SceneController : MonoBehaviour
                 if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) { }
                 else if (selectedGhost != null)
                 {
-                    audioPlacedSound.Play();
                     if (SimSpaceSystem.CanBuild(selectedGhost))
                     {
                         //if (selectedPlaced != null) selectedPlaced.DeHighlight();
@@ -318,9 +318,14 @@ public class SceneController : MonoBehaviour
                         ShowInspector(selectedPlaced);
                         selectedGhost = CreateGhost(GetSimObjectPrototype(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name), GetPlaceableObjectPrefab(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name), true);
                         selectedGhost.SimObject.Id = GetTemporaryId(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name);
+                        audioPlacedSound.Play();
                     }
                 }
                 else if (SelectSimObject(hitPoint)) Debug.Log("SELECTED:" + selectedPlaced.SimObject.Type + " " + selectedPlaced.SimObject.Class_name + " " + selectedPlaced.SimObject.Id + (selectedPlaced.IsGhost ? " -unconfirmed-" : ""));
+                else
+                {
+                    DeselectSimObject();
+                } 
             }
         }
         // Destroy
@@ -395,6 +400,10 @@ public class SceneController : MonoBehaviour
         {
             DeselectSimObject();
             selectedPlaced = GetPOFromTransformRecursive(hitPoint.transform);
+
+            UIController.followToggle.GetComponent<Toggle>().interactable = true;
+
+            UIController.OnChangeSelectedFollow();
             //selectedPlaced.Highlight();
             ShowInspector(selectedPlaced);
             return true;
@@ -403,6 +412,7 @@ public class SceneController : MonoBehaviour
     }
     public void DeselectSimObject()
     {
+        UIController.followToggle.GetComponent<Toggle>().interactable = false;
         HideInspector();
         UIController.EmptyInspectorParams();
         UIController.tempSimObjectParams.Clear();
@@ -410,6 +420,7 @@ public class SceneController : MonoBehaviour
         {
             //selectedPlaced.DeHighlight();
             selectedPlaced = null;
+            UIController.selected = null;
         }
     }
     public void RefreshSelectedGhost(SimObject so, PlaceableObject po)

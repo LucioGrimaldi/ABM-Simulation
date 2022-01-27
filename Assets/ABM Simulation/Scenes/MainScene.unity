@@ -8538,7 +8538,7 @@ MonoBehaviour:
   follow: 0
   target: {fileID: 0}
   smoothSpeed: 0.15
-  offset: {x: 0, y: 2, z: -5}
+  offset: {x: 10, y: 5, z: -5}
 --- !u!124 &1573319560
 Behaviour:
   m_ObjectHideFlags: 0

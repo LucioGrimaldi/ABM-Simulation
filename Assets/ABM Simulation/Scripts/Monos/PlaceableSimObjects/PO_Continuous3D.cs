@@ -66,7 +66,7 @@ public class PO_Continuous3D : PO_Continuous
                 {
                     Vector3 targetPosition = ContinuousSystem.MasonToUnityPosition3D(GetPosition());
                     transform.rotation = Quaternion.Lerp(transform.rotation, GetFacingDirection(transform.position, targetPosition), Time.deltaTime * 15f);
-                    transform.position = targetPosition;
+                    transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 15f);
                 }
             }
         }

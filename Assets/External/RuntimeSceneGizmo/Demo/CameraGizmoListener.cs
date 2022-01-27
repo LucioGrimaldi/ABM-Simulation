@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
+using static UIController;
 
 namespace RuntimeSceneGizmo
 {
@@ -15,12 +17,14 @@ namespace RuntimeSceneGizmo
 		private float projectionTransitionSpeed = 2f;
 #pragma warning restore 0649
 
+		private UIController UIController;
 		private Camera mainCamera;
 		private IEnumerator cameraRotateCoroutine, projectionChangeCoroutine;
 
 		private void Awake()
 		{
 			mainCamera = Camera.main;
+			UIController = GameObject.Find("UIController").GetComponent<UIController>();
 		}
 
 		private void OnDisable()
@@ -30,10 +34,10 @@ namespace RuntimeSceneGizmo
 
 		public void OnGizmoComponentClicked( GizmoComponent component )
 		{
-			//disable inspector toggle
 			mainCamera.GetComponent<CameraTarget>().follow = false;
+			UIController.followToggle.GetComponent<Toggle>().isOn = false;
 
-			if( component == GizmoComponent.Center )
+			if ( component == GizmoComponent.Center )
 				SwitchOrthographicMode();
 			else if( component == GizmoComponent.XNegative )
 				RotateCameraInDirection( -Vector3.right );
