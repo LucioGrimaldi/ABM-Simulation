@@ -512,8 +512,10 @@ public class SceneController : MonoBehaviour
     {
         if (SimSpaceSystem.GetPlacedObjects().TryGetValue((e.type, e.class_name, e.id), out (bool, PlaceableObject) x))
         {
-            SimSpaceSystem.DeleteSimObject(x.Item2);
-            SceneControllerThreadQueue.Enqueue(() => { x.Item2.Destroy(); });
+            SceneControllerThreadQueue.Enqueue(() => { 
+                SimSpaceSystem.DeleteSimObject(x.Item2);
+                x.Item2.Destroy(); 
+            });
         }
     }
 

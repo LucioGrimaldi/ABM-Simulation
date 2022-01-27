@@ -6,10 +6,27 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 
+
+/// <summary>
+/// Event Args Definitions
+/// </summary>
+public class StepAppliedEventArgs : EventArgs
+{
+    public long step_id;
+    public List<string> agent_class_names;
+    public List<string> generic_class_names;
+    public List<string> obstacle_class_names;
+    public int[] n_agents_for_each_class;
+    public int[] n_generics_for_each_class;
+    public int[] n_obstacles_for_each_class;
+}
+
+
 public class Simulation
 {
     // Events
     public static event EventHandler<SimObjectDeleteEventArgs> OnSimObjectNotInStepEventHandler;
+    public static event EventHandler<StepAppliedEventArgs> OnStepAppliedEventHandler;
 
     // Simulation data
     public string name, description;
@@ -108,14 +125,14 @@ public class Simulation
     public void AddAgent(SimObject a)
     {
         Agents.TryAdd((a.Class_name, a.Id), a);
-        if(a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Add((a.Type, a.Class_name, a.Id));
+        if (a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Add((a.Type, a.Class_name, a.Id));
     }
     public void RemoveAgent(SimObject a)
     {
         Agents.TryRemove((a.Class_name, a.Id), out _);
         if (a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((a.Type, a.Class_name, a.Id));
     }
-    public void RemoveAgent(int id, string class_name)
+    public void RemoveAgent(string class_name, int id)
     {
         Agents.TryRemove((class_name,id), out SimObject a);
         if (a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((SimObject.SimObjectType.AGENT, class_name, id));
@@ -130,7 +147,7 @@ public class Simulation
         Generics.TryRemove((g.Class_name, g.Id), out _);
         if (g.Is_in_step && !g.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((g.Type, g.Class_name, g.Id));
     }
-    public void RemoveGeneric(int id, string class_name)
+    public void RemoveGeneric(string class_name, int id)
     {
         Generics.TryRemove((class_name, id), out SimObject g);
         if (g.Is_in_step && !g.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((SimObject.SimObjectType.GENERIC, class_name, id));
@@ -1027,7 +1044,17 @@ public class Simulation
         toDeleteIfNotInStep.AddRange(temp);
         temp.Clear();
 
-        if(complete) UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP " + currentSimStep + " : ed è " + (complete ? "completo" : "non completo."));
+        StepAppliedEventArgs e = new StepAppliedEventArgs();
+        e.step_id = CurrentSimStep;
+        e.agent_class_names = agent_class_names;
+        e.generic_class_names = generic_class_names;
+        e.obstacle_class_names = obstacle_class_names;
+        e.n_agents_for_each_class = n_agents_for_each_class;
+        e.n_generics_for_each_class = n_generics_for_each_class;
+        e.n_obstacles_for_each_class = n_obstacles_for_each_class;
+        OnStepAppliedEventHandler?.Invoke(this, e);
+
+        if (complete) UnityEngine.Debug.Log("SIMULATION UPDATED FROM STEP " + currentSimStep + " : ed è " + (complete ? "completo" : "non completo."));
     }
     /// <summary>
     /// Clears Simulation

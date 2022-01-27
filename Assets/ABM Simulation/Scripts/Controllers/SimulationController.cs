@@ -813,20 +813,6 @@ public class SimulationController : MonoBehaviour
             admin_name = (string)((JSONObject)e.Payload["payload_data"])["adminName"];
             serverSide_simId = (int)((JSONObject)e.Payload["payload_data"])["simId"];
             PerfManager.PRODUCED_SPS = (int)((JSONObject)e.Payload["payload_data"])["simStepRate"];
-
-            if (clientState.Equals(StateEnum.IN_GAME))
-            {
-                simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"]);
-                foreach (var param in (JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"])
-                {
-                    foreach (JSONObject _param in sim_list_editable[sim_id]["sim_params"])
-                    {
-                        if (param.Key.Equals(_param["name"])){
-                            _param["default"] = param.Value;
-                        }
-                    }
-                }
-            }
             if(clientState.Equals(StateEnum.READY) || clientState.Equals(StateEnum.IN_GAME))
             {
                 sim_id = serverSide_simId;
@@ -912,7 +898,20 @@ public class SimulationController : MonoBehaviour
 
         if (result)
         {
-            //simulation.UpdateSimulationFromEdit(uncommitted_updatesJSON, uncommitted_updates);
+            if (((JSONObject)e.Payload["payload_data"]["payload"]).HasKey("sim_params"))
+            {
+                simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"]["payload"])["sim_params"]);
+                foreach (var param in (JSONObject)((JSONObject)e.Payload["payload_data"]["payload"])["sim_params"])
+            {
+                foreach (JSONObject _param in sim_list_editable[sim_id]["sim_params"])
+                {
+                    if (param.Key.Equals(_param["name"]))
+                    {
+                        _param["default"] = param.Value;
+                    }
+                }
+            }
+            }
             uncommitted_updatesJSON.Clear();
             uncommitted_updates.Clear();
         }

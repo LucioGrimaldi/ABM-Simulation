@@ -51,7 +51,7 @@ public class UIController : MonoBehaviour
     Color32 white = new Color32(255, 255, 255, 33);
 
     public Camera camera;
-    public TMP_Text nickname, admin_nickname;
+    public TMP_Text nickname, admin_nickname, step_id;
     public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false, admin_UI = true;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSimParams, panelBackToMenu, panelFPS,
         inspectorParamPrefab, inspectorTogglePrefab, inspectorContent, simParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, simParamsContent,
@@ -68,6 +68,8 @@ public class UIController : MonoBehaviour
     public Dictionary<string, object> tempSimObjectParams = new Dictionary<string, object>();
     private float musicVolume, effectsVolume;
     public PlaceableObject selected = null;
+    private ReceivedMessageEventArgs last_simUpdate = null;
+    private StepAppliedEventArgs last_StepApplied = null;
 
     private void Awake()
     {
@@ -104,8 +106,10 @@ public class UIController : MonoBehaviour
     private void OnEnable()
     {
         slider.onValueChanged.AddListener(delegate { MoveSlider(); });
+        Simulation.OnStepAppliedEventHandler += onStepApplied;
         SimulationController.OnNewAdminEventHandler += onNewAdmin;
         SimulationController.OnCheckStatusSuccessEventHandler += onCheckStatusSuccess;
+        SimulationController.OnSimUpdateSuccessEventHandler += onSimUpdateSuccess;
     }
     /// <summary>
     /// Start routine (Unity Process)
@@ -140,7 +144,6 @@ public class UIController : MonoBehaviour
         state = Simulation.state;
         CheckSimState(state);
         ShowHideEnv_SimSpace();
-        UpdateInspectorParams();
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -155,8 +158,10 @@ public class UIController : MonoBehaviour
     private void OnDisable()
     {
         slider.onValueChanged.RemoveAllListeners();
+        Simulation.OnStepAppliedEventHandler -= onStepApplied;
         SimulationController.OnNewAdminEventHandler -= onNewAdmin;
         SimulationController.OnCheckStatusSuccessEventHandler -= onCheckStatusSuccess;
+        SimulationController.OnSimUpdateSuccessEventHandler -= onSimUpdateSuccess;
     }
     /// <summary>
     /// onDestroy routine (Unity Process)
@@ -180,36 +185,109 @@ public class UIController : MonoBehaviour
     private void onCheckStatusSuccess(object sender, ReceivedMessageEventArgs e)
     {
         onNewAdmin(sender, e);
-
+    }
+    private void onSimUpdateSuccess(object sender, ReceivedMessageEventArgs e)
+    {
+        last_simUpdate = e;
         UIControllerThreadQueue.Enqueue(() => {
-            if (showSettingsPanel)
+            UpdateSimParams(e);
+        });
+    }
+    private void onStepApplied(object sender, StepAppliedEventArgs e)
+    {
+        last_StepApplied = e;
+        UIControllerThreadQueue.Enqueue(() =>
+        {
+            UpdateAgentAmounts(e);
+            UpdateInspectorParams();
+            step_id.text = "" + e.step_id;
+        });
+    }
+
+    public void UpdateSimParams(ReceivedMessageEventArgs e)
+    {
+        if (showSettingsPanel)
+        {
+            foreach (Transform child in simParamsContent.transform)
             {
-                foreach (Transform child in simParamsContent.transform)
+                if (child.Find("Param Name").GetComponent<Text>().text.Equals("Width"))
                 {
-                    if (child.Find("Param Name").GetComponent<Text>().text.Equals("Width"))
+                    child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[0]["default"];
+                }
+                else if (child.Find("Param Name").GetComponent<Text>().text.Equals("Height"))
+                {
+                    child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[1]["default"];
+                }
+                else if (child.Find("Param Name").GetComponent<Text>().text.Equals("Length"))
+                {
+                    child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[2]["default"];
+                }
+                else if (!child.Find("Param Name").GetComponent<Text>().text.Contains("s amount"))
+                {
+                    if (child.GetComponentInChildren<InputField>() != null && !child.GetComponentInChildren<InputField>().isFocused)
                     {
-                        child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[0]["default"];
+                        if (e != null && e.Payload["payload_data"]["payload"].HasKey("sim_params") && e.Payload["payload_data"]["payload"]["sim_params"].HasKey(child.Find("Param Name").GetComponent<Text>().text))
+                        {
+                            child.GetComponentInChildren<InputField>().text = "" + e.Payload["payload_data"]["payload"]["sim_params"][child.Find("Param Name").GetComponent<Text>().text];
+                        }
+                        else
+                        {
+                            child.GetComponentInChildren<InputField>().text = "" + ((JSONObject)((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["sim_params"]).Linq.Where((param) => param.Value["name"].Equals(child.Find("Param Name").GetComponent<Text>().text)).ToArray()[0])["default"];
+                        }
                     }
-                    
-                    else if(child.Find("Param Name").GetComponent<Text>().text.Equals("Height"))
+                    else if (child.GetComponentInChildren<Toggle>() != null)
                     {
-                        child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[1]["default"];
+                        if (e != null && e.Payload["payload_data"]["payload"].HasKey("sim_params") && e.Payload["payload_data"]["payload"]["sim_params"].HasKey(child.Find("Param Name").GetComponent<Text>().text))
+                        {
+                            child.GetComponentInChildren<Toggle>().isOn = e.Payload["payload_data"]["payload"]["sim_params"][child.Find("Param Name").GetComponent<Text>().text];
+                        }
+                        else
+                        {
+                            child.GetComponentInChildren<Toggle>().isOn = ((JSONObject)((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["sim_params"]).Linq.Where((param) => param.Value["name"].Equals(child.Find("Param Name").GetComponent<Text>().text)).ToArray()[0])["default"];
+                        }
                     }
-
-                    else if (child.Find("Param Name").GetComponent<Text>().text.Equals("Length")) {
-                        child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[2]["default"];
-                    }
-
-                    else if (child.Find("Param Name").GetComponent<Text>().text.Contains("s amount"))
-                    {
-                        string agent_class = child.Find("Param Name").GetComponent<Text>().text.Substring(0, child.Find("Param Name").GetComponent<Text>().text.Length - 8);
-                        child.GetComponentInChildren<InputField>().text = "" + SimController.GetSimulation().agents.Where((a) => a.Key.class_name.Equals(agent_class)).Count();
-                    }
-                    else if (child.GetComponentInChildren<InputField>() != null && !child.GetComponentInChildren<InputField>().isFocused) child.GetComponentInChildren<InputField>().text = "" + ((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"])[child.Find("Param Name").GetComponent<Text>().text];
-                    else if (child.GetComponentInChildren<Toggle>() != null) child.GetComponentInChildren<Toggle>().isOn = ((JSONObject)((JSONObject)e.Payload["payload_data"])["sim_params"])[child.Find("Param Name").GetComponent<Text>().text];
                 }
             }
-        });   
+        }
+    }
+    public void UpdateAgentAmounts(StepAppliedEventArgs e)
+    {
+        if (showSettingsPanel)
+        {
+            foreach (Transform child in simParamsContent.transform)
+            {
+                if (child.Find("Param Name").GetComponent<Text>().text.Contains("s amount"))
+                {
+                    string agent_class = child.Find("Param Name").GetComponent<Text>().text.Substring(0, child.Find("Param Name").GetComponent<Text>().text.Length - 8);
+                    child.GetComponentInChildren<InputField>().text = "" + e.n_agents_for_each_class[e.agent_class_names.IndexOf(agent_class)];
+                }
+            }
+        }
+    }
+    public void UpdateInspectorParams()
+    {
+        if (showInspectorPanel)
+        {
+            if (selectedPlaced != null) selected = selectedPlaced;
+            else if (selectedGhost != null) selected = selectedGhost;
+
+            if(selected != null)
+            {
+                followToggle.GetComponent<Toggle>().interactable = true;
+
+                foreach (Transform child in inspectorContent.transform)
+                {
+                    if (child.GetComponentInChildren<InputField>() != null && !child.GetComponentInChildren<InputField>().isFocused) child.GetComponentInChildren<InputField>().text = "" + selected.SimObject.Parameters[child.Find("Param Name").GetComponent<Text>().text];
+                    if (child.GetComponentInChildren<Toggle>() != null) child.GetComponentInChildren<Toggle>().isOn = (bool)selected.SimObject.Parameters[child.Find("Param Name").GetComponent<Text>().text];
+                }
+            }
+            else
+            {
+                camera.GetComponent<CameraTarget>().follow = false;
+                followToggle.GetComponent<Toggle>().isOn = false;
+                followToggle.GetComponent<Toggle>().interactable = false;
+            }
+        }
     }
 
     public void LockUI()
@@ -420,32 +498,6 @@ public class UIController : MonoBehaviour
         foreach (Transform child in inspectorContent.transform) GameObject.Destroy(child.gameObject);
         inspectorContent.transform.DetachChildren();
     }
-    public void UpdateInspectorParams()
-    {
-        if (showInspectorPanel)
-        {
-            if (selectedPlaced != null) selected = selectedPlaced;
-            else if (selectedGhost != null) selected = selectedGhost;
-
-            if(selected != null)
-            {
-                followToggle.GetComponent<Toggle>().interactable = true;
-
-                foreach (Transform child in inspectorContent.transform)
-                {
-                    if (child.GetComponentInChildren<InputField>() != null && !child.GetComponentInChildren<InputField>().isFocused) child.GetComponentInChildren<InputField>().text = "" + selected.SimObject.Parameters[child.Find("Param Name").GetComponent<Text>().text];
-                    if (child.GetComponentInChildren<Toggle>() != null) child.GetComponentInChildren<Toggle>().isOn = (bool)selected.SimObject.Parameters[child.Find("Param Name").GetComponent<Text>().text];
-                }
-            }
-            else
-            {
-                camera.GetComponent<CameraTarget>().follow = false;
-                followToggle.GetComponent<Toggle>().isOn = false;
-                followToggle.GetComponent<Toggle>().interactable = false;
-            }
-
-        }
-    }
 
     public void LoadInspectorInfo(SimObject.SimObjectType type, string class_name, int id)
     {
@@ -466,7 +518,7 @@ public class UIController : MonoBehaviour
                     case "System.Single":
                         param = Instantiate(inspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
-                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], float.Parse(value)));
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnInspectorParamUpdate(p["name"], float.Parse(value)));
                         if (!admin)
                         {
                             param.GetComponentInChildren<InputField>().interactable = false;
@@ -476,7 +528,7 @@ public class UIController : MonoBehaviour
                     case "System.Int32":
                         param = Instantiate(inspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
-                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], int.Parse(value)));
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnInspectorParamUpdate(p["name"], int.Parse(value)));
                         if (!admin)
                         {
                             param.GetComponentInChildren<InputField>().interactable = false;
@@ -485,7 +537,7 @@ public class UIController : MonoBehaviour
                         break;
                     case "System.Boolean":
                         param = Instantiate(inspectorTogglePrefab);
-                        param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
+                        param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => OnInspectorParamUpdate(p["name"], value));
                         param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
                         param.GetComponentInChildren<Toggle>().isOn = (bool) po.SimObject.Parameters[p["name"]];
                         if (!admin)
@@ -497,7 +549,7 @@ public class UIController : MonoBehaviour
                     case "System.String":
                         param = Instantiate(inspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
-                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnInspectorParamUpdate(p["name"], value));
                         if (!admin) param.GetComponentInChildren<InputField>().interactable = false;
                         if (!admin)
                         {
@@ -508,7 +560,7 @@ public class UIController : MonoBehaviour
                     case "System.Position":
                         param = Instantiate(inspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
-                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnSimObjectParamUpdate(p["name"], value));
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnInspectorParamUpdate(p["name"], value));
                         if (!admin) param.GetComponentInChildren<InputField>().interactable = false;
                         if (!admin)
                         {
@@ -647,14 +699,16 @@ public class UIController : MonoBehaviour
     }
     public void OnSimParamsDiscard()
     {
+        UpdateSimParams(last_simUpdate);
+        UpdateAgentAmounts(last_StepApplied);
         tempSimParams.Clear();
     }
-    public void OnSimObjectParamUpdate(string param_name, dynamic value)
+    public void OnInspectorParamUpdate(string param_name, dynamic value)
     {
         if (!tempSimObjectParams.ContainsKey(param_name)) tempSimObjectParams.Add(param_name, value);
         else tempSimObjectParams[param_name] = value;
     }
-    public void OnSimObjectParamsApply()/// SISTEMARE
+    public void OnInspectorParamsApply()/// SISTEMARE
     {
         SimObjectModifyEventArgs e = new SimObjectModifyEventArgs();
         e.type = SceneController.selectedPlaced.SimObject.Type;
@@ -663,8 +717,9 @@ public class UIController : MonoBehaviour
         e.parameters = tempSimObjectParams;
         OnSimObjectParamsUpdateEventHandler?.BeginInvoke(this, e, null, null);
     }
-    public void OnSimObjectParamsDiscard()
+    public void OnInspectorParamsDiscard()
     {
+        UpdateInspectorParams();
         tempSimObjectParams.Clear();
     }
 
