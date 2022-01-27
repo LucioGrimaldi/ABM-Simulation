@@ -879,6 +879,7 @@ public class SimulationController : MonoBehaviour
             else
             {
                 sim_id = e.Payload["payload_data"]["payload"]["id"];
+                sim_list_editable[sim_id] = (JSONObject)e.Payload["payload_data"]["payload"];
                 simulation.InitSimulationFromPrototype((JSONObject)e.Payload["payload_data"]["payload"]);
             }
             if (clientState.Equals(StateEnum.IN_GAME))
