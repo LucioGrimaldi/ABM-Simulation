@@ -5,15 +5,13 @@ using static SimObjectRender;
 
 public class Flocker_PO : PO_Continuous3D
 {
-    // STATIC
-    protected static ContinuousSystem continuousSystem;
     protected override PlaceableObject Init(SimObject simObject, PlaceableObject po, bool isGhost, bool isMovable)
     {
-        dead = (bool) simObject.Parameters["dead"];
+        dead = false;
         return base.Init(simObject, po, isGhost, isMovable);
     }
 
-    //VARIABLES
+    // VARIABLES
     public bool dead;
 
     // UNITY LOOP METHODS
@@ -76,10 +74,13 @@ public class Flocker_PO : PO_Continuous3D
 
     private void ChangeMesh(bool dead)
     {
-        if(!this.dead.Equals(dead))
+        if (!this.dead && dead)
         {
-            Transform temp = transform.Find("Model").parent = null;
-            GameObject newModel = Instantiate(SimObjectRender.Meshes["dead"], temp.position, temp.rotation);
+            this.dead = dead;
+            Transform temp = transform.Find("Model");
+            temp.parent = null;
+            GameObject newModel = Instantiate(SimObjectRender.Meshes["dead"].transform.Find("Model").gameObject, temp.position, temp.rotation);
+            SimSpaceSystem.SetLayerRecursive(newModel.gameObject, 9);
             newModel.name = "Model";
             newModel.transform.parent = transform;
             Destroy(temp.gameObject);

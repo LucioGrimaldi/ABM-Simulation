@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PO_AgentPrefabs:
   - name: Flocker
-    prefab: {fileID: 3822513428025527814, guid: abf8935c1dd7a604da287e5b46a20177,
+    prefab: {fileID: 3822513428025527814, guid: a6aa45479ea0c654cb7c028d9e655e34,
       type: 3}
   PO_GenericPrefabs: []
   PO_ObstaclePrefabs: []

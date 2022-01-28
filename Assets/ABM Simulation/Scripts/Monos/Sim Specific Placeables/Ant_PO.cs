@@ -6,11 +6,11 @@ public class Ant_PO : PO_Discrete2D
 {
     protected override PlaceableObject Init(SimObject simObject, PlaceableObject po, bool isGhost, bool isMovable)
     {
-        hasFoodItem = (bool) simObject.Parameters["hasFoodItem"];
+        hasFoodItem = (bool)simObject.Parameters["hasFoodItem"];
         return base.Init(simObject, po, isGhost, isMovable);
     }
 
-    //VARIABLES
+    // VARIABLES
     public bool hasFoodItem;
 
     // UNITY LOOP METHODS
@@ -75,7 +75,7 @@ public class Ant_PO : PO_Discrete2D
 
     public void ChangeColor(bool hasFoodItem)
     {
-        if (this.hasFoodItem.Equals(hasFoodItem))
+        if (!this.hasFoodItem.Equals(hasFoodItem))
         {
             transform.Find("Model").gameObject.GetComponent<MeshRenderer>().material = (hasFoodItem) ? simObjectRender.Materials["hasFoodItem"] : simObjectRender.Materials["default"];
             this.hasFoodItem = hasFoodItem;

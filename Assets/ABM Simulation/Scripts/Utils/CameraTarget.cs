@@ -15,7 +15,7 @@ public class CameraTarget : MonoBehaviour {
     
     public bool follow;
     public Transform target;
-    public float smoothSpeed = 0.150f;
+    public float smoothSpeed = 0.150f, speed;
     [SerializeField] Vector3 offset = new Vector3(10f, 5f, -5f);
 
 
@@ -73,6 +73,8 @@ public class CameraTarget : MonoBehaviour {
             Vector3 desiredPosition = target.position + offset;
             Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed);
             transform.position = smoothedPosition;
+
+            //transform.Rotate(0, speed * Time.deltaTime, 0);
 
             transform.LookAt(target);
         }

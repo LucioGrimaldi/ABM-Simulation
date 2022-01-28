@@ -8538,6 +8538,7 @@ MonoBehaviour:
   follow: 0
   target: {fileID: 0}
   smoothSpeed: 0.15
+  speed: 50
   offset: {x: 10, y: 5, z: -5}
 --- !u!124 &1573319560
 Behaviour:
