@@ -8535,6 +8535,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   axis: 0
   moveSpeed: 50
+  cam: {fileID: 1573319561}
+  distanceToTarget: 10
   follow: 0
   target: {fileID: 0}
   smoothSpeed: 0.15
