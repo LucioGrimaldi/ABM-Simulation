@@ -265,14 +265,14 @@ public class SceneController : MonoBehaviour
     public void ClearSimSpace()
     {
         SceneControllerThreadQueue.Enqueue(() => {
-            foreach ((bool isGhost, PlaceableObject g) x in SimSpaceSystem.GetPlacedObjects().Values) x.g.Destroy();
-            foreach ((bool isGhost, PlaceableObject o) x in SimSpaceSystem.GetTemporaryGhosts().Values) x.o.Destroy();
-            SimSpaceSystem.ClearSimSpaceSystem();
+            foreach ((bool isGhost, PlaceableObject g) x in SimSpaceSystem.GetTemporaryGhosts().Values) x.g.Destroy();
+            foreach ((bool isGhost, PlaceableObject o) x in SimSpaceSystem.GetPlacedObjects().Values) x.o.Destroy();
             if(isDiscrete && simDimensions.Count == 2)
             {
                 simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(new float[(int)width * (int)width]);
                 simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(new float[(int)width * (int)width]);
             }
+            SimSpaceSystem.ClearSimSpaceSystem();
         });
     }
 

@@ -8,7 +8,7 @@ public class CameraTarget : MonoBehaviour {
     [SerializeField] private Camera cam;
     [SerializeField] private float distanceToTarget = 10;
 
-    private Vector3 previousPosition;
+    private Vector3 previousPosition, desiredPosition;
     public bool follow;
     public Transform target;
     public float smoothSpeed = 0.150f, speed, zoom = 15;
@@ -24,29 +24,30 @@ public class CameraTarget : MonoBehaviour {
     {
         if (follow)
         {
-
             if (cam.orthographic)
             {
-                cam.fieldOfView += Input.GetAxis("Mouse ScrollWheel") * zoom;
-
+                Vector3 dir = (target.position - transform.position).normalized;
+                transform.position += dir * (Input.GetAxis("Mouse ScrollWheel") * zoom);
+                offset = transform.position - target.position;
+                distanceToTarget = offset.magnitude;
             }
             else
             {
-                cam.fieldOfView -= Input.GetAxis("Mouse ScrollWheel") * zoom;
-
-                if (cam.fieldOfView < 9)
-                    cam.fieldOfView = 9; 
-                if (cam.fieldOfView > 120)
-                    cam.fieldOfView = 120;
+                if(Input.GetAxis("Mouse ScrollWheel") != 0)
+                {
+                    Vector3 dir = (target.position - transform.position).normalized;
+                    transform.position += dir * (Input.GetAxis("Mouse ScrollWheel") * zoom);
+                    offset = transform.position - target.position;
+                    distanceToTarget = offset.magnitude;
+                }                
             }
 
             if (!Input.GetMouseButton(1))
             {
-                Vector3 desiredPosition = target.position + offset;
-                Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed);
-                transform.position = smoothedPosition;
-
                 transform.LookAt(target, Vector3.up);
+
+                desiredPosition = target.position + offset;
+                transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime * 15f);
             }
 
             if (Input.GetMouseButtonDown(1))
@@ -61,16 +62,12 @@ public class CameraTarget : MonoBehaviour {
                 float rotationAroundYAxis = -direction.x * 180; // camera moves horizontally
                 float rotationAroundXAxis = direction.y * 180; // camera moves vertically
 
-                //Vector3 smoothFollow = Vector3.Lerp(cam.transform.position, target.position, smoothSpeed);
-                //cam.transform.position = smoothFollow;
-                cam.transform.position = target.position;
+                transform.position = target.position;
+                transform.Rotate(new Vector3(1, 0, 0), rotationAroundXAxis);
+                transform.Rotate(new Vector3(0, 1, 0), rotationAroundYAxis, Space.World);
+                transform.Translate(new Vector3(0, 0, -distanceToTarget));
 
-
-                cam.transform.Rotate(new Vector3(1, 0, 0), rotationAroundXAxis);
-                cam.transform.Rotate(new Vector3(0, 1, 0), rotationAroundYAxis, Space.World);
-
-                cam.transform.Translate(new Vector3(0, 0, -distanceToTarget));
-
+                offset = transform.position - target.position;
                 previousPosition = newPosition;
             }
             if (Input.GetMouseButtonUp(1))

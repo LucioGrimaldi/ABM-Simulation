@@ -584,8 +584,8 @@ public class SimulationController : MonoBehaviour
                 simulation.State = Simulation.StateEnum.NOT_READY;
                 CommController.EmptyQueues();
                 latestSimStepArrived = 0;
-                SceneController.ClearSimSpace();
                 simulation.ClearSimulation();
+                SceneController.ClearSimSpace();
                 break;
             case Command.SPEED:
                 break;
