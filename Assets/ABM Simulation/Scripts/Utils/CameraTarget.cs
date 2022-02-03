@@ -11,7 +11,7 @@ public class CameraTarget : MonoBehaviour {
     private Vector3 previousPosition, desiredPosition;
     public bool follow;
     public Transform target;
-    public float smoothSpeed = 0.150f, speed, zoom = 15;
+    public float smoothSpeed = 0.150f, speed, zoomMultiplier = 20;
     [SerializeField] Vector3 offset = new Vector3(10f, 5f, -5f);
 
 
@@ -27,7 +27,7 @@ public class CameraTarget : MonoBehaviour {
             if (cam.orthographic)
             {
                 Vector3 dir = (target.position - transform.position).normalized;
-                transform.position += dir * (Input.GetAxis("Mouse ScrollWheel") * zoom);
+                transform.position += dir * (Input.GetAxis("Mouse ScrollWheel") * zoomMultiplier);
                 offset = transform.position - target.position;
                 distanceToTarget = offset.magnitude;
             }
@@ -36,18 +36,25 @@ public class CameraTarget : MonoBehaviour {
                 if(Input.GetAxis("Mouse ScrollWheel") != 0)
                 {
                     Vector3 dir = (target.position - transform.position).normalized;
-                    transform.position += dir * (Input.GetAxis("Mouse ScrollWheel") * zoom);
-                    offset = transform.position - target.position;
-                    distanceToTarget = offset.magnitude;
-                }                
+                    Vector3 zoomIn = dir * (Input.GetAxis("Mouse ScrollWheel") * zoomMultiplier);
+                    Vector3 newPosition = transform.position += zoomIn;
+                    Vector3 newOffset = newPosition - target.position;
+                    float newDistanceToTarget = newOffset.magnitude;
+                    if(!(newDistanceToTarget < 3) && !(newDistanceToTarget > 200))
+                    {
+                        offset = newOffset;
+                        distanceToTarget = newDistanceToTarget;
+                        transform.position = newPosition;
+                    }
+                }
             }
 
             if (!Input.GetMouseButton(1))
             {
-                transform.LookAt(target, Vector3.up);
-
-                desiredPosition = target.position + offset;
-                transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime * 15f);
+                transform.position = target.position;
+                transform.Rotate(new Vector3(1, 0, 0), 0f);
+                transform.Rotate(new Vector3(0, 1, 0), 0f, Space.World);
+                transform.Translate(new Vector3(0, 0, -distanceToTarget));
             }
 
             if (Input.GetMouseButtonDown(1))

@@ -8,10 +8,18 @@ using System.Collections.Generic;
 using SimpleJSON;
 using System.Collections.Concurrent;
 using System.Linq;
+using static SimObject;
 
 public class SpeedChangeEventArgs : EventArgs
 {
     public int Speed { get; set; }
+}
+public class SimObjectParamsUpdateEventArgs : EventArgs
+{
+    public SimObjectType type;
+    public string class_name;
+    public int id;
+    public Dictionary<string, object> parameters;                                    // i parametri sono (string param_name, object value)
 }
 
 public class UIController : MonoBehaviour
@@ -24,7 +32,7 @@ public class UIController : MonoBehaviour
     public static event EventHandler<EventArgs> OnStopEventHandler;
     public static event EventHandler<SpeedChangeEventArgs> OnSpeedChangeEventHandler;
     public static event EventHandler<SimParamsUpdateEventArgs> OnSimParamsUpdateEventHandler;
-    public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectParamsUpdateEventHandler;
+    public static event EventHandler<SimObjectParamsUpdateEventArgs> OnSimObjectParamsUpdateEventHandler;
     public static event EventHandler<EventArgs> OnEditExitEventHandler;
     public static event EventHandler<EventArgs> OnExitEventHandler;
 
@@ -376,7 +384,7 @@ public class UIController : MonoBehaviour
     {
         if (followToggle.GetComponent<Toggle>().isOn && selected != null)
         {
-            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.GetChild(1));
+            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.Find("Model"));
             camera.GetComponent<CameraRotation>().enabled = false;
         }
         else
@@ -387,14 +395,13 @@ public class UIController : MonoBehaviour
             camera.transform.rotation = Quaternion.Euler(new Vector3(20, 0, 0));
         }
     }
-
     public void OnChangeSelectedFollow()
     {
         selected = selectedPlaced;
         
         if (followToggle.GetComponent<Toggle>().isOn)
         {
-            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.GetChild(1));
+            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.Find("Model"));
         }
     }
 
@@ -715,9 +722,9 @@ public class UIController : MonoBehaviour
         if (!tempSimObjectParams.ContainsKey(param_name)) tempSimObjectParams.Add(param_name, value);
         else tempSimObjectParams[param_name] = value;
     }
-    public void OnInspectorParamsApply()/// SISTEMARE
+    public void OnInspectorParamsApply()
     {
-        SimObjectModifyEventArgs e = new SimObjectModifyEventArgs();
+        SimObjectParamsUpdateEventArgs e = new SimObjectParamsUpdateEventArgs();
         e.type = SceneController.selectedPlaced.SimObject.Type;
         e.class_name = SceneController.selectedPlaced.SimObject.Class_name;
         e.id = SceneController.selectedPlaced.SimObject.Id;

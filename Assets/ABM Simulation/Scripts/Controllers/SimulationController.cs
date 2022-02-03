@@ -896,9 +896,74 @@ public class SimulationController : MonoBehaviour
     private void onSimUpdateResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
+        (bool, PlaceableObject) x;
+        PlaceableObject po;
 
         if (result)
         {
+            if (!admin)
+            {
+                switch (((JSONObject)e.Payload["payload_data"]["payload"]).Dict.First().Key)
+                {
+                    case "agents_create":
+                        SimControllerThreadQueue.Enqueue(() => {
+                            po = SceneController.GetPlaceableObjectPrefab(SimObjectType.AGENT, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["class"]);
+                            SimObject temp = SceneController.GetSimObjectPrototype(SimObjectType.AGENT, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["class"]);
+                            temp.Parameters = new ConcurrentDictionary<string, object>(((JSONObject)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["params"]).Dict.ToDictionary(x => x.Key, x => (object)x.Value));
+                            SceneController.CreateGhost(temp, po, false);
+                            po.PlaceGhost();
+                        });
+                        break;
+                    case "agents_modify":
+                        // TODO
+                        break;
+                    case "agents_delete":
+                        SimControllerThreadQueue.Enqueue(() => {
+                            SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.AGENT, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["id"]), out x);
+                            po = x.Item2;
+                            SceneController.DeletePlacedObject(po);
+                        });
+                        break;
+                    case "generics_create":
+                        SimControllerThreadQueue.Enqueue(() => {
+                            po = SceneController.GetPlaceableObjectPrefab(SimObjectType.GENERIC, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["class"]);
+                            SimObject temp = SceneController.GetSimObjectPrototype(SimObjectType.GENERIC, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["class"]);
+                            temp.Parameters = new ConcurrentDictionary<string, object>(((JSONObject)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["params"]).Dict.ToDictionary(x => x.Key, x => (object)x.Value));
+                            SceneController.CreateGhost(temp, po, false);
+                            po.PlaceGhost();
+                        });
+                        break;
+                    case "generics_modify":
+                        // TODO
+                        break;
+                    case "generics_delete":
+                        SimControllerThreadQueue.Enqueue(() => {
+                            SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.GENERIC, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["id"]), out x);
+                            po = x.Item2;
+                            SceneController.DeletePlacedObject(po);
+                        });
+                        break;
+                    case "obstacles_create":
+                        SimControllerThreadQueue.Enqueue(() => {
+                            po = SceneController.GetPlaceableObjectPrefab(SimObjectType.OBSTACLE, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["class"]);
+                            SimObject temp = SceneController.GetSimObjectPrototype(SimObjectType.OBSTACLE, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["class"]);
+                            temp.Parameters = new ConcurrentDictionary<string, object>(((JSONObject)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["params"]).Dict.ToDictionary(x => x.Key, x => (object)x.Value));
+                            SceneController.CreateGhost(temp, po, false);
+                            po.PlaceGhost();
+                        });
+                        break;
+                    case "obstacles_modify":
+                        // TODO
+                        break;
+                    case "obstacles_delete":
+                        SimControllerThreadQueue.Enqueue(() => {
+                            SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.OBSTACLE, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["id"]), out x);
+                            po = x.Item2;
+                            SceneController.DeletePlacedObject(po);
+                        });
+                        break;
+                }
+            }
             if (((JSONObject)e.Payload["payload_data"]["payload"]).HasKey("sim_params"))
             {
                 simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"]["payload"])["sim_params"]);
@@ -1193,7 +1258,7 @@ public class SimulationController : MonoBehaviour
 
             if (!entry.Key.op.Equals("DEL"))
             {
-                obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>(), new TupleConverter<string, Vector3>(), new TupleConverter<string, Quaternion>(), new Vec3Conv(), new QuaternionConv()));
+                obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>(), new TupleConverter<string, Vector3>(), new Vector2IntConverter(), new TupleConverter<string, Quaternion>(), new Vec3Conv(), new QuaternionConv()));
                 obj.Add("params", obj_params);
             }
             uncommitted_updatesJSON[type+"_"+op].Add(obj);       

@@ -35,6 +35,11 @@ public class PlaceableObject : MonoBehaviour
         isMovable = false;
         return true;
     }
+    public virtual bool PlaceGhost()
+    {
+        isMovable = false;
+        return true;
+    }
     public virtual void Rotate() { }
     public virtual void Rotate(Vector3 dir) { }
     public virtual void Rotate(PO_Discrete2D.DirEnum dir) { }

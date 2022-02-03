@@ -1,5 +1,5 @@
 using Newtonsoft.Json;
-using SimpleJSON;
+using static UnityEngine.Vector2Int;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -184,6 +184,35 @@ public class Utils
 
 }
 
+public class Vector2IntConverter : Newtonsoft.Json.JsonConverter
+{
+    public override bool CanConvert(Type objectType)
+    {
+        return typeof(Vector2Int) == objectType;
+    }
+
+    public override object ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
+    {
+        if (reader.TokenType == Newtonsoft.Json.JsonToken.Null) return null;
+
+        var t = serializer.Deserialize(reader);
+        var iv = JsonConvert.DeserializeObject<Vector2Int>(t.ToString());
+        return iv;
+    }
+
+    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object value, Newtonsoft.Json.JsonSerializer serializer)
+    {
+        Vector2Int v = (Vector2Int)value;
+
+        writer.WriteStartObject();
+        writer.WritePropertyName("x");
+        writer.WriteValue(v.x);
+        writer.WritePropertyName("y");
+        writer.WriteValue(v.y);
+        writer.WriteEndObject();
+    }
+}
+
 public class TupleConverter<U,V> : Newtonsoft.Json.JsonConverter
 {
     public override bool CanConvert(Type objectType)
@@ -207,7 +236,6 @@ public class TupleConverter<U,V> : Newtonsoft.Json.JsonConverter
         writer.WriteValue(((ValueTuple<string, V>)value).Item2);
         writer.WriteEndObject();
     }
-
 }
 
 public class Vec4Conv : Newtonsoft.Json.JsonConverter

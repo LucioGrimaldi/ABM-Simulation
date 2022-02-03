@@ -88,6 +88,7 @@ public class SceneController : MonoBehaviour
     {
         // Register to EventHandlers
         Simulation.OnSimObjectNotInStepEventHandler += onSimObjectNotInStep;
+        UIController.OnSimObjectParamsUpdateEventHandler += onSimObjectModified;
     }
     /// <summary>
     /// Start routine (Unity Process)
@@ -129,6 +130,7 @@ public class SceneController : MonoBehaviour
     {
         // Unregister to EventHandlers
         Simulation.OnSimObjectNotInStepEventHandler -= onSimObjectNotInStep;
+        UIController.OnSimObjectParamsUpdateEventHandler -= onSimObjectModified;
     }
     /// <summary>
     /// onDestroy routine (Unity Process)
@@ -310,11 +312,11 @@ public class SceneController : MonoBehaviour
                 {
                     if (SimSpaceSystem.CanBuild(selectedGhost))
                     {
-                        //if (selectedPlaced != null) selectedPlaced.DeHighlight();
+                        if (selectedPlaced != null) selectedPlaced.DeHighlight();
                         selectedPlaced = selectedGhost;
                         selectedPlaced.PlaceGhost(SimSpaceSystem.MouseClickToSpawnPosition(selectedPlaced));
-                        CreateSimObject(selectedPlaced);             
-                        //selectedPlaced.Highlight();
+                        CreateSimObject(selectedPlaced);
+                        if (selectedPlaced != null) selectedPlaced.Highlight();
                         ShowInspector(selectedPlaced);
                         selectedGhost = CreateGhost(GetSimObjectPrototype(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name), GetPlaceableObjectPrefab(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name), true);
                         selectedGhost.SimObject.Id = GetTemporaryId(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name);
@@ -334,7 +336,7 @@ public class SceneController : MonoBehaviour
             if (selectedPlaced != null)
             {
                 DeletePlacedObject(selectedPlaced);
-                DeleteSimObject();
+                DeleteSimObject(selectedPlaced);
                 
                 selectedPlaced = null;
             }
@@ -400,14 +402,12 @@ public class SceneController : MonoBehaviour
         {
             DeselectSimObject();
             selectedPlaced = GetPOFromTransformRecursive(hitPoint.transform);
-
             UIController.followToggle.GetComponent<Toggle>().interactable = true;
-
             UIController.OnChangeSelectedFollow();
-            //selectedPlaced.Highlight();
+            if (selectedPlaced != null) selectedPlaced.Highlight();
             ShowInspector(selectedPlaced);
             return true;
-        }        
+        }
         return false;
     }
     public void DeselectSimObject()
@@ -418,7 +418,7 @@ public class SceneController : MonoBehaviour
         UIController.tempSimObjectParams.Clear();
         if(selectedPlaced != null)
         {
-            //selectedPlaced.DeHighlight();
+            selectedPlaced.DeHighlight();
             selectedPlaced = null;
             UIController.selected = null;
         }
@@ -492,29 +492,31 @@ public class SceneController : MonoBehaviour
     }
 
     // SimObjects
-    public void CreateSimObject(PlaceableObject placedPlaceableObject)
+    public void CreateSimObject(PlaceableObject po)
     {
-        if(placedPlaceableObject != null)
+        if(po != null)
         {
             SimObjectCreateEventArgs e = new SimObjectCreateEventArgs();
-            e.type = placedPlaceableObject.SimObject.Type;
-            e.class_name = placedPlaceableObject.SimObject.Class_name;
-            e.id = placedPlaceableObject.SimObject.Id;
-            e.parameters = placedPlaceableObject.SimObject.Parameters;            
+            e.type = po.SimObject.Type;
+            e.class_name = po.SimObject.Class_name;
+            e.id = po.SimObject.Id;
+            e.parameters = po.SimObject.Parameters;            
 
             OnSimObjectCreateEventHandler?.BeginInvoke(this, e, null, null);
         }
     }
-    public void ModifySimObject()
+    public void ModifySimObject(SimObjectParamsUpdateEventArgs e)
     {
-        // TODO
+        //SimObjectModifyEventArgs e = new Sim
+
+
     }
-    public void DeleteSimObject()
+    public void DeleteSimObject(PlaceableObject po)
     {
         SimObjectDeleteEventArgs e = new SimObjectDeleteEventArgs();
-        e.type = selectedPlaced.SimObject.Type;
-        e.class_name = selectedPlaced.SimObject.Class_name;
-        e.id = selectedPlaced.SimObject.Id;
+        e.type = po.SimObject.Type;
+        e.class_name = po.SimObject.Class_name;
+        e.id = po.SimObject.Id;
         OnSimObjectDeleteEventHandler?.BeginInvoke(this, e, null, null);
     }
 
@@ -529,7 +531,10 @@ public class SceneController : MonoBehaviour
             });
         }
     }
-
+    public void onSimObjectModified(object sender, SimObjectParamsUpdateEventArgs e)
+    {
+        ModifySimObject(e);
+    }
     // Step
     public void StepUp()
     {

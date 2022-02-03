@@ -137,6 +137,13 @@ public class PO_Discrete2D : PO_Discrete
         base.PlaceGhost(position);
         return true;
     }
+    public override bool PlaceGhost()
+    {
+        foreach (Vector2Int cell in (MyList<Vector2Int>)SimObject.Parameters["position"]) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
+        gridSystem.placedGhostsDict.TryAdd((simObject.Type, simObject.Class_name, simObject.Id), (isGhost, this));
+        base.PlaceGhost();
+        return true;
+    }
     public override void Destroy()
     {
         base.Destroy();

@@ -94,6 +94,12 @@ public class PO_Continuous3D : PO_Continuous
         base.PlaceGhost(position);
         return true;
     }
+    public override bool PlaceGhost()
+    {
+        continuousSystem.placedGhostsDict.TryAdd((simObject.Type, simObject.Class_name, simObject.Id), (isGhost, this));
+        base.PlaceGhost((Vector3)simObject.Parameters["position"]);
+        return true;
+    }
     public override void Rotate()
     {
         transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0,90,0)), Time.deltaTime * 15f);
