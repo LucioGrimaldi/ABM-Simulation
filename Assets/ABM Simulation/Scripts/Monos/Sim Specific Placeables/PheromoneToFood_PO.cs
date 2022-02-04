@@ -7,7 +7,7 @@ public class PheromoneToFood_PO : PO_Discrete2D
     {
         gridSystem = GameObject.Find("SimSpaceSystem").GetComponent<GridSystem>();
 
-        PheromoneToFood_PO po_clone = Instantiate((PheromoneToFood_PO)po, GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)simObject.Parameters["position"]), po.gameObject.transform.rotation);
+        PheromoneToFood_PO po_clone = Instantiate((PheromoneToFood_PO)po, GridSystem.MasonToUnityPosition2D(GetCellsFromSimObject(simObject)), po.gameObject.transform.rotation);
         po_clone.SetScale(gridSystem.grid.CellSize);
         if (isGhost)
         {        

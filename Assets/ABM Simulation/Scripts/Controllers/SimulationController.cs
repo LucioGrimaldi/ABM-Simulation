@@ -897,7 +897,9 @@ public class SimulationController : MonoBehaviour
     {
         bool result = e.Payload["result"];
         (bool, PlaceableObject) x;
-        PlaceableObject po;
+        PlaceableObject temp_po;
+        object value;
+        object cell;
 
         if (result)
         {
@@ -907,11 +909,69 @@ public class SimulationController : MonoBehaviour
                 {
                     case "agents_create":
                         SimControllerThreadQueue.Enqueue(() => {
-                            po = SceneController.GetPlaceableObjectPrefab(SimObjectType.AGENT, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["class"]);
+                            temp_po = SceneController.GetPlaceableObjectPrefab(SimObjectType.AGENT, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["class"]);
                             SimObject temp = SceneController.GetSimObjectPrototype(SimObjectType.AGENT, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["class"]);
-                            temp.Parameters = new ConcurrentDictionary<string, object>(((JSONObject)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["params"]).Dict.ToDictionary(x => x.Key, x => (object)x.Value));
-                            SceneController.CreateGhost(temp, po, false);
-                            po.PlaceGhost();
+                            temp.Parameters = new ConcurrentDictionary<string, object>(((JSONObject)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["params"]).Dict.ToDictionary(x => x.Key, x =>
+                            {
+                                JSONArray agent_prototypes = (JSONArray)sim_prototypes_list[sim_id]["agent_prototypes"];
+                                foreach (JSONObject agent in agent_prototypes)
+                                {
+                                    if (agent["class"].Equals(temp.Class_name))
+                                    {
+                                        foreach (JSONObject p in (JSONArray)agent["params"])
+                                        {
+                                            if (p["name"].Equals(x.Key))
+                                            {
+                                                switch ((string)p["type"])
+                                                {
+                                                    case "System.Single":
+                                                        value = (float)x.Value;
+                                                        break;
+                                                    case "System.Int32":
+                                                        value = (int)x.Value;
+                                                        break;
+                                                    case "System.Boolean":
+                                                        value = (bool)x.Value;
+                                                        break;
+                                                    case "System.String":
+                                                        value = (string)x.Value;
+                                                        break;
+                                                    case "System.Position":
+                                                        if (simulation.Dimensions.Count == 2) value = (Vector2)x.Value; else value = (Vector3)x.Value;
+                                                        break;
+                                                    case "System.Rotation":
+                                                        value = (Quaternion)x.Value;
+                                                        break;
+                                                    case "System.Cells":
+                                                        if (simulation.Dimensions.Count == 2) {
+                                                            value = new MyList<Vector2Int>();
+                                                            foreach(JSONObject c in x.Value.AsArray)
+                                                            {
+                                                                cell = new Vector2Int(c["x"].AsInt, c["y"].AsInt);
+                                                                ((MyList<Vector2Int>)value).Add((Vector2Int)cell);
+                                                            }
+                                                        }
+                                                        else {
+                                                            value = new MyList<Vector3Int>();
+                                                            foreach (JSONObject c in x.Value.AsArray)
+                                                            {
+                                                                cell = new Vector3Int(c["x"].AsInt, c["y"].AsInt, c["z"].AsInt);
+                                                                ((MyList<Vector3Int>)value).Add((Vector3Int)cell);
+                                                            }
+                                                        }
+                                                        break;
+                                                    default:
+                                                        value = null;
+                                                        break;
+                                                }
+                                                return value;
+                                            }
+                                        }
+                                    }
+                                }
+                                return null;
+                            }));
+                            SceneController.CreateGhost(temp, temp_po, false).PlaceGhost();
                         });
                         break;
                     case "agents_modify":
@@ -919,18 +979,77 @@ public class SimulationController : MonoBehaviour
                         break;
                     case "agents_delete":
                         SimControllerThreadQueue.Enqueue(() => {
-                            SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.AGENT, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["id"]), out x);
-                            po = x.Item2;
-                            SceneController.DeletePlacedObject(po);
+                            SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.AGENT, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_delete"])[0]["id"]), out x);
+                            temp_po = x.Item2;
+                            SceneController.DeletePlacedObject(temp_po);
                         });
                         break;
                     case "generics_create":
                         SimControllerThreadQueue.Enqueue(() => {
-                            po = SceneController.GetPlaceableObjectPrefab(SimObjectType.GENERIC, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["class"]);
+                            temp_po = SceneController.GetPlaceableObjectPrefab(SimObjectType.GENERIC, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["class"]);
                             SimObject temp = SceneController.GetSimObjectPrototype(SimObjectType.GENERIC, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["class"]);
-                            temp.Parameters = new ConcurrentDictionary<string, object>(((JSONObject)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["params"]).Dict.ToDictionary(x => x.Key, x => (object)x.Value));
-                            SceneController.CreateGhost(temp, po, false);
-                            po.PlaceGhost();
+                            temp.Parameters = new ConcurrentDictionary<string, object>(((JSONObject)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["params"]).Dict.ToDictionary(x => x.Key, x =>
+                            {
+                                JSONArray generic_prototypes = (JSONArray)sim_prototypes_list[sim_id]["generic_prototypes"];
+                                foreach (JSONObject generic in generic_prototypes)
+                                {
+                                    if (generic["class"].Equals(temp.Class_name))
+                                    {
+                                        foreach (JSONObject p in (JSONArray)generic["params"])
+                                        {
+                                            if (p["name"].Equals(x.Key))
+                                            {
+                                                switch ((string)p["type"])
+                                                {
+                                                    case "System.Single":
+                                                        value = (float)x.Value;
+                                                        break;
+                                                    case "System.Int32":
+                                                        value = (int)x.Value;
+                                                        break;
+                                                    case "System.Boolean":
+                                                        value = (bool)x.Value;
+                                                        break;
+                                                    case "System.String":
+                                                        value = (string)x.Value;
+                                                        break;
+                                                    case "System.Position":
+                                                        if (simulation.Dimensions.Count == 2) value = (Vector2)x.Value; else value = (Vector3)x.Value;
+                                                        break;
+                                                    case "System.Rotation":
+                                                        value = (Quaternion)x.Value;
+                                                        break;
+                                                    case "System.Cells":
+                                                        if (simulation.Dimensions.Count == 2)
+                                                        {
+                                                            value = new MyList<Vector2Int>();
+                                                            foreach (JSONObject c in x.Value.AsArray)
+                                                            {
+                                                                cell = new Vector2Int(c["x"].AsInt, c["y"].AsInt);
+                                                                ((MyList<Vector2Int>)value).Add((Vector2Int)cell);
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            value = new MyList<Vector3Int>();
+                                                            foreach (JSONObject c in x.Value.AsArray)
+                                                            {
+                                                                cell = new Vector3Int(c["x"].AsInt, c["y"].AsInt, c["z"].AsInt);
+                                                                ((MyList<Vector3Int>)value).Add((Vector3Int)cell);
+                                                            }
+                                                        }
+                                                        break;
+                                                    default:
+                                                        value = null;
+                                                        break;
+                                                }
+                                                return value;
+                                            }
+                                        }
+                                    }
+                                }
+                                return null;
+                            })); SceneController.CreateGhost(temp, temp_po, false).PlaceGhost();
                         });
                         break;
                     case "generics_modify":
@@ -938,18 +1057,77 @@ public class SimulationController : MonoBehaviour
                         break;
                     case "generics_delete":
                         SimControllerThreadQueue.Enqueue(() => {
-                            SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.GENERIC, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["id"]), out x);
-                            po = x.Item2;
-                            SceneController.DeletePlacedObject(po);
+                            SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.GENERIC, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_delete"])[0]["id"]), out x);
+                            temp_po = x.Item2;
+                            SceneController.DeletePlacedObject(temp_po);
                         });
                         break;
                     case "obstacles_create":
                         SimControllerThreadQueue.Enqueue(() => {
-                            po = SceneController.GetPlaceableObjectPrefab(SimObjectType.OBSTACLE, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["class"]);
+                            temp_po = SceneController.GetPlaceableObjectPrefab(SimObjectType.OBSTACLE, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["class"]);
                             SimObject temp = SceneController.GetSimObjectPrototype(SimObjectType.OBSTACLE, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["class"]);
-                            temp.Parameters = new ConcurrentDictionary<string, object>(((JSONObject)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["params"]).Dict.ToDictionary(x => x.Key, x => (object)x.Value));
-                            SceneController.CreateGhost(temp, po, false);
-                            po.PlaceGhost();
+                            temp.Parameters = new ConcurrentDictionary<string, object>(((JSONObject)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["params"]).Dict.ToDictionary(x => x.Key, x =>
+                            {
+                                JSONArray obstacle_prototypes = (JSONArray)sim_prototypes_list[sim_id]["obstacle_prototypes"];
+                                foreach (JSONObject obstacle in obstacle_prototypes)
+                                {
+                                    if (obstacle["class"].Equals(temp.Class_name))
+                                    {
+                                        foreach (JSONObject p in (JSONArray)obstacle["params"])
+                                        {
+                                            if (p["name"].Equals(x.Key))
+                                            {
+                                                switch ((string)p["type"])
+                                                {
+                                                    case "System.Single":
+                                                        value = (float)x.Value;
+                                                        break;
+                                                    case "System.Int32":
+                                                        value = (int)x.Value;
+                                                        break;
+                                                    case "System.Boolean":
+                                                        value = (bool)x.Value;
+                                                        break;
+                                                    case "System.String":
+                                                        value = (string)x.Value;
+                                                        break;
+                                                    case "System.Position":
+                                                        if (simulation.Dimensions.Count == 2) value = (Vector2)x.Value; else value = (Vector3)x.Value;
+                                                        break;
+                                                    case "System.Rotation":
+                                                        value = (Quaternion)x.Value;
+                                                        break;
+                                                    case "System.Cells":
+                                                        if (simulation.Dimensions.Count == 2)
+                                                        {
+                                                            value = new MyList<Vector2Int>();
+                                                            foreach (JSONObject c in x.Value.AsArray)
+                                                            {
+                                                                cell = new Vector2Int(c["x"].AsInt, c["y"].AsInt);
+                                                                ((MyList<Vector2Int>)value).Add((Vector2Int)cell);
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            value = new MyList<Vector3Int>();
+                                                            foreach (JSONObject c in x.Value.AsArray)
+                                                            {
+                                                                cell = new Vector3Int(c["x"].AsInt, c["y"].AsInt, c["z"].AsInt);
+                                                                ((MyList<Vector3Int>)value).Add((Vector3Int)cell);
+                                                            }
+                                                        }
+                                                        break;
+                                                    default:
+                                                        value = null;
+                                                        break;
+                                                }
+                                                return value;
+                                            }
+                                        }
+                                    }
+                                }
+                                return null;
+                            })); SceneController.CreateGhost(temp, temp_po, false).PlaceGhost();
                         });
                         break;
                     case "obstacles_modify":
@@ -957,9 +1135,9 @@ public class SimulationController : MonoBehaviour
                         break;
                     case "obstacles_delete":
                         SimControllerThreadQueue.Enqueue(() => {
-                            SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.OBSTACLE, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["id"]), out x);
-                            po = x.Item2;
-                            SceneController.DeletePlacedObject(po);
+                            SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.OBSTACLE, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_delete"])[0]["id"]), out x);
+                            temp_po = x.Item2;
+                            SceneController.DeletePlacedObject(temp_po);
                         });
                         break;
                 }
@@ -1258,10 +1436,10 @@ public class SimulationController : MonoBehaviour
 
             if (!entry.Key.op.Equals("DEL"))
             {
-                obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>(), new TupleConverter<string, Vector3>(), new Vector2IntConverter(), new TupleConverter<string, Quaternion>(), new Vec3Conv(), new QuaternionConv()));
+                obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>(), new TupleConverter<string, Vector3>(), new TupleConverter<string, bool>(), new Vector2IntConverter(), new TupleConverter<string, Quaternion>(), new Vec3Conv(), new QuaternionConv()));
                 obj.Add("params", obj_params);
             }
-            uncommitted_updatesJSON[type+"_"+op].Add(obj);       
+            uncommitted_updatesJSON[type+"_"+op].Add(obj);
         }
     }
    

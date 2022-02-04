@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,9 +10,9 @@ public class Obstacle_PO : PO_Discrete2D
     {
         gridSystem = GameObject.Find("SimSpaceSystem").GetComponent<GridSystem>();
 
-        Obstacle_PO po_clone = Instantiate((Obstacle_PO)po, GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)simObject.Parameters["position"]), Quaternion.Euler(Vector3.zero));
+        Obstacle_PO po_clone = Instantiate((Obstacle_PO)po, GridSystem.MasonToUnityPosition2D(GetCellsFromSimObject(simObject)), Quaternion.Euler(Vector3.zero));
         po_clone.transform.Find("Model").GetComponent<Outline>().enabled = false;
-        po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f * Mathf.Max(po_clone.width, po_clone.length);
+        po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f;
         po_clone.SetScale(gridSystem.grid.CellSize);
         if (isGhost)
         {

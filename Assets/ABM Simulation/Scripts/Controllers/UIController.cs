@@ -386,10 +386,12 @@ public class UIController : MonoBehaviour
         {
             camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.Find("Model"));
             camera.GetComponent<CameraRotation>().enabled = false;
+            camera.GetComponent<RuntimeSceneGizmo.CameraMovement>().enabled = false;
         }
         else
         {
             camera.GetComponent<CameraRotation>().enabled = true;
+            camera.GetComponent<RuntimeSceneGizmo.CameraMovement>().enabled = true;
             camera.GetComponent<CameraTarget>().follow = false;
             camera.transform.position = new Vector3(50, 100, -100);
             camera.transform.rotation = Quaternion.Euler(new Vector3(20, 0, 0));

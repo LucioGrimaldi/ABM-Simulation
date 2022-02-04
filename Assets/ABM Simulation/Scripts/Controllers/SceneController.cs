@@ -110,7 +110,7 @@ public class SceneController : MonoBehaviour
             }
         }
 
-        //LockUp();
+        LockUp();
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.PLAY)) StepUp();
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.STEP)) { StepUp(); if(SimulationController.Steps_to_consume==0) SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE); }
         ShowHideSimEnvironment();      // può essere sostituito con event
@@ -500,16 +500,18 @@ public class SceneController : MonoBehaviour
             e.type = po.SimObject.Type;
             e.class_name = po.SimObject.Class_name;
             e.id = po.SimObject.Id;
-            e.parameters = po.SimObject.Parameters;            
-
+            e.parameters = po.SimObject.Parameters; 
             OnSimObjectCreateEventHandler?.BeginInvoke(this, e, null, null);
         }
     }
-    public void ModifySimObject(SimObjectParamsUpdateEventArgs e)
+    public void ModifySimObject(SimObjectParamsUpdateEventArgs e2)
     {
-        //SimObjectModifyEventArgs e = new Sim
-
-
+        SimObjectModifyEventArgs e = new SimObjectModifyEventArgs();
+        e.type = e2.type;
+        e.class_name = e2.class_name;
+        e.id = e2.id;
+        e.parameters = e2.parameters;
+        OnSimObjectModifyEventHandler?.BeginInvoke(this, e, null, null);
     }
     public void DeleteSimObject(PlaceableObject po)
     {
@@ -596,7 +598,6 @@ public class SceneController : MonoBehaviour
     }
     public void LockPlacedObjects(ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> placedObjects)
     {
-
         foreach ((bool isGhost, PlaceableObject po) entry in placedObjects.Values)
         {
            entry.po.IsMovable = false;

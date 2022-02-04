@@ -26,4 +26,9 @@ public class PO_Continuous2D : PO_Continuous
     {
         throw new System.NotImplementedException();
     }
+
+    public override Vector3 GetPosition()
+    {
+        throw new System.NotImplementedException();
+    }
 }

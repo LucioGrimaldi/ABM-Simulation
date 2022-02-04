@@ -113,7 +113,7 @@ public class PO_Continuous3D : PO_Continuous
         float scale = Mathf.Max(scale_x, scale_y, scale_z);
         transform.localScale = new Vector3(1 / (scale / 100f), 1 / (scale / 100f), 1 / (scale / 100f));
     }
-    public Vector3 GetPosition()
+    public override Vector3 GetPosition()
     {
         return (Vector3)simObject.Parameters["position"];
     }

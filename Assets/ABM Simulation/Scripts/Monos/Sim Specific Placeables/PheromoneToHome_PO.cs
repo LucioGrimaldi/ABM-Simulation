@@ -9,7 +9,7 @@ public class PheromoneToHome_PO : PO_Discrete2D
     {
         gridSystem = GameObject.Find("SimSpaceSystem").GetComponent<GridSystem>();
 
-        PheromoneToHome_PO po_clone = Instantiate((PheromoneToHome_PO)po, GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)simObject.Parameters["position"]), Quaternion.Euler(Vector3.zero));
+        PheromoneToHome_PO po_clone = Instantiate((PheromoneToHome_PO)po, GridSystem.MasonToUnityPosition2D(GetCellsFromSimObject(simObject)), Quaternion.Euler(Vector3.zero));
         po_clone.SetScale(gridSystem.grid.CellSize);
         if (isGhost)
         {       

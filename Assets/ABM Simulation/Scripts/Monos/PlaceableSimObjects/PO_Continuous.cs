@@ -4,5 +4,5 @@ using UnityEngine;
 
 public abstract class PO_Continuous : PlaceableObject
 {
-   
+    public abstract Vector3 GetPosition();
 }

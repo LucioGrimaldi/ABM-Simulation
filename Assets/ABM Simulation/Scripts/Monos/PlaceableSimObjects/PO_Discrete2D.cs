@@ -2,6 +2,7 @@ using GerardoUtils;
 using UnityEngine;
 using static SimObjectRender;
 using System;
+using SimpleJSON;
 
 public class PO_Discrete2D : PO_Discrete
 {
@@ -11,9 +12,9 @@ public class PO_Discrete2D : PO_Discrete
     {
         gridSystem = GameObject.Find("SimSpaceSystem").GetComponent<GridSystem>();
 
-        PO_Discrete2D po_clone = Instantiate((PO_Discrete2D)po, GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)simObject.Parameters["position"]), Quaternion.Euler(Vector3.zero));
+        PO_Discrete2D po_clone = Instantiate((PO_Discrete2D)po, GridSystem.MasonToUnityPosition2D(GetCellsFromSimObject(simObject)), Quaternion.Euler(Vector3.zero));
         po_clone.transform.Find("Model").GetComponent<Outline>().enabled = false;
-        po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f * Mathf.Max(po_clone.width, po_clone.length);
+        po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f;
         po_clone.SetScale(gridSystem.grid.CellSize);
         if (isGhost)
         {
@@ -139,7 +140,7 @@ public class PO_Discrete2D : PO_Discrete
     }
     public override bool PlaceGhost()
     {
-        foreach (Vector2Int cell in (MyList<Vector2Int>)SimObject.Parameters["position"]) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
+        foreach (Vector2Int cell in (MyList<Vector2Int>)GetCells()) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
         gridSystem.placedGhostsDict.TryAdd((simObject.Type, simObject.Class_name, simObject.Id), (isGhost, this));
         base.PlaceGhost();
         return true;
@@ -186,7 +187,19 @@ public class PO_Discrete2D : PO_Discrete
     }
     public override object GetCells()
     {
-        return (MyList<Vector2Int>)simObject.Parameters["position"];
+        if (typeof(MyList<Vector2Int>) == simObject.Parameters["position"].GetType()) return (MyList<Vector2Int>)simObject.Parameters["position"];
+        else
+        {
+            MyList<Vector2Int> cells = new MyList<Vector2Int>();
+            foreach (JSONNode e in (JSONArray)simObject.Parameters["position"])
+            {
+                Vector2Int cell = new Vector2Int();
+                cell.x = e["x"];
+                cell.y = e["y"];
+                cells.Add(cell);
+            }
+            return simObject.Parameters["position"] = cells;
+        }
     }
     public DirEnum GetFacingDirection(Vector3 last_pos, Vector3 new_pos)
     {
@@ -206,5 +219,21 @@ public class PO_Discrete2D : PO_Discrete
     public virtual Vector3 GetRotationVector(DirEnum dir)
     {
         return new Vector3(0, ((int)dir) * 45, 0);
+    }
+    public MyList<Vector2Int> GetCellsFromSimObject(SimObject so)
+    {
+        if (typeof(MyList<Vector2Int>) == so.Parameters["position"].GetType()) return (MyList<Vector2Int>)so.Parameters["position"];
+        else
+        {
+            MyList<Vector2Int> cells = new MyList<Vector2Int>();
+            foreach (JSONNode e in (JSONArray)so.Parameters["position"])
+            {
+                Vector2Int cell = new Vector2Int();
+                cell.x = e["x"];
+                cell.y = e["y"];
+                cells.Add(cell);
+            }
+            return cells;
+        }
     }
 }
