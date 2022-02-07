@@ -18,11 +18,14 @@ public class PlaceableObject : MonoBehaviour
 
     [SerializeField] protected bool isGhost = false;
     [SerializeField] protected bool isMovable = false;
+    [SerializeField] protected bool isSelected = false;
 
     public SimObject SimObject { get => simObject; set => simObject = value; }
     public SimObjectRender SimObjectRender { get => simObjectRender; set => simObjectRender = value; }
     public bool IsGhost { get => isGhost; set => isGhost = value; }
     public bool IsMovable { get => isMovable; set => isMovable = value; }
+    public bool IsSelected { get => isSelected; set => isSelected = value; }
+
 
     public virtual void MakeGhost(bool isMovable)
     {

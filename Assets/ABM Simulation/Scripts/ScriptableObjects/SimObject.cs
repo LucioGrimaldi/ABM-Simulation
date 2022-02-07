@@ -12,7 +12,7 @@ public class SimObject : ScriptableObject
     [SerializeField] private string class_name;
     [SerializeField] private int id;
     [SerializeField] private bool is_in_step = false;
-    [SerializeField] private bool to_keep_if_not_in_step = false;
+    [SerializeField] private bool to_keep_if_absent = false;
     [SerializeField] private string layer = "default";
     [SerializeField] private bool shares_position = false;
 
@@ -24,7 +24,7 @@ public class SimObject : ScriptableObject
     public int Id { get => id; set => id = value; }
     public ConcurrentDictionary<String, object> Parameters { get => parameters; set => parameters = value; }
     public bool Is_in_step { get => is_in_step; set => is_in_step = value; }
-    public bool To_keep_if_not_in_step { get => to_keep_if_not_in_step; set => to_keep_if_not_in_step = value; }
+    public bool To_keep_if_absent { get => to_keep_if_absent; set => to_keep_if_absent = value; }
     public string Layer { get => layer; set => layer = value; }
     public bool Shares_position { get => shares_position; set => shares_position = value; }
 

@@ -12,7 +12,7 @@ public class PO_Discrete2D : PO_Discrete
     {
         gridSystem = GameObject.Find("SimSpaceSystem").GetComponent<GridSystem>();
 
-        PO_Discrete2D po_clone = Instantiate((PO_Discrete2D)po, GridSystem.MasonToUnityPosition2D(GetCellsFromSimObject(simObject)), Quaternion.Euler(Vector3.zero));
+        PO_Discrete2D po_clone = Instantiate((PO_Discrete2D)po, GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)simObject.Parameters["position"]), Quaternion.Euler(Vector3.zero));
         po_clone.transform.Find("Model").GetComponent<Outline>().enabled = false;
         po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f;
         po_clone.SetScale(gridSystem.grid.CellSize);
@@ -24,8 +24,6 @@ public class PO_Discrete2D : PO_Discrete
         }
         else
         {
-            //po_clone.SetMaterialRecursive(po_clone.transform.GetChild(1).gameObject, po_clone.simObjectRender.Materials["default"]);                    NOT WORKING PROPERLY 'CAUSE OF FUNKY MESHES
-
             po_clone.simObject = simObject;
             SimSpaceSystem.SetLayerRecursive(po_clone.gameObject, 9);
             po_clone.pos = (MyList<Vector2Int>)po_clone.GetCells();

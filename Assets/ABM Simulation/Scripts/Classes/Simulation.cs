@@ -74,8 +74,10 @@ public class Simulation
     public ConcurrentDictionary<(string class_name, int id), SimObject> agents = new ConcurrentDictionary<(string, int), SimObject>();
     public ConcurrentDictionary<(string class_name, int id), SimObject> generics = new ConcurrentDictionary<(string, int), SimObject>();
     public ConcurrentDictionary<(string class_name, int id), SimObject> obstacles = new ConcurrentDictionary<(string, int), SimObject>();
-    private List<(SimObject.SimObjectType type, string class_name, int id)> toDeleteIfNotInStep = new List<(SimObject.SimObjectType type, string class_name, int id)>();
+    private List<(SimObject.SimObjectType type, string class_name, int id)> toDeleteIfAbsent = new List<(SimObject.SimObjectType type, string class_name, int id)>();
+    private List<(SimObject.SimObjectType type, string class_name, int id)> toKeepIfAbsent = new List<(SimObject.SimObjectType type, string class_name, int id)>();
     private List<(SimObject.SimObjectType type, string class_name, int id)> temp = new List<(SimObject.SimObjectType type, string class_name, int id)>();
+    private List<(SimObject.SimObjectType type, string class_name, int id)> temp2 = new List<(SimObject.SimObjectType type, string class_name, int id)>();
     private SimObject defaultSimObject;
 
     public string Name { get => name; set => name = value; }
@@ -99,8 +101,10 @@ public class Simulation
     public ConcurrentDictionary<(string class_name, int id), SimObject> Agents { get => agents; set => agents = value; }
     public ConcurrentDictionary<(string class_name, int id), SimObject> Generics { get => generics; set => generics = value; }
     public ConcurrentDictionary<(string class_name, int id), SimObject> Obstacles { get => obstacles; set => obstacles = value; }
-    public List<(SimObject.SimObjectType type, string class_name, int id)> ToDeleteIfNotInStep { get => toDeleteIfNotInStep; set => toDeleteIfNotInStep = value; }
+    public List<(SimObject.SimObjectType type, string class_name, int id)> ToDeleteIfAbsent { get => toDeleteIfAbsent; set => toDeleteIfAbsent = value; }
+    public List<(SimObject.SimObjectType type, string class_name, int id)> ToKeepIfAbsent { get => toKeepIfAbsent; set => toKeepIfAbsent = value; }
     public List<(SimObject.SimObjectType type, string class_name, int id)> Temp { get => temp; set => temp = value; }
+    public List<(SimObject.SimObjectType type, string class_name, int id)> Temp2 { get => temp2; set => temp2 = value; }
 
     public Simulation(SimObject defaultSimObject)
     {
@@ -125,47 +129,56 @@ public class Simulation
     public void AddAgent(SimObject a)
     {
         Agents.TryAdd((a.Class_name, a.Id), a);
-        if (a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Add((a.Type, a.Class_name, a.Id));
+        if (a.Is_in_step && !a.To_keep_if_absent) toDeleteIfAbsent.Add((a.Type, a.Class_name, a.Id));
+        if (a.Is_in_step && a.To_keep_if_absent) toKeepIfAbsent.Add((a.Type, a.Class_name, a.Id));
     }
     public void RemoveAgent(SimObject a)
     {
         Agents.TryRemove((a.Class_name, a.Id), out _);
-        if (a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((a.Type, a.Class_name, a.Id));
+        if (a.Is_in_step && !a.To_keep_if_absent) toDeleteIfAbsent.Remove((a.Type, a.Class_name, a.Id));
+        if (a.Is_in_step && a.To_keep_if_absent) toKeepIfAbsent.Remove((a.Type, a.Class_name, a.Id));
     }
     public void RemoveAgent(string class_name, int id)
     {
         Agents.TryRemove((class_name,id), out SimObject a);
-        if (a.Is_in_step && !a.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((SimObject.SimObjectType.AGENT, class_name, id));
+        if (a.Is_in_step && !a.To_keep_if_absent) toDeleteIfAbsent.Remove((SimObject.SimObjectType.AGENT, class_name, id));
+        if (a.Is_in_step && a.To_keep_if_absent) toKeepIfAbsent.Remove((SimObject.SimObjectType.AGENT, class_name, id));
     }
     public void AddGeneric(SimObject g)
     {
         Generics.TryAdd((g.Class_name, g.Id), g);
-        if (g.Is_in_step && !g.To_keep_if_not_in_step) toDeleteIfNotInStep.Add((g.Type, g.Class_name, g.Id));
+        if (g.Is_in_step && !g.To_keep_if_absent) toDeleteIfAbsent.Add((g.Type, g.Class_name, g.Id));
+        if (g.Is_in_step && g.To_keep_if_absent) toKeepIfAbsent.Add((g.Type, g.Class_name, g.Id));
     }
     public void RemoveGeneric(SimObject g)
     {
         Generics.TryRemove((g.Class_name, g.Id), out _);
-        if (g.Is_in_step && !g.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((g.Type, g.Class_name, g.Id));
+        if (g.Is_in_step && !g.To_keep_if_absent) toDeleteIfAbsent.Remove((g.Type, g.Class_name, g.Id));
+        if (g.Is_in_step && g.To_keep_if_absent) toKeepIfAbsent.Remove((g.Type, g.Class_name, g.Id));
     }
     public void RemoveGeneric(string class_name, int id)
     {
         Generics.TryRemove((class_name, id), out SimObject g);
-        if (g.Is_in_step && !g.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((SimObject.SimObjectType.GENERIC, class_name, id));
+        if (g.Is_in_step && !g.To_keep_if_absent) toDeleteIfAbsent.Remove((SimObject.SimObjectType.GENERIC, class_name, id));
+        if (g.Is_in_step && g.To_keep_if_absent) toKeepIfAbsent.Remove((SimObject.SimObjectType.GENERIC, class_name, id));
     }
     public void AddObstacle(SimObject o)
     {
         Obstacles.TryAdd((o.Class_name, o.Id), o);
-        if (o.Is_in_step && !o.To_keep_if_not_in_step) toDeleteIfNotInStep.Add((o.Type, o.Class_name, o.Id));
+        if (o.Is_in_step && !o.To_keep_if_absent) toDeleteIfAbsent.Add((o.Type, o.Class_name, o.Id));
+        if (o.Is_in_step && o.To_keep_if_absent) toKeepIfAbsent.Add((o.Type, o.Class_name, o.Id));
     }
     public void RemoveObstacle(SimObject o)
     {
         Obstacles.TryRemove((o.Class_name, o.Id), out _);
-        if (o.Is_in_step && !o.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((o.Type, o.Class_name, o.Id));
+        if (o.Is_in_step && !o.To_keep_if_absent) toDeleteIfAbsent.Remove((o.Type, o.Class_name, o.Id));
+        if (o.Is_in_step && o.To_keep_if_absent) toKeepIfAbsent.Remove((o.Type, o.Class_name, o.Id));
     }
     public void RemoveObstacle(string class_name, int id)
     {
         Obstacles.TryRemove((class_name, id), out SimObject o);
-        if (o.Is_in_step && !o.To_keep_if_not_in_step) toDeleteIfNotInStep.Remove((SimObject.SimObjectType.OBSTACLE, class_name, id));
+        if (o.Is_in_step && !o.To_keep_if_absent) toDeleteIfAbsent.Remove((SimObject.SimObjectType.OBSTACLE, class_name, id));
+        if (o.Is_in_step && o.To_keep_if_absent) toKeepIfAbsent.Remove((SimObject.SimObjectType.OBSTACLE, class_name, id));
     }
 
     /// Get/Add/Update Sim params ///
@@ -260,7 +273,7 @@ public class Simulation
                 a.Class_name = agent["class"];
                 a.Type = SimObject.SimObjectType.AGENT;
                 a.Is_in_step = agent["is_in_step"];
-                a.To_keep_if_not_in_step = agent["to_keep_if_not_in_step"];
+                a.To_keep_if_absent = agent["to_keep_if_absent"];
                 a.Layer = agent["layer"];
                 a.Shares_position = agent["shares_position"];
 
@@ -339,7 +352,7 @@ public class Simulation
             g.Class_name = generic["class"];
             g.Type = SimObject.SimObjectType.GENERIC;
             g.Is_in_step = generic["is_in_step"];
-            g.To_keep_if_not_in_step = generic["to_keep_if_not_in_step"];
+            g.To_keep_if_absent = generic["to_keep_if_absent"];
             g.Layer = generic["layer"];
             g.Shares_position = generic["shares_position"];
 
@@ -413,7 +426,7 @@ public class Simulation
             o.Class_name = obstacle["class"];
             o.Type = SimObject.SimObjectType.OBSTACLE;
             o.Is_in_step = obstacle["is_in_step"];
-            o.To_keep_if_not_in_step = obstacle["to_keep_if_not_in_step"];
+            o.To_keep_if_absent = obstacle["to_keep_if_absent"];
             o.Layer = obstacle["layer"];
             o.Shares_position = obstacle["shares_position"];
 
@@ -698,20 +711,7 @@ public class Simulation
             {
                 int id = BitConverter.ToInt32(deserialize_binaryReader.ReadBytes(4).Reverse().ToArray(), 0);
 
-                if (complete)
-                {
-                    parameters = agent_params_for_each_class;
-                }
-                else if (BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0))
-                {
-                    parameters = agent_params_for_each_class;
-                }
-                else
-                {
-                    parameters = d_agent_params_for_each_class;
-                }
-
-                //parameters = complete ? agent_params_for_each_class : BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0) ? agent_params_for_each_class : d_agent_params_for_each_class;
+                parameters = complete ? agent_params_for_each_class : BitConverter.ToBoolean(deserialize_binaryReader.ReadBytes(1).Reverse().ToArray(), 0) ? agent_params_for_each_class : d_agent_params_for_each_class;
 
                 if (!Agents.TryGetValue((agent_class_names[i], id), out so))                                          // l'agente è nuovo e dobbiamo crearlo e leggere tutti i parametri anche quelli non dynamic
                 {
@@ -726,10 +726,15 @@ public class Simulation
                     parameters = agent_params_for_each_class;
                 }
 
-                if (so.Is_in_step && !so.To_keep_if_not_in_step)
+                if (so.Is_in_step && !so.To_keep_if_absent)
                 {
-                    toDeleteIfNotInStep.Remove((so.Type, so.Class_name, so.Id));
+                    toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
                     temp.Add((so.Type, so.Class_name, so.Id));
+                }
+                if (so.Is_in_step && so.To_keep_if_absent)
+                {
+                    toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
+                    temp2.Add((so.Type, so.Class_name, so.Id));
                 }
 
                 // all/object params
@@ -833,10 +838,15 @@ public class Simulation
                     AddGeneric(so);
                 }
 
-                if (so.Is_in_step && !so.To_keep_if_not_in_step)
+                if (so.Is_in_step && !so.To_keep_if_absent)
                 {
-                    toDeleteIfNotInStep.Remove((so.Type, so.Class_name, so.Id));
+                    toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
                     temp.Add((so.Type, so.Class_name, so.Id));
+                }
+                if (so.Is_in_step && so.To_keep_if_absent)
+                {
+                    toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
+                    temp2.Add((so.Type, so.Class_name, so.Id));
                 }
 
                 // all/object params
@@ -938,10 +948,15 @@ public class Simulation
                     AddObstacle(so);
                 }
 
-                if (so.Is_in_step && !so.To_keep_if_not_in_step)
+                if (so.Is_in_step && !so.To_keep_if_absent)
                 {
-                    toDeleteIfNotInStep.Remove((so.Type, so.Class_name, so.Id));
+                    toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
                     temp.Add((so.Type, so.Class_name, so.Id));
+                }
+                if (so.Is_in_step && so.To_keep_if_absent)
+                {
+                    toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
+                    temp2.Add((so.Type, so.Class_name, so.Id));
                 }
 
                 // all/object params
@@ -1020,8 +1035,8 @@ public class Simulation
         //Debug.Log("Step bytes: " + decompressed_step.Length);
         //UnityEngine.Debug.Log("Simulation updated from step: " + currentsimstep);
 
-        // Elimina SimObject non aggiornati
-        toDeleteIfNotInStep.ForEach((so) => {
+        // Elimina SimObject non presenti
+        toDeleteIfAbsent.ForEach((so) => {
             switch (so.type)
             {
                 case SimObject.SimObjectType.AGENT:
@@ -1040,9 +1055,32 @@ public class Simulation
             e.id = so.id;
             OnSimObjectNotInStepEventHandler?.Invoke(this, e);
         });
-        toDeleteIfNotInStep.Clear();
-        toDeleteIfNotInStep.AddRange(temp);
+        toDeleteIfAbsent.Clear();
+        toDeleteIfAbsent.AddRange(temp);
         temp.Clear();
+        // Controlla SimObject non presenti
+        toKeepIfAbsent.ForEach((so) => {
+            SimObject x = defaultSimObject.Clone();
+            string param = "";
+            switch (so.type)
+            {
+                case SimObject.SimObjectType.AGENT:
+                    Agents.TryGetValue((so.class_name, so.id), out x);
+                    param = (string)agent_prototypes.Where((p) => p.Value["class"].Equals(so.class_name)).ToArray()[0].Value["state_if_absent"];
+                    break;
+                case SimObject.SimObjectType.GENERIC:
+                    Generics.TryGetValue((so.class_name, so.id), out x);
+                    param = (string)generic_prototypes.Where((p) => p.Value["class"].Equals(so.class_name)).ToArray()[0].Value["state_if_absent"];
+                    break;
+                case SimObject.SimObjectType.OBSTACLE:
+                    Obstacles.TryGetValue((so.class_name, so.id), out x);
+                    param = (string)obstacle_prototypes.Where((p) => p.Value["class"].Equals(so.class_name)).ToArray()[0].Value["state_if_absent"];
+                    break;
+            }
+            x.Parameters[param] = true;
+        });
+        toKeepIfAbsent.AddRange(temp2);
+        temp2.Clear();
 
         StepAppliedEventArgs e = new StepAppliedEventArgs();
         e.step_id = CurrentSimStep;
@@ -1065,8 +1103,10 @@ public class Simulation
         Agents.Clear();
         Generics.Clear();
         Obstacles.Clear();
-        toDeleteIfNotInStep.Clear();
+        toDeleteIfAbsent.Clear();
+        toKeepIfAbsent.Clear();
         temp.Clear();
+        temp2.Clear();
     }
 
     /// Utils ///

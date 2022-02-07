@@ -384,7 +384,7 @@ public class UIController : MonoBehaviour
     {
         if (followToggle.GetComponent<Toggle>().isOn && selected != null)
         {
-            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.Find("Model"));
+            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform);
             camera.GetComponent<CameraRotation>().enabled = false;
             camera.GetComponent<RuntimeSceneGizmo.CameraMovement>().enabled = false;
         }
@@ -403,7 +403,7 @@ public class UIController : MonoBehaviour
         
         if (followToggle.GetComponent<Toggle>().isOn)
         {
-            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.Find("Model"));
+            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform);
         }
     }
 

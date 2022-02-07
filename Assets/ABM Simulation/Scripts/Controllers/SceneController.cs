@@ -402,6 +402,7 @@ public class SceneController : MonoBehaviour
         {
             DeselectSimObject();
             selectedPlaced = GetPOFromTransformRecursive(hitPoint.transform);
+            selectedPlaced.IsSelected = true;
             UIController.followToggle.GetComponent<Toggle>().interactable = true;
             UIController.OnChangeSelectedFollow();
             if (selectedPlaced != null) selectedPlaced.Highlight();
@@ -418,6 +419,7 @@ public class SceneController : MonoBehaviour
         UIController.tempSimObjectParams.Clear();
         if(selectedPlaced != null)
         {
+            selectedPlaced.IsSelected = false;
             selectedPlaced.DeHighlight();
             selectedPlaced = null;
             UIController.selected = null;

@@ -11,7 +11,7 @@ public class PO_Continuous3D : PO_Continuous
 
         PO_Continuous3D po_clone = Instantiate((PO_Continuous3D)po, ContinuousSystem.MasonToUnityPosition3D((Vector3)simObject.Parameters["position"]), Quaternion.Euler(Vector3.zero));
         po_clone.transform.Find("Model").GetComponent<Outline>().enabled = false;
-        //po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f * Mathf.Max(po_clone.width, po_clone.lenght);
+        po_clone.transform.Find("Model").GetComponent<Outline>().OutlineWidth = 5f;
         SetScale(ContinuousSystem.width, ContinuousSystem.height, ContinuousSystem.length);
         if (isGhost)
         {

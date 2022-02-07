@@ -74,19 +74,25 @@ public class Flocker_PO : PO_Continuous3D
 
     private void ChangeMesh(bool dead)
     {
-        if (!this.dead && dead)
+        string model = "";
+        if (!this.dead && dead) model = "dead";
+        else if (this.dead && !dead) model = "default";
+        if (this.dead != dead)
         {
             this.dead = dead;
+            isMovable = !dead;
+            transform.localScale = new Vector3(1, 1, 1);
+            transform.localRotation = Quaternion.Euler(Vector3.zero);
             Transform temp = transform.Find("Model");
             temp.parent = null;
-            GameObject newModel = Instantiate(SimObjectRender.Meshes["dead"].transform.Find("Model").gameObject, temp.position, temp.rotation);
-            SimSpaceSystem.SetLayerRecursive(newModel.gameObject, 9);
+            GameObject newModel = Instantiate(SimObjectRender.Meshes[model].transform.Find("Model").gameObject, temp.position, Quaternion.Euler(Vector3.zero));
             newModel.name = "Model";
             newModel.transform.parent = transform;
+            SimSpaceSystem.SetLayerRecursive(newModel.gameObject, 9);
+            if (isSelected) Highlight();
+            SetScale(ContinuousSystem.width, ContinuousSystem.height, ContinuousSystem.length);
             Destroy(temp.gameObject);
-        }
-
-
+        }        
     }
 
 }
