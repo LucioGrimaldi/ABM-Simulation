@@ -331,14 +331,16 @@ public class SceneController : MonoBehaviour
             }
         }
         // Destroy
-        if (Input.GetKeyDown(KeyCode.Backspace))
+        if (Input.GetKeyDown(KeyCode.C))
         {
             if (selectedPlaced != null)
             {
                 DeletePlacedObject(selectedPlaced);
                 DeleteSimObject(selectedPlaced);
-                
+
+                selectedPlaced.IsSelected = false;
                 selectedPlaced = null;
+                DeselectSimObject();
             }
         }
         // Modify
@@ -446,6 +448,11 @@ public class SceneController : MonoBehaviour
     {
         UIController.PopulateInspector(po);
     }
+    public void EmptyInspector()
+    {
+        UIController.EmptyInspectorInfos();
+        UIController.EmptyInspectorParams();
+    }
 
     // PlacedObjects
     public PlaceableObject CreateGhost(SimObject simObject, PlaceableObject ghost, bool isMovable)
@@ -463,9 +470,8 @@ public class SceneController : MonoBehaviour
     }
     public void DeleteTempGhost(SimObject.SimObjectType type, String class_name, int id)
     {
-        if (SimSpaceSystem.GetTemporaryGhosts().TryGetValue((type, class_name, id), out (bool, PlaceableObject) x))
+        if (SimSpaceSystem.GetTemporaryGhosts().TryRemove((type, class_name, id), out (bool, PlaceableObject) x))
         {
-            SimSpaceSystem.DeleteSimObject(x.Item2);
             SceneControllerThreadQueue.Enqueue(() => { x.Item2.Destroy(); });
         }
     }
@@ -527,10 +533,9 @@ public class SceneController : MonoBehaviour
     // Event Handles
     public void onSimObjectNotInStep(object sender, SimObjectDeleteEventArgs e)
     {
-        if (SimSpaceSystem.GetPlacedObjects().TryGetValue((e.type, e.class_name, e.id), out (bool, PlaceableObject) x))
+        if (SimSpaceSystem.GetPlacedObjects().TryRemove((e.type, e.class_name, e.id), out (bool, PlaceableObject) x))
         {
             SceneControllerThreadQueue.Enqueue(() => { 
-                SimSpaceSystem.DeleteSimObject(x.Item2);
                 x.Item2.Destroy(); 
             });
         }
@@ -593,6 +598,7 @@ public class SceneController : MonoBehaviour
                 if (_old != null)
                 {
                     DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
+                    EmptyInspector();
                     SimSpaceSystem.CopyRotation(_old, _new);
                 }                
             }

@@ -260,15 +260,12 @@ public class UIController : MonoBehaviour
     }
     public void UpdateAgentAmounts(StepAppliedEventArgs e)
     {
-        if (showSettingsPanel)
+        foreach (Transform child in simParamsContent.transform)
         {
-            foreach (Transform child in simParamsContent.transform)
+            if (child.Find("Param Name").GetComponent<Text>().text.Contains("s amount"))
             {
-                if (child.Find("Param Name").GetComponent<Text>().text.Contains("s amount"))
-                {
-                    string agent_class = child.Find("Param Name").GetComponent<Text>().text.Substring(0, child.Find("Param Name").GetComponent<Text>().text.Length - 8);
-                    child.GetComponentInChildren<InputField>().text = "" + e.n_agents_for_each_class[e.agent_class_names.IndexOf(agent_class)];
-                }
+                string agent_class = child.Find("Param Name").GetComponent<Text>().text.Substring(0, child.Find("Param Name").GetComponent<Text>().text.Length - 8);
+                child.GetComponentInChildren<InputField>().text = "" + e.n_agents_for_each_class[e.agent_class_names.IndexOf(agent_class)];
             }
         }
     }
@@ -513,6 +510,12 @@ public class UIController : MonoBehaviour
     {
         foreach (Transform child in inspectorContent.transform) GameObject.Destroy(child.gameObject);
         inspectorContent.transform.DetachChildren();
+    }
+    public void EmptyInspectorInfos()
+    {
+        inspectorType.text = "";
+        inspectorClass.text = "";
+        inspectorId.text = "";     
     }
 
     public void LoadInspectorInfo(SimObject.SimObjectType type, string class_name, int id)

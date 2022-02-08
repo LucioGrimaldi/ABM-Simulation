@@ -19,20 +19,20 @@ public class Flocker_PO : PO_Continuous3D
     /// <summary>
     /// Start routine (Unity Process)
     /// </summary>
-    private void Start()
+    protected override void Start()
     {
     }
     /// <summary>
     /// onEnable routine (Unity Process)
     /// </summary>
-    private void OnEnable()
+    protected override void OnEnable()
     {
 
     }
     /// <summary>
     /// LateUpdate routine (Unity Process)
     /// </summary>
-    private void LateUpdate()
+    protected override void LateUpdate()
     {
         if (simObjectRender.RenderType.Equals(RenderTypeEnum.MESH))         // TODO (TEXTURE,PARTICLE_SYSTEM,OTHER..)
         {
@@ -60,14 +60,14 @@ public class Flocker_PO : PO_Continuous3D
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
     /// </summary>
-    void OnApplicationQuit()
+    protected override void OnApplicationQuit()
     {
 
     }
     /// <summary>
     /// onDisable routine (Unity Process)
     /// </summary>
-    private void OnDisable()
+    protected override void OnDisable()
     {
 
     }

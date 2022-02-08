@@ -5785,7 +5785,7 @@ Transform:
   m_GameObject: {fileID: 3822513428025527814}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.4, y: 0.4, z: 0.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 3605893681870135955}
   m_Father: {fileID: 0}
@@ -5806,6 +5806,7 @@ MonoBehaviour:
   simObjectRender: {fileID: 11400000, guid: 90183075a624cee48b41162e3064cd3b, type: 2}
   isGhost: 0
   isMovable: 0
+  isSelected: 0
   dead: 0
 --- !u!1001 &6595390750248847769
 PrefabInstance:
