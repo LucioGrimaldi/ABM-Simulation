@@ -308,7 +308,7 @@ public class SceneController : MonoBehaviour
             if (Physics.Raycast(ray, out hitPoint, Mathf.Infinity))            // Check if UI is not hit
             {
                 if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) { }
-                else if (selectedGhost != null)
+                else if (selectedGhost != null && SimulationController.admin)
                 {
                     if (SimSpaceSystem.CanBuild(selectedGhost))
                     {
@@ -323,80 +323,117 @@ public class SceneController : MonoBehaviour
                         audioPlacedSound.Play();
                     }
                 }
-                else if (SelectSimObject(hitPoint)) Debug.Log("SELECTED:" + selectedPlaced.SimObject.Type + " " + selectedPlaced.SimObject.Class_name + " " + selectedPlaced.SimObject.Id + (selectedPlaced.IsGhost ? " -unconfirmed-" : ""));
+                else if (SelectSimObject(hitPoint)) { Debug.Log("SELECTED:" + selectedPlaced.SimObject.Type + " " + selectedPlaced.SimObject.Class_name + " " + selectedPlaced.SimObject.Id + (selectedPlaced.IsGhost ? " -unconfirmed-" : "")); }
                 else
                 {
                     DeselectSimObject();
-                } 
+                    UIController.followToggle.GetComponent<Toggle>().isOn = false;
+                    UIController.selected = null;
+                    UIController.OnFollowToggleClicked();
+                }
+            }
+            else
+            {
+                if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) { }
+                else
+                {
+                    DeselectSimObject();
+                    UIController.followToggle.GetComponent<Toggle>().isOn = false;
+                    UIController.selected = null;
+                    UIController.OnFollowToggleClicked();
+                }
             }
         }
         // Destroy
         if (Input.GetKeyDown(KeyCode.C))
         {
-            if (selectedPlaced != null)
-            {
-                DeletePlacedObject(selectedPlaced);
+            if (selectedPlaced != null && SimulationController.admin && (SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE) || SimulationController.GetSimState().Equals(Simulation.StateEnum.READY)))
+            {                
+                PlacedObjectToGhost(selectedPlaced);
                 DeleteSimObject(selectedPlaced);
-
-                selectedPlaced.IsSelected = false;
-                selectedPlaced = null;
-                DeselectSimObject();
             }
         }
         // Modify
-        //if (Input.GetKeyDown(KeyCode.M))
-        //{
-        //    if(selectedSimObject != null)
-        //    {
-                
-        //        selectedSimObject.SetMovable(true);
-        //    }
-        //    String buildName;
-        //    Vector3 mousePosition = Mouse3DPosition.GetMouseWorldPosition();
-        //    if (GridSystem.grid.GetGridObject(mousePosition) != null)
-        //    {
-        //        // Valid Grid Position
-        //        PlaceableObject placedObject = GridSystem.grid.GetGridObject(mousePosition).GetPlacedObject();
-        //        if (placedObject != null)
-        //        {
-        //            buildName = placedObject.name;
-        //            //Debug.Log("Nome prefab: " + buildName);
-        //            // Distruggi
-        //            placedObject.Destroy();
 
-        //            List<Vector3Int> gridPositionList = placedObject.GetGridPositionList();
-        //            foreach (Vector3Int gridPosition in gridPositionList)
-        //            {
-        //                GridSystem.grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).ClearPlacedObject();
-        //            }
+        /// <summary>
+        /// MODIFY 
+        ///if (Input.GetKeyDown(KeyCode.M))
+        ///{
+        ///    if(selectedSimObject != null)
+        ///    {
+        ///        selectedSimObject.SetMovable(true);
+        ///    }
+        ///    String buildName;
+        ///    Vector3 mousePosition = Mouse3DPosition.GetMouseWorldPosition();
+        ///    if (GridSystem.grid.GetGridObject(mousePosition) != null)
+        ///    {
+        ///        // Valid Grid Position
+        ///        PlaceableObject placedObject = GridSystem.grid.GetGridObject(mousePosition).GetPlacedObject();
+        ///        if (placedObject != null)
+        ///        {
+        ///            buildName = placedObject.name;
+        ///            //Debug.Log("Nome prefab: " + buildName);
+        ///            // Distruggi
+        ///            placedObject.Destroy();
+        ///            List<Vector3Int> gridPositionList = placedObject.GetGridPositionList();
+        ///            foreach (Vector3Int gridPosition in gridPositionList)
+        ///            {
+        ///                GridSystem.grid.GetGridObject(gridPosition.x, gridPosition.y, gridPosition.z).ClearPlacedObject();
+        ///            }
+        ///            foreach (SimObjectDiscreteSO scriptableObj in GridSystem.placeableAgentSos)
+        ///            {
+        ///                if (buildName.Contains(scriptableObj.name))
+        ///                {
+        ///                    GridSystem.selectedPlaceableObject = scriptableObj;
+        ///                    UtilsClass.CreateWorldTextPopup("Moving Building", Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(grid.CellSize / 10 * 40), Color.yellow);
+        ///                    GridSystem.RefreshSelectedSimObject();
+        ///                    //DeselectObjectType();
+        ///                    break;
+        ///                }
+        ///            }
+        ///        }
+        ///        else
+        ///            UtilsClass.CreateWorldTextPopup("Nothing to MOVE!", Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(grid.CellSize / 10 * 40), Color.yellow);
+        ///    }
+        ///    else
+        ///        //do nothing
+        ///        UtilsClass.CreateWorldTextPopup("Nothing to MOVE!", Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(grid.CellSize / 10 * 40), Color.yellow);
+        ///}
+        /// </summary>
 
-        //            foreach (SimObjectDiscreteSO scriptableObj in GridSystem.placeableAgentSos)
-        //            {
-        //                if (buildName.Contains(scriptableObj.name))
-        //                {
-        //                    GridSystem.selectedPlaceableObject = scriptableObj;
-        //                    UtilsClass.CreateWorldTextPopup("Moving Building", Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(grid.CellSize / 10 * 40), Color.yellow);
-        //                    GridSystem.RefreshSelectedSimObject();
-        //                    //DeselectObjectType();
-        //                    break;
-        //                }
-        //            }
-        //        }
-        //        else
-        //            UtilsClass.CreateWorldTextPopup("Nothing to MOVE!", Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(grid.CellSize / 10 * 40), Color.yellow);
-
-        //    }
-        //    else
-        //        //do nothing
-        //        UtilsClass.CreateWorldTextPopup("Nothing to MOVE!", Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(grid.CellSize / 10 * 40), Color.yellow);
-
-        //}
+        // Follow
+        if (Input.GetKeyDown(KeyCode.Space))
+        { 
+            if (UIController.showInspectorPanel)
+            {
+                UIController.followToggle.GetComponent<Toggle>().isOn = !UIController.followToggle.GetComponent<Toggle>().isOn;
+                UIController.OnFollowToggleClicked();
+            }
+        }
         // Rotate
-        if (Input.GetKeyDown(KeyCode.R)) { if (selectedPlaced != null || selectedGhost != null) SimSpaceSystem.RotatePlacedObject((selectedGhost != null) ? selectedGhost : selectedPlaced); }
+        if (Input.GetKeyDown(KeyCode.R)) { if ((selectedPlaced != null || selectedGhost != null) && (SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE) || SimulationController.GetSimState().Equals(Simulation.StateEnum.READY))) SimSpaceSystem.RotatePlacedObject((selectedGhost != null) ? selectedGhost : selectedPlaced); }
         // Deselect
-        if (Input.GetKeyDown(KeyCode.Escape)) { if (selectedGhost != null) { DeleteGhost(); selectedGhost = null; } if(selectedPlaced != null) { DeselectSimObject(); } }
-
-
+        if (Input.GetKeyDown(KeyCode.Escape)) {
+            if (selectedGhost != null) {
+                DeleteGhost();
+                selectedGhost = null;
+                if (UIController.followToggle.GetComponent<Toggle>().isOn && UIController.selected.Equals(selectedGhost))
+                {
+                    UIController.followToggle.GetComponent<Toggle>().isOn = false;
+                    UIController.selected = null;
+                    UIController.OnFollowToggleClicked();
+                }
+            } 
+            if(selectedPlaced != null) { 
+                DeselectSimObject();
+                if (UIController.followToggle.GetComponent<Toggle>().isOn && UIController.selected.Equals(selectedPlaced))
+                {
+                    UIController.followToggle.GetComponent<Toggle>().isOn = false;
+                    UIController.selected = null;
+                    UIController.OnFollowToggleClicked();
+                }
+            }
+        }
     }
     public bool SelectSimObject(RaycastHit hitPoint)
     {
@@ -416,9 +453,9 @@ public class SceneController : MonoBehaviour
     public void DeselectSimObject()
     {
         UIController.followToggle.GetComponent<Toggle>().interactable = false;
-        HideInspector();
         UIController.EmptyInspectorParams();
         UIController.tempSimObjectParams.Clear();
+        HideInspector();
         if(selectedPlaced != null)
         {
             selectedPlaced.IsSelected = false;
@@ -472,6 +509,14 @@ public class SceneController : MonoBehaviour
     {
         if (SimSpaceSystem.GetTemporaryGhosts().TryRemove((type, class_name, id), out (bool, PlaceableObject) x))
         {
+            if (UIController.followToggle.GetComponent<Toggle>().isOn && UIController.selected.Equals(x.Item2))
+            {
+                UIController.followToggle.GetComponent<Toggle>().isOn = false;
+                UIController.selected = null;
+                UIController.OnFollowToggleClicked();
+            }
+            DeselectSimObject();
+            SimSpaceSystem.DeleteSimObject(x.Item2);
             SceneControllerThreadQueue.Enqueue(() => { x.Item2.Destroy(); });
         }
     }
@@ -493,9 +538,31 @@ public class SceneController : MonoBehaviour
     }
     public void DeletePlacedObject(PlaceableObject toDelete)
     {
-        if(toDelete != null)
+        if (SimSpaceSystem.GetPlacedObjects().TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out (bool, PlaceableObject) x))
         {
-            toDelete.MakeGhost(false);
+            if (UIController.followToggle.GetComponent<Toggle>().isOn && UIController.selected.Equals(x.Item2))
+            {
+                UIController.followToggle.GetComponent<Toggle>().isOn = false;
+                UIController.selected = null;
+                UIController.OnFollowToggleClicked();
+            }
+            DeselectSimObject();
+            SimSpaceSystem.DeleteSimObject(x.Item2);
+            SceneControllerThreadQueue.Enqueue(() => { x.Item2.Destroy(); });
+        }
+    }
+    public void PlacedObjectToGhost(PlaceableObject toMakeGhost)
+    {
+        if(toMakeGhost != null)
+        {
+            toMakeGhost.MakeGhost(false);
+            if (toMakeGhost.SimObject.To_keep_if_absent)
+            {
+                toMakeGhost.SimObject.To_keep_if_absent = false;
+                SimulationController.GetSimulation().ToDeleteIfAbsent.Add((toMakeGhost.SimObject.Type, toMakeGhost.SimObject.Class_name, toMakeGhost.SimObject.Id));
+                SimulationController.GetSimulation().ToKeepIfAbsent.Remove((toMakeGhost.SimObject.Type, toMakeGhost.SimObject.Class_name, toMakeGhost.SimObject.Id));
+                SimulationController.GetSimulation().Temp2.Remove((toMakeGhost.SimObject.Type, toMakeGhost.SimObject.Class_name, toMakeGhost.SimObject.Id));
+            }
         }
     }
 
@@ -535,7 +602,13 @@ public class SceneController : MonoBehaviour
     {
         if (SimSpaceSystem.GetPlacedObjects().TryRemove((e.type, e.class_name, e.id), out (bool, PlaceableObject) x))
         {
-            SceneControllerThreadQueue.Enqueue(() => { 
+            SceneControllerThreadQueue.Enqueue(() => {
+                UIController.followToggle.GetComponent<Toggle>().isOn = false;
+                UIController.selected = null;
+                UIController.OnFollowToggleClicked();
+                EmptyInspector();
+                HideInspector();
+                SimSpaceSystem.DeleteSimObject(x.Item2);
                 x.Item2.Destroy(); 
             });
         }
@@ -562,7 +635,7 @@ public class SceneController : MonoBehaviour
 
         foreach (SimObject so in a)
         {
-            if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable;
+            if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) { if (!placedObjects[(so.Type, so.Class_name, so.Id)].po.IsGhost) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable; }
             else
             {
                 PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
@@ -571,6 +644,7 @@ public class SceneController : MonoBehaviour
                 if (_old != null)
                 {
                     DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
+                    EmptyInspector();
                     SimSpaceSystem.CopyRotation(_old, _new);
                 }
             }
@@ -585,6 +659,7 @@ public class SceneController : MonoBehaviour
                 if (_old != null)
                 {
                     DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
+                    EmptyInspector();
                     SimSpaceSystem.CopyRotation(_old, _new);
                 }
             }

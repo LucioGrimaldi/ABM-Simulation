@@ -23,6 +23,6 @@ Material:
     - _RemoveDiag: 1
     - _WireframeVal: 0.015
     m_Colors:
-    - _BackColor: {r: 0, g: 0.34412855, b: 0.4433962, a: 1}
-    - _FrontColor: {r: 0, g: 0.669243, b: 0.8679245, a: 1}
+    - _BackColor: {r: 0, g: 0.34412855, b: 0.4433962, a: 0.3254902}
+    - _FrontColor: {r: 0, g: 0.669243, b: 0.8679245, a: 0.3254902}
   m_BuildTextureStacks: []

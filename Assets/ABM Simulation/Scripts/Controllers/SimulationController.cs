@@ -986,7 +986,7 @@ public class SimulationController : MonoBehaviour
                         {
                             SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.AGENT, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_delete"])[0]["id"]), out x);
                             temp_po = x.Item2;
-                            SceneController.DeletePlacedObject(temp_po);
+                            SceneController.PlacedObjectToGhost(temp_po);
                         });
                         break;
                     case "generics_create":
@@ -1067,7 +1067,7 @@ public class SimulationController : MonoBehaviour
                         {
                             SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.GENERIC, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_delete"])[0]["id"]), out x);
                             temp_po = x.Item2;
-                            SceneController.DeletePlacedObject(temp_po);
+                            SceneController.PlacedObjectToGhost(temp_po);
                         });
                         break;
                     case "obstacles_create":
@@ -1148,7 +1148,7 @@ public class SimulationController : MonoBehaviour
                         {
                             SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.OBSTACLE, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_delete"])[0]["id"]), out x);
                             temp_po = x.Item2;
-                            SceneController.DeletePlacedObject(temp_po);
+                            SceneController.PlacedObjectToGhost(temp_po);
                         });
                         break;
                 }

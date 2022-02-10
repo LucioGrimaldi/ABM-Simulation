@@ -4599,6 +4599,7 @@ MonoBehaviour:
   simImage1: {fileID: 1386469375}
   simImage2: {fileID: 2063743359}
   agentImage: {fileID: 196215484}
+  objectImage: {fileID: 485679788}
   nickCheckSign: {fileID: 785346075}
   inMenuParamPrefab: {fileID: 9144312797847018215, guid: f87edebdf25536843b148fc867a4e894,
     type: 3}
@@ -11144,7 +11145,7 @@ GameObject:
   - component: {fileID: 1386469376}
   - component: {fileID: 1386469375}
   m_Layer: 0
-  m_Name: SimImage1
+  m_Name: SimSprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16448,7 +16449,7 @@ GameObject:
   - component: {fileID: 2063743360}
   - component: {fileID: 2063743359}
   m_Layer: 0
-  m_Name: SimImage2
+  m_Name: SimSprite2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

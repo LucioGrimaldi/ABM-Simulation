@@ -50,11 +50,11 @@ public class UIController : MonoBehaviour
     private List<NamedPrefab> ObstaclesData;
 
     // Variables
-    //Scene Background Colors
+    // Scene Background Colors
     Color32 cyan = new Color32(146, 212, 219, 0);
     Color32 black_gray = new Color32(56, 61, 63, 0);
 
-    //Sim Params prefab Colors
+    // Sim Params prefab Colors
     Color32 black = new Color32(0, 0, 0, 130);
     Color32 white = new Color32(255, 255, 255, 33);
 
@@ -357,18 +357,18 @@ public class UIController : MonoBehaviour
             case Simulation.StateEnum.NOT_READY:
                 imgSimState.GetComponent<Image>().color = Color.red;
                 imgSimState.GetComponent<Image>().sprite = commandSprites[2];
-                buttonEdit.interactable = true;
+                if(SimulationController.admin) buttonEdit.interactable = true;
                 break;
             case Simulation.StateEnum.PLAY:
                 imgSimState.GetComponent<Image>().color = Color.green;
                 imgSimState.GetComponent<Image>().sprite = commandSprites[1];
-                buttonEdit.interactable = false;
+                if (SimulationController.admin) buttonEdit.interactable = false;
                 break;
             case Simulation.StateEnum.PAUSE:
             case Simulation.StateEnum.READY:
                 imgSimState.GetComponent<Image>().color = Color.yellow;
                 imgSimState.GetComponent<Image>().sprite = commandSprites[0];
-                buttonEdit.interactable = true;
+                if (SimulationController.admin) buttonEdit.interactable = true;
                 break;
             case Simulation.StateEnum.STEP:
                 imgSimState.GetComponent<Image>().color = Color.yellow;
@@ -382,16 +382,19 @@ public class UIController : MonoBehaviour
         if (followToggle.GetComponent<Toggle>().isOn && selected != null)
         {
             camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform);
-            camera.GetComponent<CameraRotation>().enabled = false;
+            camera.GetComponent<CameraTarget>().follow = true;
+            camera.GetComponent<CameraTarget>().zoomingIn = true;
+            camera.GetComponent<CameraTarget>().zoomingOut = false;
             camera.GetComponent<RuntimeSceneGizmo.CameraMovement>().enabled = false;
+            camera.GetComponent<CameraRotation>().enabled = false;
         }
         else
         {
-            camera.GetComponent<CameraRotation>().enabled = true;
-            camera.GetComponent<RuntimeSceneGizmo.CameraMovement>().enabled = true;
             camera.GetComponent<CameraTarget>().follow = false;
-            camera.transform.position = new Vector3(50, 100, -100);
-            camera.transform.rotation = Quaternion.Euler(new Vector3(20, 0, 0));
+            camera.GetComponent<CameraTarget>().zoomingOut = true;
+            camera.GetComponent<CameraTarget>().zoomingIn = false;
+            camera.GetComponent<RuntimeSceneGizmo.CameraMovement>().enabled = true;
+            camera.GetComponent<CameraRotation>().enabled = true;
         }
     }
     public void OnChangeSelectedFollow()
@@ -767,7 +770,10 @@ public class UIController : MonoBehaviour
         imgEditMode.gameObject.SetActive(!showEditPanel);
         imgContour.gameObject.SetActive(!showEditPanel);
         showEditPanel = !showEditPanel;
-        //if (showEditPanel == false) ConfirmEdit();
+        if (showEditPanel == false)
+        {
+            if (selectedGhost != null) { SceneController.DeleteGhost(); selectedGhost = null; }
+        }
     }
     public void ShowHidePanelSettings()
     {

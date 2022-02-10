@@ -49,7 +49,7 @@ public class MenuController : MonoBehaviour
     public TMP_Dropdown dropdownSimTypes, dropdownAgents, dropdownObjects;
     public TMP_Text simDescription, simDescription2, simName, emptyScrollText, currentAdminLabel;
     public Sprite[] nickCheckSprite, muteUnmuteSprites;
-    public Image simImage1, simImage2, agentImage;
+    public Image simImage1, simImage2, agentImage, objectImage;
     public GameObject nickCheckSign, inMenuParamPrefab, inMenuTogglePrefab, settingsScrollContent, dimensionsScrollContent, agentsAmountsScrollContent, agentsScrollContent, objectsScrollContent, simToggle, envToggle, muteUnmuteAudio;
     public InputField nicknameField;
     public Button newSimButton, joinSimButton, simSettingsButton, agentsSettingsButton, objectsSettingsButton;
@@ -216,8 +216,8 @@ public class MenuController : MonoBehaviour
         {
             MenuMainThreadQueue.Enqueue(() => { ChangeMenuState(); });
             MenuMainThreadQueue.Enqueue(() => { LoadSimNames(SimulationController.sim_list_editable); });
-            MenuMainThreadQueue.Enqueue(() => { PopulateSimListDropdown(); });
             MenuMainThreadQueue.Enqueue(() => { LoadSprites(); });
+            MenuMainThreadQueue.Enqueue(() => { PopulateSimListDropdown(); });
         }
     }
     private void onSimListUnsuccess(object sender, ReceivedMessageEventArgs e)
@@ -412,22 +412,22 @@ public class MenuController : MonoBehaviour
     }
     private void LoadSprites()
     {
-        List<Sprite> aSprites = new List<Sprite>();
-        List<Sprite> oSprites = new List<Sprite>();
-
         foreach (String s in simNames)
         {
-            this.simSprites.Add(Resources.Load<Sprite>("Sprites/sprite" + s));
+            List<Sprite> aSprites = new List<Sprite>();
+            List<Sprite> oSprites = new List<Sprite>();
+
+            simSprites.Add(Resources.Load<Sprite>("Sprites/sprite" + s));
 
             foreach (String a in agents[simNames.IndexOf(s)])
             {
-                aSprites.Add(Resources.Load<Sprite>("Sprites/" + s + "Agents" + "/sprite" + a + "_w"));
+                aSprites.Add(Resources.Load<Sprite>("Sprites/" + s + "/Agents" + "/" + a));
             }
             agentsSprites.Add(aSprites);
 
             foreach (String o in generics[simNames.IndexOf(s)])
             {
-                oSprites.Add(Resources.Load<Sprite>("Sprites/" + s + "Objects" + "/sprite" + o + "_w"));
+                oSprites.Add(Resources.Load<Sprite>("Sprites/" + s + "/Generics" + "/" + o));
             }
             objectsSprites.Add(oSprites);
         }
@@ -670,11 +670,11 @@ public class MenuController : MonoBehaviour
         // set Buttons interactable
         SetButtonsInteractivity();
 
-        //simImage1.sprite = spriteSimFlocker;
+        simImage1.sprite = simSprites[index];
 
         simName.text = simNames[index];
 
-        simImage2.sprite = simImage1.sprite;
+        simImage2.sprite = simSprites[index];
     }
     public void Dropdown_AgentChanged(int index)
     {
@@ -687,7 +687,7 @@ public class MenuController : MonoBehaviour
         }
 
         LoadParams(agentsScrollContent, index, (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["agent_prototypes"])[index])["params"]);
-        //agentImage.sprite = spriteBirdModel;
+        agentImage.sprite = agentsSprites[SimulationController.sim_id][index];
 
     }
     public void Dropdown_ObjectChanged(int index)
@@ -702,7 +702,7 @@ public class MenuController : MonoBehaviour
 
         LoadParams(objectsScrollContent, index, (JSONArray)((JSONObject)((JSONArray)((JSONObject)SimulationController.sim_list_editable[SimulationController.sim_id])["generic_prototypes"])[index])["params"]);
 
-        //agentImage.sprite = spriteBirdModel;
+        objectImage.sprite = objectsSprites[SimulationController.sim_id][index];
 
     }
     public void SetMusicVolume(float volume)
