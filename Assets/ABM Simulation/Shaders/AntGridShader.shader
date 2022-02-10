@@ -57,7 +57,6 @@ Shader "PDT Shaders/AntGrid" {
 
 		int _Width;
 
-
 		void surf (Input IN, inout SurfaceOutputStandard o) {
 			// Albedo comes from a texture tinted by color
 

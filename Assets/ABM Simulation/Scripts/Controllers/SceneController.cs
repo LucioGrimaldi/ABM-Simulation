@@ -23,8 +23,8 @@ public class SceneController : MonoBehaviour
 
     // Events
     public static event EventHandler<EventArgs> OnLoadSimulationSceneEventHandler;
-    public static event EventHandler<SimObjectCreateEventArgs> OnSimObjectCreateEventHandler;    
-    public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectModifyEventHandler;    
+    public static event EventHandler<SimObjectCreateEventArgs> OnSimObjectCreateEventHandler;
+    public static event EventHandler<SimObjectModifyEventArgs> OnSimObjectModifyEventHandler;
     public static event EventHandler<SimObjectDeleteEventArgs> OnSimObjectDeleteEventHandler;
 
     // UI Action Queue
@@ -50,7 +50,7 @@ public class SceneController : MonoBehaviour
     private static bool isDiscrete;
     private static Simulation.SimTypeEnum simType;
     private static ConcurrentDictionary<string, int> simDimensions;
-    private int width = 1, height = 1, length = 1;
+    private int width = 1, height = 1, lenght = 1;
     public static PlaceableObject selectedGhost = null;
     public static PlaceableObject selectedPlaced = null;
     public AudioSource audioPlacedSound;
@@ -95,7 +95,7 @@ public class SceneController : MonoBehaviour
     /// </summary>
     private void Start()
     {
-        
+
     }
     /// <summary>
     /// Update routine (Unity Process)
@@ -110,9 +110,9 @@ public class SceneController : MonoBehaviour
             }
         }
 
-        LockUp();
+        //LockUp();                     commmented for no laggy Sim :)
         if (SimulationController.GetSimState().Equals(Simulation.StateEnum.PLAY)) StepUp();
-        if (SimulationController.GetSimState().Equals(Simulation.StateEnum.STEP)) { StepUp(); if(SimulationController.Steps_to_consume==0) SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE); }
+        if (SimulationController.GetSimState().Equals(Simulation.StateEnum.STEP)) { StepUp(); if (SimulationController.Steps_to_consume == 0) SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE); }
         ShowHideSimEnvironment();      // può essere sostituito con event
         CheckForUserInput();
     }
@@ -164,10 +164,10 @@ public class SceneController : MonoBehaviour
 
         // get sim dimensions (and add z in case)
         if (simDimensions.ContainsKey("x")) simDimensions.TryGetValue("x", out width);
-        if (simDimensions.ContainsKey("y")) simDimensions.TryGetValue("y", out length);      // swap y-z
+        if (simDimensions.ContainsKey("y")) simDimensions.TryGetValue("y", out lenght);      // swap y-z
         if (simDimensions.ContainsKey("z")) simDimensions.TryGetValue("z", out height);
-        if (isDiscrete) { scaleFactor = Mathf.Max((int)width, (int)height, (int)length) / 10f; }
-        else { scaleFactor = Mathf.Max((int)width, (int)height, (int)length) / 10f; }
+        if (isDiscrete) { scaleFactor = Mathf.Max(width, height, lenght) / 10f; }
+        else { scaleFactor = Mathf.Max(width, height, lenght) / 10f; }
 
         // init env
         InitEnvironment();
@@ -198,7 +198,7 @@ public class SceneController : MonoBehaviour
             }
 
             // init GridSystem
-            ((GridSystem)SimSpaceSystem).grid = new Grid3D<GridObject>((int)width, (int)height, (int)length, 10f / scaleFactor, choosenSimSpace.transform.position - new Vector3(50, 0, 50), ((g, x, y, z) => new GridObject(g, x, y, z)));
+            ((GridSystem)SimSpaceSystem).grid = new Grid3D<GridObject>(width, height, lenght, 10f / scaleFactor, choosenSimSpace.transform.position - new Vector3(50, 0, 50), (g, x, y, z) => new GridObject(g, x, y, z));
         }
         else
         {
@@ -216,7 +216,7 @@ public class SceneController : MonoBehaviour
             // init CountinuosSystem
             ContinuousSystem.width = width;
             ContinuousSystem.height = height;
-            ContinuousSystem.length = length;
+            ContinuousSystem.length = lenght;
             ContinuousSystem.simSpace = simulationSpace;
         }
     }
@@ -224,14 +224,14 @@ public class SceneController : MonoBehaviour
     {
         simulationSpace.GetComponent<Renderer>().material.shader = Shaders2D[simId];
         simulationSpace.AddComponent<ShaderManager>();
-        simulationSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_GridSize", Mathf.Max((int)width, (int)height, (int)length));
-        if(simId == 1)
+        simulationSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_GridSize", Mathf.Max(width, height, lenght));
+        if (simId == 1)
         {
             simulationSpace.GetComponent<ShaderManager>().computeBuffers = new ComputeBuffer[2];
-            simulationSpace.GetComponent<ShaderManager>().computeBuffers[0] = new ComputeBuffer((int)width * (int)width, sizeof(float), ComputeBufferType.Append);          // food
-            simulationSpace.GetComponent<ShaderManager>().computeBuffers[1] = new ComputeBuffer((int)width * (int)width, sizeof(float), ComputeBufferType.Append);          // home
-            simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(new float[(int)width * (int)width]);
-            simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(new float[(int)width * (int)width]);
+            simulationSpace.GetComponent<ShaderManager>().computeBuffers[0] = new ComputeBuffer(width * width, sizeof(float), ComputeBufferType.Append);          // food
+            simulationSpace.GetComponent<ShaderManager>().computeBuffers[1] = new ComputeBuffer(width * width, sizeof(float), ComputeBufferType.Append);          // home
+            simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(new float[width * width]);
+            simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(new float[width * width]);
             simulationSpace.GetComponent<Renderer>().sharedMaterial.SetBuffer("_FoodGrid", simulationSpace.GetComponent<ShaderManager>().computeBuffers[0]);
             simulationSpace.GetComponent<Renderer>().sharedMaterial.SetBuffer("_HomeGrid", simulationSpace.GetComponent<ShaderManager>().computeBuffers[1]);
         }
@@ -239,28 +239,28 @@ public class SceneController : MonoBehaviour
     public void ResetSimSpace()
     {
         simDimensions = SimulationController.GetSimDimensions();
-     
+
         float scaleFactor;
 
         // get sim dimensions (and add z in case)
         if (simDimensions.ContainsKey("x")) simDimensions.TryGetValue("x", out width);
-        if (simDimensions.ContainsKey("y")) simDimensions.TryGetValue("y", out length);      // swap y-z
+        if (simDimensions.ContainsKey("y")) simDimensions.TryGetValue("y", out lenght);      // swap y-z
         if (simDimensions.ContainsKey("z")) simDimensions.TryGetValue("z", out height);
-        if (isDiscrete) { scaleFactor = Mathf.Max((int)width, (int)height, (int)length) / 10f; }
-        else { scaleFactor = Mathf.Max((int)width, (int)height, (int)length) / 10f; }
+        if (isDiscrete) { scaleFactor = Mathf.Max(width, height, lenght) / 10f; }
+        else { scaleFactor = Mathf.Max(width, height, lenght) / 10f; }
 
         ClearSimSpace();
 
         if (isDiscrete)
         {
-            if(simDimensions.Count == 2) InitShader();
-            ((GridSystem)SimSpaceSystem).grid = new Grid3D<GridObject>((int)width, (int)height, (int)length, 10f / scaleFactor, simulationSpace.transform.position - new Vector3(50, 0, 50), ((g, x, y, z) => new GridObject(g, x, y, z)));
+            if (simDimensions.Count == 2) InitShader();
+            ((GridSystem)SimSpaceSystem).grid = new Grid3D<GridObject>(width, height, lenght, 10f / scaleFactor, simulationSpace.transform.position - new Vector3(50, 0, 50), (g, x, y, z) => new GridObject(g, x, y, z));
         }
         else
         {
             ContinuousSystem.width = width;
             ContinuousSystem.height = height;
-            ContinuousSystem.length = length;
+            ContinuousSystem.length = lenght;
             ContinuousSystem.simSpace = simulationSpace;
         }
     }
@@ -269,10 +269,17 @@ public class SceneController : MonoBehaviour
         SceneControllerThreadQueue.Enqueue(() => {
             foreach ((bool isGhost, PlaceableObject g) x in SimSpaceSystem.GetTemporaryGhosts().Values) x.g.Destroy();
             foreach ((bool isGhost, PlaceableObject o) x in SimSpaceSystem.GetPlacedObjects().Values) x.o.Destroy();
-            if(isDiscrete && simDimensions.Count == 2)
+            
+            UIController.followToggle.GetComponent<Toggle>().isOn = false;
+            UIController.selected = null;
+            UIController.OnFollowToggleClicked();
+            EmptyInspector();
+            HideInspector();
+
+            if (isDiscrete && simDimensions.Count == 2)
             {
-                simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(new float[(int)width * (int)width]);
-                simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(new float[(int)width * (int)width]);
+                simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(new float[width * width]);
+                simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(new float[width * width]);
             }
             SimSpaceSystem.ClearSimSpaceSystem();
         });
@@ -437,7 +444,7 @@ public class SceneController : MonoBehaviour
     }
     public bool SelectSimObject(RaycastHit hitPoint)
     {
-        if(hitPoint.transform.gameObject.layer.Equals(9) || hitPoint.transform.gameObject.layer.Equals(10))
+        if (hitPoint.transform.gameObject.layer.Equals(9) || hitPoint.transform.gameObject.layer.Equals(10))
         {
             DeselectSimObject();
             selectedPlaced = GetPOFromTransformRecursive(hitPoint.transform);
@@ -498,7 +505,7 @@ public class SceneController : MonoBehaviour
     }
     public void DeleteGhost()
     {
-        if(selectedGhost != null)
+        if (selectedGhost != null)
         {
             SimSpaceSystem.DeleteSimObject(selectedGhost);
             selectedGhost.Destroy();
@@ -522,11 +529,11 @@ public class SceneController : MonoBehaviour
     }
     public void ConfirmTempGhosts()
     {
-        SimSpaceSystem.GetTemporaryGhosts().ToList().ForEach((element) => { if (element.Value.isGhost) { SimSpaceSystem.GetPlacedObjects().TryRemove((element.Key.type, element.Key.class_name, element.Key.id), out (bool isGhost, PlaceableObject po) x); x.po.Confirm(); }});
+        SimSpaceSystem.GetTemporaryGhosts().ToList().ForEach((element) => { if (element.Value.isGhost) { SimSpaceSystem.GetPlacedObjects().TryRemove((element.Key.type, element.Key.class_name, element.Key.id), out (bool isGhost, PlaceableObject po) x); x.po.Confirm(); } });
     }
     public void DeleteTempGhosts()
     {
-        SimSpaceSystem.GetTemporaryGhosts().ToList().ForEach((element) => { SimSpaceSystem.GetTemporaryGhosts().TryRemove((element.Key.type, element.Key.class_name, element.Key.id), out (bool isGhost, PlaceableObject po) x); x.po.Destroy();});
+        SimSpaceSystem.GetTemporaryGhosts().ToList().ForEach((element) => { SimSpaceSystem.GetTemporaryGhosts().TryRemove((element.Key.type, element.Key.class_name, element.Key.id), out (bool isGhost, PlaceableObject po) x); x.po.Destroy(); });
     }
     public PlaceableObject CreatePlaceableObject(SimObject simObject, PlaceableObject toPlace, bool isMovable)
     {
@@ -569,13 +576,13 @@ public class SceneController : MonoBehaviour
     // SimObjects
     public void CreateSimObject(PlaceableObject po)
     {
-        if(po != null)
+        if (po != null)
         {
             SimObjectCreateEventArgs e = new SimObjectCreateEventArgs();
             e.type = po.SimObject.Type;
             e.class_name = po.SimObject.Class_name;
             e.id = po.SimObject.Id;
-            e.parameters = po.SimObject.Parameters; 
+            e.parameters = po.SimObject.Parameters;
             OnSimObjectCreateEventHandler?.BeginInvoke(this, e, null, null);
         }
     }
@@ -603,13 +610,20 @@ public class SceneController : MonoBehaviour
         if (SimSpaceSystem.GetPlacedObjects().TryRemove((e.type, e.class_name, e.id), out (bool, PlaceableObject) x))
         {
             SceneControllerThreadQueue.Enqueue(() => {
-                UIController.followToggle.GetComponent<Toggle>().isOn = false;
-                UIController.selected = null;
-                UIController.OnFollowToggleClicked();
-                EmptyInspector();
-                HideInspector();
+                if ((UIController.selected != null) && UIController.selected.Equals(x.Item2))
+                {
+                    EmptyInspector();
+                    HideInspector();
+
+                    if (UIController.followToggle.GetComponent<Toggle>().isOn)
+                    {
+                        UIController.followToggle.GetComponent<Toggle>().isOn = false;
+                        UIController.selected = null;
+                        UIController.OnFollowToggleClicked();
+                    }
+                }
                 SimSpaceSystem.DeleteSimObject(x.Item2);
-                x.Item2.Destroy(); 
+                x.Item2.Destroy();
             });
         }
     }
@@ -617,11 +631,12 @@ public class SceneController : MonoBehaviour
     {
         ModifySimObject(e);
     }
+
     // Step
     public void StepUp()
     {
         UpdatePlacedObjects(SimSpaceSystem.GetPlacedObjects(), true);
-        if(SimSpaceSystem.simSpaceDimensions.Equals(SimSpaceSystem.SimSpaceDimensionsEnum._2D)) UpdatePheromones(SimulationController.GetSimulation().Generics.Values.Where((g) => { if (g.Class_name.Contains("Pheromone")) return true; else return false; }).ToArray());
+        if (SimSpaceSystem.simSpaceDimensions.Equals(SimSpaceSystem.SimSpaceDimensionsEnum._2D)) UpdatePheromones(SimulationController.GetSimulation().Generics.Values.Where((g) => { if (g.Class_name.Contains("Pheromone")) return true; else return false; }).ToArray());
     }
     public void LockUp()
     {
@@ -664,7 +679,8 @@ public class SceneController : MonoBehaviour
                 }
             }
         }
-        foreach (SimObject so in o) {
+        foreach (SimObject so in o)
+        {
             if (!placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
             {
                 PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
@@ -675,7 +691,10 @@ public class SceneController : MonoBehaviour
                     DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
                     EmptyInspector();
                     SimSpaceSystem.CopyRotation(_old, _new);
-                }                
+                    Debug.Log("Deleted old : " + so.Type + " " + so.Class_name + " " + _old.SimObject.Id);
+                }
+                else Debug.Log("Old not found : " + so.Type + " " + so.Class_name + " " + _new.SimObject.Id);
+
             }
         }
     }
@@ -683,22 +702,22 @@ public class SceneController : MonoBehaviour
     {
         foreach ((bool isGhost, PlaceableObject po) entry in placedObjects.Values)
         {
-           entry.po.IsMovable = false;
+            entry.po.IsMovable = false;
         }
     }
     public void UpdatePheromones(ICollection<SimObject> pheromones)
     {
-        float[,] f_cells = new float[(int)width,(int)width];
-        float[,] h_cells = new float[(int)width,(int)width];
+        float[,] f_cells = new float[width, width];
+        float[,] h_cells = new float[width, width];
 
         int fn = 0;
 
         foreach (SimObject so in pheromones)
         {
             so.Parameters.TryGetValue("position", out object coords);
-            while(coords == null) so.Parameters.TryGetValue("position", out coords);
+            while (coords == null) so.Parameters.TryGetValue("position", out coords);
             so.Parameters.TryGetValue("intensity", out object intensity);
-            while(intensity == null) so.Parameters.TryGetValue("intensity", out intensity);
+            while (intensity == null) so.Parameters.TryGetValue("intensity", out intensity);
             if (isDiscrete)
             {
                 if (simDimensions.Count == 2)
@@ -721,7 +740,7 @@ public class SceneController : MonoBehaviour
                 }
             }
         }
-        simulationSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_Width", (int)width);
+        simulationSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_Width", width);
 
         simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetCounterValue(0);
         simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetCounterValue(0);
@@ -827,7 +846,7 @@ public class SceneController : MonoBehaviour
             return hitTransform.parent.gameObject.GetComponent<PlaceableObject>();
         }
         else return GetPOFromTransformRecursive(hitTransform.parent.transform);
-    } 
+    }
     public int GetTemporaryId(SimObject.SimObjectType type, string class_name)
     {
         int min_id = -1;
