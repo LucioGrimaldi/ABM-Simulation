@@ -257,7 +257,7 @@ public class MenuController : MonoBehaviour
             if (nicknameField.text.Contains(" "))
                 nicknameField.placeholder.GetComponent<Text>().text = "Cannot contain spaces";
             else if (!nickAvail)
-                nicknameField.placeholder.GetComponent<Text>().text = "Nick already taken";
+                nicknameField.placeholder.GetComponent<Text>().text = "Nick not available";
             else if (nicknameField.text.Length > 15)
                 nicknameField.placeholder.GetComponent<Text>().text = "Nick too long!";
         }
