@@ -118,6 +118,7 @@ public class UIController : MonoBehaviour
         SimulationController.OnNewAdminEventHandler += onNewAdmin;
         SimulationController.OnCheckStatusSuccessEventHandler += onCheckStatusSuccess;
         SimulationController.OnSimUpdateSuccessEventHandler += onSimUpdateSuccess;
+        SimulationController.OnSimInitSuccessEventHandler += onSimInitSuccess;
     }
     /// <summary>
     /// Start routine (Unity Process)
@@ -170,6 +171,7 @@ public class UIController : MonoBehaviour
         SimulationController.OnNewAdminEventHandler -= onNewAdmin;
         SimulationController.OnCheckStatusSuccessEventHandler -= onCheckStatusSuccess;
         SimulationController.OnSimUpdateSuccessEventHandler -= onSimUpdateSuccess;
+        SimulationController.OnSimInitSuccessEventHandler -= onSimInitSuccess;
     }
     /// <summary>
     /// onDestroy routine (Unity Process)
@@ -193,6 +195,21 @@ public class UIController : MonoBehaviour
     private void onCheckStatusSuccess(object sender, ReceivedMessageEventArgs e)
     {
         onNewAdmin(sender, e);
+    }
+    public void onSimInitSuccess(object sender, ReceivedMessageEventArgs e)
+    {
+        UIControllerThreadQueue.Enqueue(() =>
+        {
+            foreach (Transform child in simParamsContent.transform)
+            {
+                if (child.GetComponentInChildren<Text>().text.Contains("Width") || child.GetComponentInChildren<Text>().text.Contains("Height") ||
+                    child.GetComponentInChildren<Text>().text.Contains("Length") || child.GetComponentInChildren<Text>().text.Contains("amount"))
+                {
+                    child.GetComponentInChildren<InputField>().interactable = false;
+                    child.GetComponent<Image>().color = black;
+                }
+            }
+        });
     }
     private void onSimUpdateSuccess(object sender, ReceivedMessageEventArgs e)
     {
@@ -429,16 +446,6 @@ public class UIController : MonoBehaviour
 
     public void PlaySimulation()
     {
-        foreach (Transform child in simParamsContent.transform)
-        {
-            if (child.GetComponentInChildren<Text>().text.Contains("Width") || child.GetComponentInChildren<Text>().text.Contains("Height") ||
-                child.GetComponentInChildren<Text>().text.Contains("Length") || child.GetComponentInChildren<Text>().text.Contains("amount"))
-            {
-                child.GetComponentInChildren<InputField>().interactable = false;
-                child.GetComponent<Image>().color = black;
-
-            }
-        }
         OnPlayEventHandler?.BeginInvoke(this, EventArgs.Empty, null, null);
     }
     public void PauseSimulation()

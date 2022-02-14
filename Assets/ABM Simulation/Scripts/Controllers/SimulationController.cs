@@ -560,7 +560,7 @@ public class SimulationController : MonoBehaviour
     public void Stop()
     {
         // check state
-        if (simulation.State == Simulation.StateEnum.READY) {return;}
+        if (simulation.State == Simulation.StateEnum.NOT_READY) { return; }
         SendSimCommand(Command.STOP, 0);
     }
     /// <summary>
