@@ -699,8 +699,18 @@ public class SimulationController : MonoBehaviour
     }
     private void onSimObjectModify(object sender, SimObjectModifyEventArgs e)
     {
-        StoreSimObjectModify(e);
-        SendSimUpdate();
+        if (e.id < -1)
+        {
+            foreach (KeyValuePair<string, object> p in e.parameters)
+            {
+                SceneController.selectedGhost.SimObject.Parameters[p.Key] = p.Value;
+            }
+        }
+        else
+        {
+            StoreSimObjectModify(e);
+            SendSimUpdate();
+        }
     }
     private void onSimObjectCreate(object sender, SimObjectCreateEventArgs e)
     {

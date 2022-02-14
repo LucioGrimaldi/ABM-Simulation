@@ -733,9 +733,18 @@ public class UIController : MonoBehaviour
     public void OnInspectorParamsApply()
     {
         SimObjectParamsUpdateEventArgs e = new SimObjectParamsUpdateEventArgs();
-        e.type = SceneController.selectedPlaced.SimObject.Type;
-        e.class_name = SceneController.selectedPlaced.SimObject.Class_name;
-        e.id = SceneController.selectedPlaced.SimObject.Id;
+        if(selectedGhost != null)
+        {
+            e.type = SceneController.selectedGhost.SimObject.Type;
+            e.class_name = SceneController.selectedGhost.SimObject.Class_name;
+            e.id = SceneController.selectedGhost.SimObject.Id;
+        }
+        else
+        {
+            e.type = SceneController.selectedPlaced.SimObject.Type;
+            e.class_name = SceneController.selectedPlaced.SimObject.Class_name;
+            e.id = SceneController.selectedPlaced.SimObject.Id;
+        }        
         e.parameters = tempSimObjectParams;
         OnSimObjectParamsUpdateEventHandler?.BeginInvoke(this, e, null, null);
     }

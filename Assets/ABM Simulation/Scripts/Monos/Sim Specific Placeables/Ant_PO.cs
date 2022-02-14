@@ -9,6 +9,7 @@ public class Ant_PO : PO_Discrete2D
     protected override PlaceableObject Init(SimObject simObject, PlaceableObject po, bool isGhost, bool isMovable)
     {
         hasFoodItem = (bool)simObject.Parameters["hasFoodItem"];
+        if(hasFoodItem) transform.Find("Model").gameObject.GetComponent<MeshRenderer>().material = (hasFoodItem) ? simObjectRender.Materials["hasFoodItem"] : simObjectRender.Materials["default"];
         return base.Init(simObject, po, isGhost, isMovable);
     }
 

@@ -575,7 +575,7 @@ public class SceneController : MonoBehaviour
             e.type = po.SimObject.Type;
             e.class_name = po.SimObject.Class_name;
             e.id = po.SimObject.Id;
-            e.parameters = po.SimObject.Parameters; 
+            e.parameters = po.SimObject.Parameters;
             OnSimObjectCreateEventHandler?.BeginInvoke(this, e, null, null);
         }
     }
