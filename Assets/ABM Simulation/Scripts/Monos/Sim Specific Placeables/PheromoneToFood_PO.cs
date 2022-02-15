@@ -47,6 +47,14 @@ public class PheromoneToFood_PO : PO_Discrete2D
     protected override void LateUpdate()
     {
         // add/remove from Shader Buffers
+        if (isGhost)
+        {
+            if (isMovable)
+            {
+                Vector3 targetPosition = gridSystem.MouseClickToSpawnPosition(this);
+                transform.position = targetPosition;
+            }
+        }
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
