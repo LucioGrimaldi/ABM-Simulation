@@ -219,6 +219,7 @@ public class SimulationController : MonoBehaviour
         UIController.OnStopEventHandler += onStop;
         UIController.OnSpeedChangeEventHandler += onSpeedChange;
         UIController.OnSimParamsUpdateEventHandler += onSimParamsUpdate;
+        UIController.OnSimInitInGameEventHandler += onSimInitInGame;
         UIController.OnExitEventHandler += onExit;
         //UIController.OnEditExitEventHandler += onSimParamsUpdate;
         MessageEventHandler += onMessageReceived;
@@ -283,6 +284,7 @@ public class SimulationController : MonoBehaviour
         UIController.OnStopEventHandler -= onStop;
         UIController.OnSpeedChangeEventHandler -= onSpeedChange;
         UIController.OnSimParamsUpdateEventHandler -= onSimParamsUpdate;
+        UIController.OnSimInitInGameEventHandler -= onSimInitInGame;
         UIController.OnExitEventHandler -= onExit;
         //UIController.OnEditExitEventHandler -= onSimParamsUpdate;
         MessageEventHandler -= onMessageReceived;
@@ -664,6 +666,11 @@ public class SimulationController : MonoBehaviour
         ChangeSpeed((Simulation.SpeedEnum)e.Speed);
     }
     private void onSimParamsUpdate(object sender, SimParamsUpdateEventArgs e)
+    {   
+        StoreSimParamsUpdateToJSON(e);
+        SendSimUpdate();
+    }
+    private void onSimInitInGame(object sender, SimParamsUpdateEventArgs e)
     {
         if (simulation.State.Equals(Simulation.StateEnum.NOT_READY))
         {
@@ -898,9 +905,10 @@ public class SimulationController : MonoBehaviour
                 sim_list_editable[sim_id] = (JSONObject)e.Payload["payload_data"]["payload"];
                 simulation.InitSimulationFromPrototype((JSONObject)e.Payload["payload_data"]["payload"]);
             }
-            if(admin && clientState.Equals(StateEnum.IN_GAME))
+            if(clientState.Equals(StateEnum.IN_GAME))
             {
-                Step();
+                if (admin) Step();
+                else SceneController.SceneControllerThreadQueue.Enqueue(() => SceneController.ResetSimSpace());
             }
 
             UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");

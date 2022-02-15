@@ -250,7 +250,6 @@ public class SceneController : MonoBehaviour
                 }
             }
         });
-        UIController.LockSimDimensionsButton();
         simDimensions = SimulationController.GetSimDimensions();
         UIController.simToggle.GetComponent<Toggle>().isOn = true;
         UIController.simToggle.GetComponent<Toggle>().interactable = true;

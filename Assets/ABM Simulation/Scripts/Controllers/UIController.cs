@@ -32,6 +32,7 @@ public class UIController : MonoBehaviour
     public static event EventHandler<EventArgs> OnStopEventHandler;
     public static event EventHandler<SpeedChangeEventArgs> OnSpeedChangeEventHandler;
     public static event EventHandler<SimParamsUpdateEventArgs> OnSimParamsUpdateEventHandler;
+    public static event EventHandler<SimParamsUpdateEventArgs> OnSimInitInGameEventHandler;
     public static event EventHandler<SimObjectParamsUpdateEventArgs> OnSimObjectParamsUpdateEventHandler;
     public static event EventHandler<EventArgs> OnEditExitEventHandler;
     public static event EventHandler<EventArgs> OnExitEventHandler;
@@ -40,7 +41,7 @@ public class UIController : MonoBehaviour
     public static readonly ConcurrentQueue<Action> UIControllerThreadQueue = new ConcurrentQueue<Action>();
 
     // Controllers
-    private SimulationController SimController;
+    private SimulationController SimulationController;
     private SceneController SceneController;
     private Simulation.StateEnum state;
 
@@ -60,13 +61,13 @@ public class UIController : MonoBehaviour
 
     public Camera camera;
     public TMP_Text nickname, admin_nickname, step_id;
-    public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false, admin_UI = true;
+    public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false, admin_UI = true, simDimensionsLocked = false;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSimParams, panelBackToMenu, panelFPS,
         inspectorParamPrefab, inspectorTogglePrefab, inspectorContent, simParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, simParamsContent,
         simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab, followToggle, lockSimDimensionsButton;
     public Slider slider;
     public Image imgEditMode, imgSimState, imgContour;
-    public Button buttonEdit, muteUnmuteButton, discardParamButton, applyParamButton, discardInspectorButton, applyInspectorButton;
+    public Button buttonEdit, muteUnmuteButton, discardParamButton, applyParamButton, discardInspectorButton, applyInspectorButton, playButton, pauseButton, stopButton;
     public AudioSource backgroundMusic, effectsAudio;
     public Sprite[] commandSprites, muteUnmuteSprites, lockSimDimensionsButtonSprites;
     public Text inspectorType, inspectorClass, inspectorId, emptyScrollTextInspector, emptyScrollTextSimParams;
@@ -98,7 +99,7 @@ public class UIController : MonoBehaviour
         }
 
         // Bind Controllers
-        SimController = GameObject.Find("SimulationController").GetComponent<SimulationController>();
+        SimulationController = GameObject.Find("SimulationController").GetComponent<SimulationController>();
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
 
         simToggle.GetComponent<Toggle>().isOn = showSimSpace;
@@ -216,6 +217,8 @@ public class UIController : MonoBehaviour
         UIControllerThreadQueue.Enqueue(() => {
             UpdateSimParams(e);
         });
+        if (e.Payload["payload_data"]["payload"].Linq.Count() == 0) 
+            SceneController.ResetSimSpace();
     }
     private void onStepApplied(object sender, StepAppliedEventArgs e)
     {
@@ -226,6 +229,40 @@ public class UIController : MonoBehaviour
             UpdateInspectorParams();
             step_id.text = "" + e.step_id;
         });
+    }
+    public void SendSimDimensionsLock()
+    {
+        SimParamsUpdateEventArgs e = new SimParamsUpdateEventArgs();
+        e.parameters = new Dictionary<string, object>();
+        OnSimParamsUpdateEventHandler?.BeginInvoke(this, e, null, null);
+    }
+    public void CheckSimState(Simulation.StateEnum state)
+    {
+        switch (state)
+        {
+            case Simulation.StateEnum.NOT_READY:
+                imgSimState.GetComponent<Image>().color = Color.red;
+                imgSimState.GetComponent<Image>().sprite = commandSprites[2];
+                if(SimulationController.admin && simDimensionsLocked) buttonEdit.interactable = true;
+                else buttonEdit.interactable = false;
+                break;
+            case Simulation.StateEnum.PLAY:
+                imgSimState.GetComponent<Image>().color = Color.green;
+                imgSimState.GetComponent<Image>().sprite = commandSprites[1];
+                if (SimulationController.admin) buttonEdit.interactable = false;
+                break;
+            case Simulation.StateEnum.PAUSE:
+            case Simulation.StateEnum.READY:
+                imgSimState.GetComponent<Image>().color = Color.yellow;
+                imgSimState.GetComponent<Image>().sprite = commandSprites[0];
+                if (SimulationController.admin && simDimensionsLocked) buttonEdit.interactable = true;
+                else buttonEdit.interactable = false;
+                break;
+            case Simulation.StateEnum.STEP:
+                imgSimState.GetComponent<Image>().color = Color.yellow;
+                imgSimState.GetComponent<Image>().sprite = commandSprites[3];
+                break;
+        }
     }
 
     public void UpdateSimParams(ReceivedMessageEventArgs e)
@@ -369,45 +406,17 @@ public class UIController : MonoBehaviour
             }
         }
     }
-
     public void UnlockSimDimensionsButton()
     {
+        simDimensionsLocked = false;
         lockSimDimensionsButton.GetComponent<Button>().interactable = true;
         lockSimDimensionsButton.GetComponent<Image>().sprite = lockSimDimensionsButtonSprites[1];
     }
     public void LockSimDimensionsButton()
     {
+        simDimensionsLocked = true;
         lockSimDimensionsButton.GetComponent<Button>().interactable = false;
         lockSimDimensionsButton.GetComponent<Image>().sprite = lockSimDimensionsButtonSprites[0];
-    }
-
-    private void CheckSimState(Simulation.StateEnum state)
-    {
-        switch (state)
-        {
-            case Simulation.StateEnum.NOT_READY:
-                imgSimState.GetComponent<Image>().color = Color.red;
-                imgSimState.GetComponent<Image>().sprite = commandSprites[2];
-                if(SimulationController.admin && !lockSimDimensionsButton.GetComponent<Button>().IsInteractable()) buttonEdit.interactable = true;
-                else buttonEdit.interactable = false;
-                break;
-            case Simulation.StateEnum.PLAY:
-                imgSimState.GetComponent<Image>().color = Color.green;
-                imgSimState.GetComponent<Image>().sprite = commandSprites[1];
-                if (SimulationController.admin) buttonEdit.interactable = false;
-                break;
-            case Simulation.StateEnum.PAUSE:
-            case Simulation.StateEnum.READY:
-                imgSimState.GetComponent<Image>().color = Color.yellow;
-                imgSimState.GetComponent<Image>().sprite = commandSprites[0];
-                if (SimulationController.admin && !lockSimDimensionsButton.GetComponent<Button>().IsInteractable()) buttonEdit.interactable = true;
-                else buttonEdit.interactable = false;
-                break;
-            case Simulation.StateEnum.STEP:
-                imgSimState.GetComponent<Image>().color = Color.yellow;
-                imgSimState.GetComponent<Image>().sprite = commandSprites[3];
-                break;
-        }
     }
 
     public void OnFollowToggleClicked()
@@ -731,6 +740,19 @@ public class UIController : MonoBehaviour
         }
     }
 
+    public void onSimDimensionsLocked()
+    {
+        foreach (Transform child in simParamsContent.transform)
+        {
+            string p = child.GetComponentInChildren<Text>().text;
+            if (p.Contains("Width") || p.Contains("Height") || p.Contains("Length"))
+            {
+                SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"][p.Contains("Width") ? 0 : p.Contains("Length") ? 1 : 2]["default"] = int.Parse(child.GetComponentInChildren<InputField>().text);
+                SimulationController.GetSimulation().Dimensions[p.Contains("Width") ? "x" : p.Contains("Length") ? "y" : "z"] = int.Parse(child.GetComponentInChildren<InputField>().text);
+            }
+        }
+        SceneController.ResetSimSpace();
+    }
     public void OnSimParamUpdate(string param_name, dynamic value)
     {
         if (!tempSimParams.ContainsKey(param_name)) tempSimParams.Add(param_name, value);
@@ -738,6 +760,12 @@ public class UIController : MonoBehaviour
     }
     public void OnSimParamsApply()
     {
+        slider.interactable = true;
+        buttonEdit.interactable = true;
+        playButton.interactable = true;
+        pauseButton.interactable = true;
+        stopButton.interactable = true;
+
         SimParamsUpdateEventArgs e = new SimParamsUpdateEventArgs();
         e.parameters = tempSimParams;
 
@@ -745,9 +773,7 @@ public class UIController : MonoBehaviour
         {
             SceneController.ResetSimSpace();
         }
-
-        OnSimParamsUpdateEventHandler?.BeginInvoke(this, e, null, null);
-
+        OnSimInitInGameEventHandler?.BeginInvoke(this, e, null, null);
     }
     public void OnSimParamsDiscard()
     {
