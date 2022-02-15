@@ -104,7 +104,7 @@ public class SimulationController : MonoBehaviour
     public static event EventHandler<ReceivedMessageEventArgs> OnSimInitSuccessEventHandler;
     public static event EventHandler<ReceivedMessageEventArgs> OnSimInitUnsuccessEventHandler;
     public static event EventHandler<ReceivedMessageEventArgs> OnSimUpdateSuccessEventHandler;
-    public static event EventHandler<ReceivedMessageEventArgs> OnSimUpdateUnsuccessEventHandler; 
+    public static event EventHandler<ReceivedMessageEventArgs> OnSimUpdateUnsuccessEventHandler;
     public static event EventHandler<ReceivedMessageEventArgs> OnSimCommandSuccessEventHandler;
     public static event EventHandler<ReceivedMessageEventArgs> OnSimCommandUnsuccessEventHandler;
     public static event EventHandler<ReceivedMessageEventArgs> OnClientErrorSuccessEventHandler;
@@ -129,7 +129,7 @@ public class SimulationController : MonoBehaviour
 
     public static int serverSide_simId = 0;
     public static Simulation.StateEnum serverSide_simState = Simulation.StateEnum.NOT_READY;
-    public enum StateEnum 
+    public enum StateEnum
     {
         CONN_ERROR = -2,            // Error in connection
         NOT_READY = -1,             // Client is not connected
@@ -155,9 +155,9 @@ public class SimulationController : MonoBehaviour
     public ConcurrentDictionary<(string op, (SimObject.SimObjectType type, string class_name, int id) obj), SimObject> uncommitted_updates = new ConcurrentDictionary<(string, (SimObject.SimObjectType, string, int)), SimObject>();
 
     /// Support variables
-    
+
     long start_millis = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-    
+
     private static System.Random random = new System.Random();
     private string nickname = RandomString(10);
     private long latestSimStepArrived = 0;
@@ -237,7 +237,7 @@ public class SimulationController : MonoBehaviour
     private void Update()
     {
         long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-        if (now - start_millis > 1000) { SendCheckStatus(); start_millis = now;}
+        if (now - start_millis > 1000) { SendCheckStatus(); start_millis = now; }
 
         if (!SimControllerThreadQueue.IsEmpty)
         {
@@ -293,7 +293,7 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     private void OnDestroy()
     {
-        
+
     }
 
     /// UTILS ///
@@ -395,7 +395,7 @@ public class SimulationController : MonoBehaviour
         JSONObject json_response, payload;
         MqttMsgPublishEventArgs msg;
         string sender, op;
-        while (CommController.messageQueue == null) {}
+        while (CommController.messageQueue == null) { }
         while (true)
         {
             if (CommController.messageQueue.TryDequeue(out msg))
@@ -430,7 +430,7 @@ public class SimulationController : MonoBehaviour
             {
                 if (!sim_state.Equals(Simulation.StateEnum.PLAY))
                 {
-                    while(steps_to_consume > 0)
+                    while (steps_to_consume > 0)
                     {
                         try
                         {
@@ -479,7 +479,7 @@ public class SimulationController : MonoBehaviour
                         continue;
                     }
                     latestSimStepArrived = Utils.GetStepId(message.Message);
-                    if(latestSimStepArrived.Equals(1))
+                    if (latestSimStepArrived.Equals(1))
                     {
                         StepMessageEventArgs e = new StepMessageEventArgs();
                         e.Step = message.Message;
@@ -539,7 +539,7 @@ public class SimulationController : MonoBehaviour
         {
             SendSimCommand(Command.PLAY, 0);
         }
-        else if(simulation.State == Simulation.StateEnum.NOT_READY)
+        else if (simulation.State == Simulation.StateEnum.NOT_READY)
         {
             SendSimInitialize((JSONObject)sim_list_editable[sim_id]);
             SendSimCommand(Command.PLAY, 0);
@@ -584,8 +584,13 @@ public class SimulationController : MonoBehaviour
                 simulation.State = Simulation.StateEnum.NOT_READY;
                 CommController.EmptyQueues();
                 latestSimStepArrived = 0;
+                UIController.UIControllerThreadQueue.Enqueue(() => { UIController.step_id.text = "0"; });
                 simulation.ClearSimulation();
                 SceneController.ClearSimSpace();
+                if (admin) UIController.UIControllerThreadQueue.Enqueue(() =>
+                 {
+                     UIController.UnlockSimDimensionsButton();
+                 });
                 break;
             case Command.SPEED:
                 break;
@@ -603,7 +608,7 @@ public class SimulationController : MonoBehaviour
 
 
     /// SIMULATION ///
-    
+
     /// onEvent Methods
 
     /// <summary>
@@ -635,10 +640,10 @@ public class SimulationController : MonoBehaviour
         clientState = StateEnum.IN_GAME;
         SceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
         UIController = GameObject.Find("UIController").GetComponent<UIController>();
-        while(!CommunicationController.SIM_CLIENT_READY) { }
+        while (!CommunicationController.SIM_CLIENT_READY) { }
         Step();
     }
-    
+
     /// <summary>
     /// UIController Event Handles
     /// </summary>
@@ -687,7 +692,7 @@ public class SimulationController : MonoBehaviour
                             else if (param.Value.GetType().Equals(typeof(string))) _param["default"] = (string)param.Value;
                         }
                     }
-                }                
+                }
             }
             SendSimInitialize((JSONObject)sim_list_editable[sim_id]);
         }
@@ -695,12 +700,22 @@ public class SimulationController : MonoBehaviour
         {
             StoreSimParamsUpdateToJSON(e);
             SendSimUpdate();
-        }        
+        }
     }
     private void onSimObjectModify(object sender, SimObjectModifyEventArgs e)
     {
-        StoreSimObjectModify(e);
-        SendSimUpdate();
+        if (e.id < -1)
+        {
+            foreach (KeyValuePair<string, object> p in e.parameters)
+            {
+                SceneController.selectedGhost.SimObject.Parameters[p.Key] = p.Value;
+            }
+        }
+        else
+        {
+            StoreSimObjectModify(e);
+            SendSimUpdate();
+        }
     }
     private void onSimObjectCreate(object sender, SimObjectCreateEventArgs e)
     {
@@ -730,9 +745,9 @@ public class SimulationController : MonoBehaviour
         switch (e.Op)
         {
             case "000": // check_status
-                
+
                 // check status
-                
+
                 break;
             case "007": // response
                 string response_to_op = (string)e.Payload["response_to_op"];
@@ -747,10 +762,10 @@ public class SimulationController : MonoBehaviour
                     case "002":
                         onDisconnectionResponse(e);
                         break;
-                    case "003":                                                           
+                    case "003":
                         onSimListResponse(e);
                         break;
-                    case "004": 
+                    case "004":
                         onSimInitResponse(e);
                         break;
                     case "005":
@@ -768,7 +783,7 @@ public class SimulationController : MonoBehaviour
                 onNewAdmin(e);
                 break;
             case "998": // error
-                
+
                 // disconnect
 
                 break;
@@ -807,13 +822,13 @@ public class SimulationController : MonoBehaviour
     {
         bool result = e.Payload["result"];
 
-        serverSide_simState = (Simulation.StateEnum) (int) ((JSONObject) e.Payload["payload_data"])["state"];
-        if(!serverSide_simState.Equals(Simulation.StateEnum.NOT_READY) && !serverSide_simState.Equals(Simulation.StateEnum.BUSY))
+        serverSide_simState = (Simulation.StateEnum)(int)((JSONObject)e.Payload["payload_data"])["state"];
+        if (!serverSide_simState.Equals(Simulation.StateEnum.NOT_READY) && !serverSide_simState.Equals(Simulation.StateEnum.BUSY))
         {
             admin_name = (string)((JSONObject)e.Payload["payload_data"])["adminName"];
             serverSide_simId = (int)((JSONObject)e.Payload["payload_data"])["simId"];
             PerfManager.PRODUCED_SPS = (int)((JSONObject)e.Payload["payload_data"])["simStepRate"];
-            if(clientState.Equals(StateEnum.READY) || clientState.Equals(StateEnum.IN_GAME))
+            if (clientState.Equals(StateEnum.READY) || clientState.Equals(StateEnum.IN_GAME))
             {
                 sim_id = serverSide_simId;
                 simulation.State = serverSide_simState;
@@ -846,7 +861,7 @@ public class SimulationController : MonoBehaviour
     {
         bool result = e.Payload["result"];
 
-        if(e.Payload["payload_data"]["sender"].Equals(nickname)) clientState = result ? StateEnum.NOT_READY : StateEnum.CONN_ERROR;
+        if (e.Payload["payload_data"]["sender"].Equals(nickname)) clientState = result ? StateEnum.NOT_READY : StateEnum.CONN_ERROR;
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | " + ((JSONObject)e.Payload["payload_data"])["sender"] + " " + (result ? "successfully" : "unsuccessfully") + " disconnected.");
 
         if (result) OnDisonnectionSuccessEventHandler?.Invoke(this, e);
@@ -855,7 +870,7 @@ public class SimulationController : MonoBehaviour
     private void onSimListResponse(ReceivedMessageEventArgs e)
     {
         bool result = e.Payload["result"];
-        clientState = result&&admin ? StateEnum.INIT : result ? StateEnum.READY : StateEnum.CONN_ERROR;
+        clientState = result && admin ? StateEnum.INIT : result ? StateEnum.READY : StateEnum.CONN_ERROR;
 
         if (result)
         {
@@ -873,7 +888,8 @@ public class SimulationController : MonoBehaviour
     {
         bool result = e.Payload["result"];
 
-        if (result) {
+        if (result)
+        {
 
             if (e.Payload["payload_data"]["sender"].Equals(nickname)) simulation.InitSimulationFromPrototype((JSONObject)sim_list_editable[sim_id]);
             else
@@ -882,9 +898,9 @@ public class SimulationController : MonoBehaviour
                 sim_list_editable[sim_id] = (JSONObject)e.Payload["payload_data"]["payload"];
                 simulation.InitSimulationFromPrototype((JSONObject)e.Payload["payload_data"]["payload"]);
             }
-            if (clientState.Equals(StateEnum.IN_GAME))
+            if(admin && clientState.Equals(StateEnum.IN_GAME))
             {
-                SimControllerThreadQueue.Enqueue(() => { SceneController.ResetSimSpace(); });
+                Step();
             }
 
             UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");
@@ -1154,18 +1170,18 @@ public class SimulationController : MonoBehaviour
                 }
             }
             if (((JSONObject)e.Payload["payload_data"]["payload"]).HasKey("sim_params"))
+            {
+                simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"]["payload"])["sim_params"]);
+                foreach (var param in (JSONObject)((JSONObject)e.Payload["payload_data"]["payload"])["sim_params"])
                 {
-                    simulation.UpdateParamsFromJSON((JSONObject)((JSONObject)e.Payload["payload_data"]["payload"])["sim_params"]);
-                    foreach (var param in (JSONObject)((JSONObject)e.Payload["payload_data"]["payload"])["sim_params"])
+                    foreach (JSONObject _param in sim_list_editable[sim_id]["sim_params"])
                     {
-                        foreach (JSONObject _param in sim_list_editable[sim_id]["sim_params"])
+                        if (param.Key.Equals(_param["name"]))
                         {
-                            if (param.Key.Equals(_param["name"]))
-                            {
-                                _param["default"] = param.Value;
-                            }
+                            _param["default"] = param.Value;
                         }
                     }
+                }
             }
             uncommitted_updatesJSON.Clear();
             uncommitted_updates.Clear();
@@ -1230,35 +1246,35 @@ public class SimulationController : MonoBehaviour
     /// </summary>
     public void StoreSimObjectModify(SimObjectModifyEventArgs e)
     {
-        if(e.id.Equals(-1))                                                                                      // -1 = all
+        if (e.id.Equals(-1))                                                                                      // -1 = all
         {
             foreach (KeyValuePair<(string op, (SimObject.SimObjectType type, string class_name, int id) obj), SimObject> entry in uncommitted_updates.Where(entry => (entry.Key.op.Equals("MOD") || entry.Key.op.Equals("CRT")) && entry.Key.obj.type.Equals(e.type) && entry.Key.obj.class_name.Equals(e.class_name)))
             {
-                foreach(KeyValuePair<string, object> param in e.parameters)
+                foreach (KeyValuePair<string, object> param in e.parameters)
+                {
+                    if (!entry.Value.UpdateParameter(param.Key, param.Value))
                     {
-                        if (!entry.Value.UpdateParameter(param.Key, param.Value))
-                        {
-                            entry.Value.AddParameter(param.Key, param.Value);
-                        }
-                    }                    
-                
+                        entry.Value.AddParameter(param.Key, param.Value);
+                    }
+                }
+
                 UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Entry: " + entry.Key.op + " " + e.type + "." + e.class_name + "." + entry.Key.obj.id + " updated.");
             }
-            
+
             if (!uncommitted_updates.ContainsKey(("MOD", (e.type, e.class_name, e.id))))
             {
                 SimObject a = defaultSimObject.Clone();
                 a.Type = e.type;
                 a.Class_name = e.class_name;
                 a.Id = e.id;
-            
+
                 foreach (KeyValuePair<string, object> param in e.parameters)
+                {
+                    if (!a.UpdateParameter(param.Key, param.Value))
                     {
-                        if (!a.UpdateParameter(param.Key, param.Value))
-                        {
-                            a.AddParameter(param.Key, param.Value);
-                        }
+                        a.AddParameter(param.Key, param.Value);
                     }
+                }
 
                 uncommitted_updates.TryAdd(("MOD", (a.Type, a.Class_name, a.Id)), a);
                 UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Entry: MOD " + e.type + "." + e.class_name + "." + e.id + " created.");
@@ -1280,10 +1296,10 @@ public class SimulationController : MonoBehaviour
             if (entry.Value != null)
             {
                 foreach (KeyValuePair<string, object> param in e.parameters)
-                    {
-                        entry.Value.UpdateParameter(param.Key, param.Value);
-                    }
-                
+                {
+                    entry.Value.UpdateParameter(param.Key, param.Value);
+                }
+
                 UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Entry: " + entry.Key.op + " " + e.type + "." + e.class_name + "." + e.id + " updated.");
             }
             else
@@ -1291,7 +1307,7 @@ public class SimulationController : MonoBehaviour
                 switch (e.type)
                 {
                     case SimObject.SimObjectType.AGENT:
-                        if(simulation.Agents.ContainsKey((e.class_name, e.id)))
+                        if (simulation.Agents.ContainsKey((e.class_name, e.id)))
                         {
                             simulation.Agents.TryGetValue((e.class_name, e.id), out x);
                         }
@@ -1328,14 +1344,14 @@ public class SimulationController : MonoBehaviour
                 SimObject y = x.Clone();
 
                 foreach (KeyValuePair<string, object> param in e.parameters)
-                    {
-                        y.UpdateParameter(param.Key, param.Value);
-                    }
+                {
+                    y.UpdateParameter(param.Key, param.Value);
+                }
 
                 uncommitted_updates.TryAdd(("MOD", (y.Type, y.Class_name, y.Id)), y);
                 UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Entry: MOD " + e.type + "." + e.class_name + "." + e.id + " created.");
             }
-        }        
+        }
     }
     public void StoreSimObjectCreate(SimObjectCreateEventArgs e)
     {
@@ -1358,7 +1374,7 @@ public class SimulationController : MonoBehaviour
             {
                 keys_to_remove.Add(entry.Key);
             }
-            foreach((string op, (SimObject.SimObjectType type, string class_name, int id) obj) key in keys_to_remove)
+            foreach ((string op, (SimObject.SimObjectType type, string class_name, int id) obj) key in keys_to_remove)
             {
                 uncommitted_updates.TryRemove(key, out _);
                 UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Entry: " + key.op + " " + e.type + "." + e.class_name + "." + key.obj.id + " removed.");
@@ -1377,9 +1393,9 @@ public class SimulationController : MonoBehaviour
             catch (InvalidOperationException)
             {
                 UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | 0 entries for object " + e.type + "." + e.class_name + "." + e.id + ".");
-            }   
+            }
         }
-        if(e.id >= -1)
+        if (e.id >= -1)
         {
             uncommitted_updates.TryAdd(("DEL", (e.type, e.class_name, e.id)), x);
             UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Entry: DEL " + e.type + "." + e.class_name + "." + e.id + " created.");
@@ -1450,10 +1466,10 @@ public class SimulationController : MonoBehaviour
                 obj_params = (JSONNode)JSON.Parse(JsonConvert.SerializeObject(entry.Value.Parameters, new TupleConverter<string, float>(), new TupleConverter<string, Vector3>(), new TupleConverter<string, bool>(), new Vector2IntConverter(), new TupleConverter<string, Quaternion>(), new Vec3Conv(), new QuaternionConv()));
                 obj.Add("params", obj_params);
             }
-            uncommitted_updatesJSON[type+"_"+op].Add(obj);
+            uncommitted_updatesJSON[type + "_" + op].Add(obj);
         }
     }
-   
+
 
     /// OPERATIONS ///
 
@@ -1504,7 +1520,7 @@ public class SimulationController : MonoBehaviour
     public void SendSimListRequest()
     {
         // Create payload
-        JSONObject payload = new JSONObject();;
+        JSONObject payload = new JSONObject(); ;
         // Send command
         UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sending SIM_LIST_REQUEST to MASON...");
         CommController.SendMessage(nickname, "003", payload);

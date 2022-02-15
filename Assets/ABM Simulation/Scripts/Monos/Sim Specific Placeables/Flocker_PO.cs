@@ -38,6 +38,7 @@ public class Flocker_PO : PO_Continuous3D
         {
             if (isGhost)
             {
+                ChangeMesh((bool)simObject.Parameters["dead"]);
                 if (isMovable)
                 {
                     Vector3 targetPosition = continuousSystem.MouseClickToSpawnPosition(this);
@@ -80,7 +81,7 @@ public class Flocker_PO : PO_Continuous3D
         if (this.dead != dead)
         {
             this.dead = dead;
-            isMovable = !dead;
+            if(!isGhost) isMovable = !dead;
             transform.localScale = new Vector3(1, 1, 1);
             transform.localRotation = Quaternion.Euler(Vector3.zero);
             Transform temp = transform.Find("Model");
@@ -88,11 +89,14 @@ public class Flocker_PO : PO_Continuous3D
             GameObject newModel = Instantiate(SimObjectRender.Meshes[model].transform.Find("Model").gameObject, temp.position, Quaternion.Euler(Vector3.zero));
             newModel.name = "Model";
             newModel.transform.parent = transform;
-            SimSpaceSystem.SetLayerRecursive(newModel.gameObject, 9);
-            if (isSelected) Highlight();
             SetScale(ContinuousSystem.width, ContinuousSystem.height, ContinuousSystem.length);
             Destroy(temp.gameObject);
-        }        
+            if (isGhost) SetMaterialRecursive(transform.Find("Model").gameObject, SimObjectRender.ghostMaterial);
+            SimSpaceSystem.SetLayerRecursive(newModel.gameObject, 9);
+            if (isSelected) Highlight();
+            if(transform.Find("Chicken")) transform.Find("Chicken").GetComponent<Outline>().enabled = true;
+
+        }
     }
 
 }

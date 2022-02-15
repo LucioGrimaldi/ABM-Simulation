@@ -34,7 +34,7 @@ public class SceneController : MonoBehaviour
     private GameObject simulationSpace, visualEnvironment;
 
     // Controllers
-    private SimulationController SimulationController;
+    public SimulationController SimulationController;
     private UIController UIController;
     public SimSpaceSystem SimSpaceSystem;
 
@@ -238,7 +238,22 @@ public class SceneController : MonoBehaviour
     }
     public void ResetSimSpace()
     {
+        UIController.UIControllerThreadQueue.Enqueue(() =>
+        {
+            foreach (Transform child in UIController.simParamsContent.transform)
+            {
+                if (child.GetComponentInChildren<Text>().text.Contains("Width") || child.GetComponentInChildren<Text>().text.Contains("Height") ||
+                    child.GetComponentInChildren<Text>().text.Contains("Length"))
+                {
+                    child.GetComponentInChildren<InputField>().interactable = false;
+                    child.GetComponent<Image>().color = UIController.black;
+                }
+            }
+        });
+        UIController.LockSimDimensionsButton();
         simDimensions = SimulationController.GetSimDimensions();
+        UIController.simToggle.GetComponent<Toggle>().isOn = true;
+        UIController.simToggle.GetComponent<Toggle>().interactable = true;
 
         float scaleFactor;
 
@@ -249,27 +264,14 @@ public class SceneController : MonoBehaviour
         if (isDiscrete) { scaleFactor = Mathf.Max(width, height, lenght) / 10f; }
         else { scaleFactor = Mathf.Max(width, height, lenght) / 10f; }
 
-        ClearSimSpace();
-
-        if (isDiscrete)
-        {
-            if (simDimensions.Count == 2) InitShader();
-            ((GridSystem)SimSpaceSystem).grid = new Grid3D<GridObject>(width, height, lenght, 10f / scaleFactor, simulationSpace.transform.position - new Vector3(50, 0, 50), (g, x, y, z) => new GridObject(g, x, y, z));
-        }
-        else
-        {
-            ContinuousSystem.width = width;
-            ContinuousSystem.height = height;
-            ContinuousSystem.length = lenght;
-            ContinuousSystem.simSpace = simulationSpace;
-        }
+        InitSimSpace(scaleFactor);
     }
     public void ClearSimSpace()
     {
         SceneControllerThreadQueue.Enqueue(() => {
             foreach ((bool isGhost, PlaceableObject g) x in SimSpaceSystem.GetTemporaryGhosts().Values) x.g.Destroy();
             foreach ((bool isGhost, PlaceableObject o) x in SimSpaceSystem.GetPlacedObjects().Values) x.o.Destroy();
-            
+
             UIController.followToggle.GetComponent<Toggle>().isOn = false;
             UIController.selected = null;
             UIController.OnFollowToggleClicked();
@@ -278,9 +280,13 @@ public class SceneController : MonoBehaviour
 
             if (isDiscrete && simDimensions.Count == 2)
             {
-                simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(new float[width * width]);
-                simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(new float[width * width]);
+                simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].Dispose();
+                simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].Dispose();
             }
+
+            Destroy(simulationSpace);
+            showSimSpace = false;
+            UIController.simToggle.GetComponent<Toggle>().interactable = false;
             SimSpaceSystem.ClearSimSpaceSystem();
         });
     }
@@ -295,9 +301,9 @@ public class SceneController : MonoBehaviour
         showSimSpace = UIController.showSimSpace;
         showEnvironment = UIController.showEnvironment;
 
-        if (showSimSpace)
+        if (showSimSpace && simulationSpace != null)
             simulationSpace.gameObject.SetActive(true);
-        else
+        else if (simulationSpace != null)
             simulationSpace.gameObject.SetActive(false);
 
         if (showEnvironment)
@@ -319,14 +325,15 @@ public class SceneController : MonoBehaviour
                 {
                     if (SimSpaceSystem.CanBuild(selectedGhost))
                     {
-                        if (selectedPlaced != null) selectedPlaced.DeHighlight();
+                        if (selectedGhost != null) { selectedGhost.IsSelected = false; selectedGhost.DeHighlight(); }
+                        if (selectedPlaced != null) { selectedPlaced.IsSelected = false; selectedPlaced.DeHighlight(); }
                         selectedPlaced = selectedGhost;
                         selectedPlaced.PlaceGhost(SimSpaceSystem.MouseClickToSpawnPosition(selectedPlaced));
                         CreateSimObject(selectedPlaced);
-                        if (selectedPlaced != null) selectedPlaced.Highlight();
-                        ShowInspector(selectedPlaced);
                         selectedGhost = CreateGhost(GetSimObjectPrototype(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name), GetPlaceableObjectPrefab(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name), true);
-                        selectedGhost.SimObject.Id = GetTemporaryId(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name);
+                        ShowInspector(selectedGhost);
+                        if (selectedGhost != null) { selectedGhost.IsSelected = true; selectedGhost.Highlight(); }
+                    selectedGhost.SimObject.Id = GetTemporaryId(selectedGhost.SimObject.Type, selectedGhost.SimObject.Class_name);
                         audioPlacedSound.Play();
                     }
                 }
@@ -355,7 +362,7 @@ public class SceneController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.C))
         {
             if (selectedPlaced != null && SimulationController.admin && (SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE) || SimulationController.GetSimState().Equals(Simulation.StateEnum.READY)))
-            {                
+            {
                 PlacedObjectToGhost(selectedPlaced);
                 DeleteSimObject(selectedPlaced);
             }
@@ -410,7 +417,7 @@ public class SceneController : MonoBehaviour
 
         // Follow
         if (Input.GetKeyDown(KeyCode.Space))
-        { 
+        {
             if (UIController.showInspectorPanel)
             {
                 UIController.followToggle.GetComponent<Toggle>().isOn = !UIController.followToggle.GetComponent<Toggle>().isOn;
@@ -420,8 +427,10 @@ public class SceneController : MonoBehaviour
         // Rotate
         if (Input.GetKeyDown(KeyCode.R)) { if ((selectedPlaced != null || selectedGhost != null) && (SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE) || SimulationController.GetSimState().Equals(Simulation.StateEnum.READY))) SimSpaceSystem.RotatePlacedObject((selectedGhost != null) ? selectedGhost : selectedPlaced); }
         // Deselect
-        if (Input.GetKeyDown(KeyCode.Escape)) {
-            if (selectedGhost != null) {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (selectedGhost != null)
+            {
                 DeleteGhost();
                 selectedGhost = null;
                 if (UIController.followToggle.GetComponent<Toggle>().isOn && UIController.selected.Equals(selectedGhost))
@@ -430,8 +439,9 @@ public class SceneController : MonoBehaviour
                     UIController.selected = null;
                     UIController.OnFollowToggleClicked();
                 }
-            } 
-            if(selectedPlaced != null) { 
+            }
+            if (selectedPlaced != null)
+            {
                 DeselectSimObject();
                 if (UIController.followToggle.GetComponent<Toggle>().isOn && UIController.selected.Equals(selectedPlaced))
                 {
@@ -449,9 +459,9 @@ public class SceneController : MonoBehaviour
             DeselectSimObject();
             selectedPlaced = GetPOFromTransformRecursive(hitPoint.transform);
             selectedPlaced.IsSelected = true;
+            if (selectedPlaced != null) selectedPlaced.Highlight();
             UIController.followToggle.GetComponent<Toggle>().interactable = true;
             UIController.OnChangeSelectedFollow();
-            if (selectedPlaced != null) selectedPlaced.Highlight();
             ShowInspector(selectedPlaced);
             return true;
         }
@@ -463,7 +473,7 @@ public class SceneController : MonoBehaviour
         UIController.EmptyInspectorParams();
         UIController.tempSimObjectParams.Clear();
         HideInspector();
-        if(selectedPlaced != null)
+        if (selectedPlaced != null)
         {
             selectedPlaced.IsSelected = false;
             selectedPlaced.DeHighlight();
@@ -474,7 +484,14 @@ public class SceneController : MonoBehaviour
     public void RefreshSelectedGhost(SimObject so, PlaceableObject po)
     {
         DeleteGhost();
+        if (selectedPlaced != null)
+        {
+            selectedPlaced.IsSelected = false;
+            selectedPlaced.DeHighlight();
+        }
         selectedGhost = CreateGhost(so, po, true);
+        selectedGhost.IsSelected = true;
+        selectedGhost.Highlight();
         ShowInspector(selectedGhost);
     }
 
@@ -560,7 +577,7 @@ public class SceneController : MonoBehaviour
     }
     public void PlacedObjectToGhost(PlaceableObject toMakeGhost)
     {
-        if(toMakeGhost != null)
+        if (toMakeGhost != null)
         {
             toMakeGhost.MakeGhost(false);
             if (toMakeGhost.SimObject.To_keep_if_absent)

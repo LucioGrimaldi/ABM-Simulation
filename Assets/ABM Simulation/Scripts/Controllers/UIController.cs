@@ -51,25 +51,24 @@ public class UIController : MonoBehaviour
 
     // Variables
     // Scene Background Colors
-    Color32 cyan = new Color32(146, 212, 219, 0);
-    Color32 black_gray = new Color32(56, 61, 63, 0);
+    public Color32 cyan = new Color32(146, 212, 219, 0);
+    public Color32 black_gray = new Color32(56, 61, 63, 0);
 
     // Sim Params prefab Colors
-    Color32 black = new Color32(0, 0, 0, 130);
-    Color32 white = new Color32(255, 255, 255, 33);
+    public Color32 black = new Color32(0, 0, 0, 130);
+    public Color32 white = new Color32(255, 255, 255, 33);
 
     public Camera camera;
     public TMP_Text nickname, admin_nickname, step_id;
     public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false, admin_UI = true;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSimParams, panelBackToMenu, panelFPS,
         inspectorParamPrefab, inspectorTogglePrefab, inspectorContent, simParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, simParamsContent,
-        simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab, followToggle;
+        simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab, followToggle, lockSimDimensionsButton;
     public Slider slider;
     public Image imgEditMode, imgSimState, imgContour;
     public Button buttonEdit, muteUnmuteButton, discardParamButton, applyParamButton, discardInspectorButton, applyInspectorButton;
     public AudioSource backgroundMusic, effectsAudio;
-    public Sprite[] commandSprites;
-    public Sprite[] muteUnmuteSprites;
+    public Sprite[] commandSprites, muteUnmuteSprites, lockSimDimensionsButtonSprites;
     public Text inspectorType, inspectorClass, inspectorId, emptyScrollTextInspector, emptyScrollTextSimParams;
     public static bool showSimSpace, showEnvironment;
     public Dictionary<string, object> tempSimParams = new Dictionary<string, object>();
@@ -318,6 +317,7 @@ public class UIController : MonoBehaviour
             applyParamButton.interactable = false;
             discardInspectorButton.interactable = false;
             applyInspectorButton.interactable = false;
+            LockSimDimensionsButton();
 
             foreach (Transform child in simParamsContent.transform)
             {
@@ -338,6 +338,9 @@ public class UIController : MonoBehaviour
             applyParamButton.interactable = true;
             discardInspectorButton.interactable = true;
             applyInspectorButton.interactable = true;
+
+            if (SceneController.SimulationController.GetSimulation().State.Equals(Simulation.StateEnum.NOT_READY))
+                UnlockSimDimensionsButton();
 
             foreach (Transform child in simParamsContent.transform)
             {
@@ -367,6 +370,17 @@ public class UIController : MonoBehaviour
         }
     }
 
+    public void UnlockSimDimensionsButton()
+    {
+        lockSimDimensionsButton.GetComponent<Button>().interactable = true;
+        lockSimDimensionsButton.GetComponent<Image>().sprite = lockSimDimensionsButtonSprites[1];
+    }
+    public void LockSimDimensionsButton()
+    {
+        lockSimDimensionsButton.GetComponent<Button>().interactable = false;
+        lockSimDimensionsButton.GetComponent<Image>().sprite = lockSimDimensionsButtonSprites[0];
+    }
+
     private void CheckSimState(Simulation.StateEnum state)
     {
         switch (state)
@@ -374,7 +388,8 @@ public class UIController : MonoBehaviour
             case Simulation.StateEnum.NOT_READY:
                 imgSimState.GetComponent<Image>().color = Color.red;
                 imgSimState.GetComponent<Image>().sprite = commandSprites[2];
-                if(SimulationController.admin) buttonEdit.interactable = true;
+                if(SimulationController.admin && !lockSimDimensionsButton.GetComponent<Button>().IsInteractable()) buttonEdit.interactable = true;
+                else buttonEdit.interactable = false;
                 break;
             case Simulation.StateEnum.PLAY:
                 imgSimState.GetComponent<Image>().color = Color.green;
@@ -385,7 +400,8 @@ public class UIController : MonoBehaviour
             case Simulation.StateEnum.READY:
                 imgSimState.GetComponent<Image>().color = Color.yellow;
                 imgSimState.GetComponent<Image>().sprite = commandSprites[0];
-                if (SimulationController.admin) buttonEdit.interactable = true;
+                if (SimulationController.admin && !lockSimDimensionsButton.GetComponent<Button>().IsInteractable()) buttonEdit.interactable = true;
+                else buttonEdit.interactable = false;
                 break;
             case Simulation.StateEnum.STEP:
                 imgSimState.GetComponent<Image>().color = Color.yellow;
@@ -724,7 +740,14 @@ public class UIController : MonoBehaviour
     {
         SimParamsUpdateEventArgs e = new SimParamsUpdateEventArgs();
         e.parameters = tempSimParams;
+
+        if (lockSimDimensionsButton.GetComponent<Button>().IsInteractable())
+        {
+            SceneController.ResetSimSpace();
+        }
+
         OnSimParamsUpdateEventHandler?.BeginInvoke(this, e, null, null);
+
     }
     public void OnSimParamsDiscard()
     {
@@ -740,9 +763,18 @@ public class UIController : MonoBehaviour
     public void OnInspectorParamsApply()
     {
         SimObjectParamsUpdateEventArgs e = new SimObjectParamsUpdateEventArgs();
-        e.type = SceneController.selectedPlaced.SimObject.Type;
-        e.class_name = SceneController.selectedPlaced.SimObject.Class_name;
-        e.id = SceneController.selectedPlaced.SimObject.Id;
+        if (selectedGhost != null)
+        {
+            e.type = SceneController.selectedGhost.SimObject.Type;
+            e.class_name = SceneController.selectedGhost.SimObject.Class_name;
+            e.id = SceneController.selectedGhost.SimObject.Id;
+        }
+        else
+        {
+            e.type = SceneController.selectedPlaced.SimObject.Type;
+            e.class_name = SceneController.selectedPlaced.SimObject.Class_name;
+            e.id = SceneController.selectedPlaced.SimObject.Id;
+        }
         e.parameters = tempSimObjectParams;
         OnSimObjectParamsUpdateEventHandler?.BeginInvoke(this, e, null, null);
     }

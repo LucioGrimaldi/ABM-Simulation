@@ -133,6 +133,7 @@ public class GridSystem : SimSpaceSystem
     {
         placedGhostsDict.Clear();
         placedObjectsDict.Clear();
+        grid = null;
     }
     public override PlaceableObject CreateGhost(SimObject simObject, PlaceableObject po, bool isMovable)
     {
@@ -147,7 +148,7 @@ public class GridSystem : SimSpaceSystem
         if (toDelete != null)
         {
             foreach (Vector2Int cell in (MyList<Vector2Int>)((PO_Discrete)toDelete).GetCells()) grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject((PO_Discrete)toDelete);
-            if(toDelete.IsGhost) placedGhostsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
+            if (toDelete.IsGhost) placedGhostsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
             else placedObjectsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
         }
     }
