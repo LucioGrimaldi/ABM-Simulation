@@ -218,6 +218,7 @@ public class SimulationController : MonoBehaviour
         UIController.OnPauseEventHandler += onPause;
         UIController.OnStopEventHandler += onStop;
         UIController.OnSpeedChangeEventHandler += onSpeedChange;
+        UIController.OnSimDimensionsUpdateEventHandler += onSimDimensionsUpdate;
         UIController.OnSimParamsUpdateEventHandler += onSimParamsUpdate;
         UIController.OnSimInitInGameEventHandler += onSimInitInGame;
         UIController.OnExitEventHandler += onExit;
@@ -283,6 +284,7 @@ public class SimulationController : MonoBehaviour
         UIController.OnPauseEventHandler -= onPause;
         UIController.OnStopEventHandler -= onStop;
         UIController.OnSpeedChangeEventHandler -= onSpeedChange;
+        UIController.OnSimDimensionsUpdateEventHandler -= onSimDimensionsUpdate;
         UIController.OnSimParamsUpdateEventHandler -= onSimParamsUpdate;
         UIController.OnSimInitInGameEventHandler -= onSimInitInGame;
         UIController.OnExitEventHandler -= onExit;
@@ -664,6 +666,11 @@ public class SimulationController : MonoBehaviour
     private void onSpeedChange(object sender, SpeedChangeEventArgs e)
     {
         ChangeSpeed((Simulation.SpeedEnum)e.Speed);
+    }
+    private void onSimDimensionsUpdate(object sender, SimParamsUpdateEventArgs e)
+    {
+        StoreSimDimensionsToJSON(e);
+        SendSimUpdate();
     }
     private void onSimParamsUpdate(object sender, SimParamsUpdateEventArgs e)
     {   
@@ -1413,6 +1420,13 @@ public class SimulationController : MonoBehaviour
     /// <summary>
     /// Store in uncommitted_updatesJSON parameter changes
     /// </summary>
+    private void StoreSimDimensionsToJSON(SimParamsUpdateEventArgs e)
+    {
+        foreach (KeyValuePair<string, object> p in e.parameters)
+        {
+            uncommitted_updatesJSON["sim_dimensions"].Add(p.Key, (int)p.Value);
+        }
+    }
     private void StoreSimParamsUpdateToJSON(SimParamsUpdateEventArgs e)
     {
         foreach (KeyValuePair<string, object> p in e.parameters)

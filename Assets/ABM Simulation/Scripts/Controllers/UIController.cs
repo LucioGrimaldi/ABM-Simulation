@@ -31,6 +31,7 @@ public class UIController : MonoBehaviour
     public static event EventHandler<EventArgs> OnPauseEventHandler;
     public static event EventHandler<EventArgs> OnStopEventHandler;
     public static event EventHandler<SpeedChangeEventArgs> OnSpeedChangeEventHandler;
+    public static event EventHandler<SimParamsUpdateEventArgs> OnSimDimensionsUpdateEventHandler;
     public static event EventHandler<SimParamsUpdateEventArgs> OnSimParamsUpdateEventHandler;
     public static event EventHandler<SimParamsUpdateEventArgs> OnSimInitInGameEventHandler;
     public static event EventHandler<SimObjectParamsUpdateEventArgs> OnSimObjectParamsUpdateEventHandler;
@@ -213,12 +214,20 @@ public class UIController : MonoBehaviour
     }
     private void onSimUpdateSuccess(object sender, ReceivedMessageEventArgs e)
     {
+        if (e.Payload["payload_data"]["payload"].HasKey("sim_dimensions"))
+        {
+            foreach (KeyValuePair<string, int> d in SimulationController.GetSimulation().Dimensions)
+            {
+                SimulationController.GetSimulation().Dimensions[d.Key] = int.Parse(e.Payload["payload_data"]["payload"]["sim_dimensions"][d.Key]);
+                SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"][d.Key.Equals("x") ? 0 : d.Key.Equals("y") ? 1 : 2]["default"] = d.Value;
+            }
+            SceneControllerThreadQueue.Enqueue(() => SceneController.ResetSimSpace());
+        }
+
         last_simUpdate = e;
         UIControllerThreadQueue.Enqueue(() => {
             UpdateSimParams(e);
-        });
-        if (e.Payload["payload_data"]["payload"].Linq.Count() == 0)
-            SceneControllerThreadQueue.Enqueue(() => SceneController.ResetSimSpace());
+        });        
     }
     private void onStepApplied(object sender, StepAppliedEventArgs e)
     {
@@ -232,9 +241,12 @@ public class UIController : MonoBehaviour
     }
     public void SendSimDimensionsLock()
     {
+        onSimDimensionsLocked();
         SimParamsUpdateEventArgs e = new SimParamsUpdateEventArgs();
-        e.parameters = new Dictionary<string, object>();
-        OnSimParamsUpdateEventHandler?.BeginInvoke(this, e, null, null);
+        Dictionary<string, object> ps = new Dictionary<string, object>();
+        foreach (KeyValuePair<string, int> d in SimulationController.GetSimulation().Dimensions) ps.Add(d.Key, d.Value);
+        e.parameters = ps;
+        OnSimDimensionsUpdateEventHandler?.BeginInvoke(this, e, null, null);
     }
     public void CheckSimState(Simulation.StateEnum state)
     {
