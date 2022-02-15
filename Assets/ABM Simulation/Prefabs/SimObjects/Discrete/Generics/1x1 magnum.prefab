@@ -143,6 +143,7 @@ MonoBehaviour:
   simObjectRender: {fileID: 11400000, guid: 8f7dd3d0d749b7b4f91bf4eb27872133, type: 2}
   isGhost: 0
   isMovable: 0
+  isSelected: 0
   direction: 0
   width: 1
   length: 1
@@ -5994,6 +5995,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Model
+      objectReference: {fileID: 0}
+    - target: {fileID: 6514618578532884510, guid: 890436f5d76f9ce469402f497e64c414,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7763588149579433113, guid: 890436f5d76f9ce469402f497e64c414,
         type: 3}

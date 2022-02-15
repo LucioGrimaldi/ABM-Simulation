@@ -52,7 +52,7 @@ public class Flocker_PO : PO_Continuous3D
                 if (isMovable)
                 {
                     Vector3 targetPosition = ContinuousSystem.MasonToUnityPosition3D(GetPosition());
-                    transform.rotation = Quaternion.Lerp(transform.rotation, GetFacingDirection(transform.position, targetPosition), Time.deltaTime * 15f);
+                    if((transform.position - targetPosition).magnitude > 0.001) transform.rotation = Quaternion.Lerp(transform.rotation, GetFacingDirection(transform.position, targetPosition), Time.deltaTime * 15f);
                     transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 15f);
                 }
             }

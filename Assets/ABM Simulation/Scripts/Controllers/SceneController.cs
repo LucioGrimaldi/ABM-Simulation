@@ -249,10 +249,11 @@ public class SceneController : MonoBehaviour
                     child.GetComponent<Image>().color = UIController.black;
                 }
             }
+            UIController.simToggle.GetComponent<Toggle>().isOn = true;
+            UIController.simToggle.GetComponent<Toggle>().interactable = true;
         });
+
         simDimensions = SimulationController.GetSimDimensions();
-        UIController.simToggle.GetComponent<Toggle>().isOn = true;
-        UIController.simToggle.GetComponent<Toggle>().interactable = true;
 
         float scaleFactor;
 

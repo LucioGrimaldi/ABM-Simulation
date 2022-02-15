@@ -928,7 +928,7 @@ public class SimulationController : MonoBehaviour
 
         if (result)
         {
-            if (!admin)
+            if (!admin && ((JSONObject)e.Payload["payload_data"]["payload"]).Dict.Count() != 0)
             {
                 switch (((JSONObject)e.Payload["payload_data"]["payload"]).Dict.First().Key)
                 {

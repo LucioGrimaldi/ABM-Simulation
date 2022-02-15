@@ -207,7 +207,7 @@ public class Simulation
         Id = sim_edited_prototype["id"];
         Name = sim_edited_prototype["name"];
         Description = sim_edited_prototype["description"];
-        Type = sim_edited_prototype["type"] == "DISCRETE" ? SimTypeEnum.DISCRETE : SimTypeEnum.CONTINUOUS;
+        Type = sim_edited_prototype["type"] == "Discrete" ? SimTypeEnum.DISCRETE : SimTypeEnum.CONTINUOUS;
 
         object value;
         object cell;
@@ -517,7 +517,7 @@ public class Simulation
         // variabili
         byte[] decompressed_step = Utils.DecompressStepPayload(step);
         SimObject so = defaultSimObject.Clone();
-        Is_discrete = sim_prototype["type"].Equals("DISCRETE");
+        Is_discrete = sim_prototype["type"].Equals("Discrete");
 
         List<KeyValuePair<string, JSONNode>> agent_prototypes;
         List<KeyValuePair<string, JSONNode>> generic_prototypes;

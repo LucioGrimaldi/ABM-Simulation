@@ -61,7 +61,7 @@ public class UIController : MonoBehaviour
 
     public Camera camera;
     public TMP_Text nickname, admin_nickname, step_id;
-    public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false, admin_UI = true, simDimensionsLocked = false;
+    public bool showEditPanel = false, showSettingsPanel = false, showInfoPanel = false, showQuitPanel = false, showInspectorPanel = false, admin_UI = true, simDimensionsLocked = true;
     public GameObject panelSimButtons, panelEditMode, panelInspector, panelSimParams, panelBackToMenu, panelFPS,
         inspectorParamPrefab, inspectorTogglePrefab, inspectorContent, simParamPrefab, SimParamPrefab_Disabled, SimTogglePrefab, simParamsContent,
         simToggle, envToggle, contentAgents, contentGenerics, contentObstacles, editPanelSimObject_prefab, followToggle, lockSimDimensionsButton;
@@ -123,7 +123,7 @@ public class UIController : MonoBehaviour
     /// <summary>
     /// Start routine (Unity Process)
     /// </summary>
-    void Start()
+    private void Start()
     {
         AgentsData = SceneController.PO_Prefab_Collection[simId].PO_AgentPrefabs;
         GenericsData = SceneController.PO_Prefab_Collection[simId].PO_GenericPrefabs;
@@ -140,7 +140,7 @@ public class UIController : MonoBehaviour
     /// <summary>
     /// Update routine (Unity Process)
     /// </summary>
-    void Update()
+    private void Update()
     {
         if (!UIControllerThreadQueue.IsEmpty)
         {
@@ -217,8 +217,8 @@ public class UIController : MonoBehaviour
         UIControllerThreadQueue.Enqueue(() => {
             UpdateSimParams(e);
         });
-        if (e.Payload["payload_data"]["payload"].Linq.Count() == 0) 
-            SceneController.ResetSimSpace();
+        if (e.Payload["payload_data"]["payload"].Linq.Count() == 0)
+            SceneControllerThreadQueue.Enqueue(() => SceneController.ResetSimSpace());
     }
     private void onStepApplied(object sender, StepAppliedEventArgs e)
     {
@@ -255,7 +255,7 @@ public class UIController : MonoBehaviour
             case Simulation.StateEnum.READY:
                 imgSimState.GetComponent<Image>().color = Color.yellow;
                 imgSimState.GetComponent<Image>().sprite = commandSprites[0];
-                if (SimulationController.admin && simDimensionsLocked) buttonEdit.interactable = true;
+                if (SimulationController.admin) buttonEdit.interactable = true;
                 else buttonEdit.interactable = false;
                 break;
             case Simulation.StateEnum.STEP:
@@ -275,11 +275,11 @@ public class UIController : MonoBehaviour
                 {
                     child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[0]["default"];
                 }
-                else if (child.Find("Param Name").GetComponent<Text>().text.Equals("Height"))
+                else if (child.Find("Param Name").GetComponent<Text>().text.Equals("Length"))
                 {
                     child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[1]["default"];
                 }
-                else if (child.Find("Param Name").GetComponent<Text>().text.Equals("Length"))
+                else if (child.Find("Param Name").GetComponent<Text>().text.Equals("Height"))
                 {
                     child.GetComponentInChildren<InputField>().text = "" + ((JSONArray)SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"])[2]["default"];
                 }
@@ -716,7 +716,7 @@ public class UIController : MonoBehaviour
 
             param.GetComponentInChildren<InputField>().lineType = InputField.LineType.SingleLine;
             param.GetComponentInChildren<InputField>().characterLimit = 20;
-            param.transform.Find("Param Name").GetComponent<Text>().text = (d["name"] == "x") ? "Width" : (d["name"] == "z") ? "Length" : "Height";
+            param.transform.Find("Param Name").GetComponent<Text>().text = (d["name"] == "x") ? "Width" : (d["name"] == "z") ? "Height" : "Length";
             param.transform.Find("InputField").GetComponent<InputField>().text = d["default"];
         }
     }
@@ -751,7 +751,6 @@ public class UIController : MonoBehaviour
                 SimulationController.GetSimulation().Dimensions[p.Contains("Width") ? "x" : p.Contains("Length") ? "y" : "z"] = int.Parse(child.GetComponentInChildren<InputField>().text);
             }
         }
-        SceneController.ResetSimSpace();
     }
     public void OnSimParamUpdate(string param_name, dynamic value)
     {
@@ -771,7 +770,7 @@ public class UIController : MonoBehaviour
 
         if (lockSimDimensionsButton.GetComponent<Button>().IsInteractable())
         {
-            SceneController.ResetSimSpace();
+            SceneControllerThreadQueue.Enqueue(() => SceneController.ResetSimSpace());
         }
         OnSimInitInGameEventHandler?.BeginInvoke(this, e, null, null);
     }

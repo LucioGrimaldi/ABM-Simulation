@@ -20,9 +20,6 @@ MonoBehaviour:
   - name: Food
     prefab: {fileID: 5133821391004212195, guid: 748e8cb59a2217f478c64f60f252b1e4,
       type: 3}
-  - name: Food
-    prefab: {fileID: 1978789304684122867, guid: b176db7a3c7c69c49a2967f9ab4058f4,
-      type: 3}
   - name: PheromoneToFood
     prefab: {fileID: 3960166193636073919, guid: 5e8f958ed13096d43b2571bfe81a461c,
       type: 3}

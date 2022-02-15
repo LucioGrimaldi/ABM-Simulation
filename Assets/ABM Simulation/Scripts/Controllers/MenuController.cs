@@ -47,7 +47,7 @@ public class MenuController : MonoBehaviour
 
     // Variables
     public TMP_Dropdown dropdownSimTypes, dropdownAgents, dropdownObjects;
-    public TMP_Text simDescription, simDescription2, simName, emptyScrollText, currentAdminLabel;
+    public TMP_Text simName, simName2, simType, simType2, simSpace, simSpace2, simDescription, simDescription2, emptyScrollText, currentAdminLabel;
     public Sprite[] nickCheckSprite, muteUnmuteSprites;
     public Image simImage1, simImage2, agentImage, objectImage;
     public GameObject nickCheckSign, inMenuParamPrefab, inMenuTogglePrefab, settingsScrollContent, dimensionsScrollContent, agentsAmountsScrollContent, agentsScrollContent, objectsScrollContent, simToggle, envToggle, muteUnmuteAudio;
@@ -407,8 +407,10 @@ public class MenuController : MonoBehaviour
     }
     private void LoadSimInfos(JSONObject sim)
     {
-        simDescription.SetText(sim["description"] + "\n" + sim["type"]);
-        simDescription2.SetText(simDescription.text);
+        simName.text = simName2.text = sim["name"];
+        simType.text = simType2.text = sim["type"];
+        simSpace.text = simSpace2.text = (sim["dimensions"].Linq.Count() == 2) ? "2D" : "3D";
+        simDescription.text = simDescription2.text = sim["description"];
     }
     private void LoadSprites()
     {
@@ -445,18 +447,18 @@ public class MenuController : MonoBehaviour
                     case "System.Single":
                         param = Instantiate(inMenuParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
-                        if (scrollContent.name.Contains("agent")) param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onAgentParamModified(id, p["name"], float.Parse(value)));
+                        if (scrollContent.name.Contains("Agents")) param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onAgentParamModified(id, p["name"], float.Parse(value)));
                         else param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onGenericParamModified(id, p["name"], float.Parse(value)));
                         break;
                     case "System.Int32":
                         param = Instantiate(inMenuParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.IntegerNumber;
-                        if (scrollContent.name.Contains("agent")) param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onAgentParamModified(id, p["name"], int.Parse(value)));
+                        if (scrollContent.name.Contains("Agents")) param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onAgentParamModified(id, p["name"], int.Parse(value)));
                         else param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onGenericParamModified(id, p["name"], int.Parse(value)));
                         break;
                     case "System.Boolean":
                         param = Instantiate(inMenuTogglePrefab);
-                        if (scrollContent.name.Contains("agent")) param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => onAgentParamModified(id, p["name"], value));
+                        if (scrollContent.name.Contains("Agents")) param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => onAgentParamModified(id, p["name"], value));
                         else param.GetComponentInChildren<Toggle>().onValueChanged.AddListener((value) => onGenericParamModified(id, p["name"], value));
                         param.transform.Find("Param Name").GetComponent<Text>().text = p["name"];
                         param.GetComponentInChildren<Toggle>().isOn = p["defalut"];
@@ -464,7 +466,7 @@ public class MenuController : MonoBehaviour
                     case "System.String":
                         param = Instantiate(inMenuParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.Alphanumeric;
-                        if (scrollContent.name.Contains("agent")) param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onAgentParamModified(id, p["name"], value));
+                        if (scrollContent.name.Contains("Agents")) param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onAgentParamModified(id, p["name"], value));
                         else param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => onGenericParamModified(id, p["name"], value));
                         break;
                     default:
@@ -670,11 +672,7 @@ public class MenuController : MonoBehaviour
         // set Buttons interactable
         SetButtonsInteractivity();
 
-        simImage1.sprite = simSprites[index];
-
-        simName.text = simNames[index];
-
-        simImage2.sprite = simSprites[index];
+        simImage1.sprite = simImage2.sprite = simSprites[index];
     }
     public void Dropdown_AgentChanged(int index)
     {
