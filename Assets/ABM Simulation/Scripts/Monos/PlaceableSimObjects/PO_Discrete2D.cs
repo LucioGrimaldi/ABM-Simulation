@@ -131,6 +131,7 @@ public class PO_Discrete2D : PO_Discrete
     {
         gridSystem.grid.GetXYZ(position, out int x, out _, out int z);
         simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, length);
+        direction = GetFacingDirection((Quaternion)simObject.Parameters["rotation"]);
         foreach (Vector2Int cell in pos) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
         gridSystem.placedGhostsDict.TryAdd((simObject.Type, simObject.Class_name, simObject.Id), (isGhost, this));
         base.PlaceGhost(position);
@@ -138,6 +139,11 @@ public class PO_Discrete2D : PO_Discrete
     }
     public override bool PlaceGhost()
     {
+        direction = GetFacingDirection((Quaternion)simObject.Parameters["rotation"]);
+        Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
+        Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
+        transform.position = targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize;
+        transform.rotation = Quaternion.Euler(GetRotationVector(direction));
         foreach (Vector2Int cell in (MyList<Vector2Int>)GetCells()) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
         gridSystem.placedGhostsDict.TryAdd((simObject.Type, simObject.Class_name, simObject.Id), (isGhost, this));
         base.PlaceGhost();
@@ -157,6 +163,10 @@ public class PO_Discrete2D : PO_Discrete
     {
         direction = dir;
         UtilsClass.CreateWorldTextPopup("" + direction, Mouse3DPosition.GetMouseWorldPosition(), Mathf.RoundToInt(gridSystem.grid.CellSize / 10 * 40), Color.green);
+    }
+    public override void Rotate(Quaternion dir)
+    {
+        direction = GetFacingDirection(dir);
     }
     public override void SetScale(float scale)
     {

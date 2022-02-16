@@ -46,6 +46,7 @@ public class PlaceableObject : MonoBehaviour
     public virtual void Rotate() { }
     public virtual void Rotate(Vector3 dir) { }
     public virtual void Rotate(PO_Discrete2D.DirEnum dir) { }
+    public virtual void Rotate(Quaternion direction) { }
     public virtual void Confirm()
     {
         if (SimObjectRender.RenderType.Equals(SimObjectRender.RenderTypeEnum.MESH))
