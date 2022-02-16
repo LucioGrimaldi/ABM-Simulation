@@ -726,15 +726,18 @@ public class Simulation
                     parameters = agent_params_for_each_class;
                 }
 
-                if (so.Is_in_step && !so.To_keep_if_absent)
+                if (so.Is_in_step)
                 {
-                    toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                    temp.Add((so.Type, so.Class_name, so.Id));
-                }
-                if (so.Is_in_step && so.To_keep_if_absent)
-                {
-                    toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                    temp2.Add((so.Type, so.Class_name, so.Id));
+                    if (!so.To_keep_if_absent)
+                    {
+                        toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
+                        temp.Add((so.Type, so.Class_name, so.Id));
+                    }
+                    else
+                    {
+                        toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
+                        temp2.Add((so.Type, so.Class_name, so.Id));
+                    }
                 }
 
                 // all/object params
@@ -838,15 +841,18 @@ public class Simulation
                     AddGeneric(so);
                 }
 
-                if (so.Is_in_step && !so.To_keep_if_absent)
+                if (so.Is_in_step)
                 {
-                    toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                    temp.Add((so.Type, so.Class_name, so.Id));
-                }
-                if (so.Is_in_step && so.To_keep_if_absent)
-                {
-                    toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                    temp2.Add((so.Type, so.Class_name, so.Id));
+                    if (!so.To_keep_if_absent)
+                    {
+                        toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
+                        temp.Add((so.Type, so.Class_name, so.Id));
+                    }
+                    else
+                    {
+                        toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
+                        temp2.Add((so.Type, so.Class_name, so.Id));
+                    }
                 }
 
                 // all/object params
@@ -948,15 +954,18 @@ public class Simulation
                     AddObstacle(so);
                 }
 
-                if (so.Is_in_step && !so.To_keep_if_absent)
+                if (so.Is_in_step)
                 {
-                    toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                    temp.Add((so.Type, so.Class_name, so.Id));
-                }
-                if (so.Is_in_step && so.To_keep_if_absent)
-                {
-                    toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                    temp2.Add((so.Type, so.Class_name, so.Id));
+                    if (!so.To_keep_if_absent)
+                    {
+                        toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
+                        temp.Add((so.Type, so.Class_name, so.Id));
+                    }
+                    else
+                    {
+                        toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
+                        temp2.Add((so.Type, so.Class_name, so.Id));
+                    }
                 }
 
                 // all/object params

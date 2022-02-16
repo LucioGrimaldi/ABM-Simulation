@@ -31,7 +31,7 @@ public class SceneController : MonoBehaviour
     public static readonly ConcurrentQueue<Action> SceneControllerThreadQueue = new ConcurrentQueue<Action>();
 
     private static bool showSimSpace, showEnvironment;
-    private GameObject simulationSpace, visualEnvironment;
+    public GameObject simulationSpace, visualEnvironment;
 
     // Controllers
     public SimulationController SimulationController;
@@ -269,8 +269,8 @@ public class SceneController : MonoBehaviour
     public void ClearSimSpace()
     {
         SceneControllerThreadQueue.Enqueue(() => {
-            foreach ((bool isGhost, PlaceableObject g) x in SimSpaceSystem.GetTemporaryGhosts().Values) x.g.Destroy();
-            foreach ((bool isGhost, PlaceableObject o) x in SimSpaceSystem.GetPlacedObjects().Values) x.o.Destroy();
+            foreach ((bool isGhost, PlaceableObject g) x in SimSpaceSystem.GetTemporaryGhosts().Values) if (x.g.gameObject != null) x.g.Destroy();
+            foreach ((bool isGhost, PlaceableObject o) x in SimSpaceSystem.GetPlacedObjects().Values) if(x.o.gameObject != null) x.o.Destroy();
 
             UIController.followToggle.GetComponent<Toggle>().isOn = false;
             UIController.selected = null;
@@ -285,6 +285,7 @@ public class SceneController : MonoBehaviour
             }
 
             Destroy(simulationSpace);
+            simulationSpace = null;
             showSimSpace = false;
             UIController.simToggle.GetComponent<Toggle>().interactable = false;
             SimSpaceSystem.ClearSimSpaceSystem();
@@ -627,6 +628,8 @@ public class SceneController : MonoBehaviour
         if (SimSpaceSystem.GetPlacedObjects().TryRemove((e.type, e.class_name, e.id), out (bool, PlaceableObject) x))
         {
             SceneControllerThreadQueue.Enqueue(() => {
+                SimSpaceSystem.DeleteSimObject(x.Item2);
+                x.Item2.Destroy();
                 if ((UIController.selected != null) && UIController.selected.Equals(x.Item2))
                 {
                     EmptyInspector();
@@ -638,9 +641,7 @@ public class SceneController : MonoBehaviour
                         UIController.selected = null;
                         UIController.OnFollowToggleClicked();
                     }
-                }
-                SimSpaceSystem.DeleteSimObject(x.Item2);
-                x.Item2.Destroy();
+                }                
             });
         }
     }
@@ -683,7 +684,8 @@ public class SceneController : MonoBehaviour
         }
         foreach (SimObject so in g)
         {
-            if (!placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
+            if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) { if (!placedObjects[(so.Type, so.Class_name, so.Id)].po.IsGhost) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable; }
+            else
             {
                 PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
                 PlaceableObject _old = GetGhostToReplace(so);

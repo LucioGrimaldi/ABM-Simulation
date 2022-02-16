@@ -904,7 +904,6 @@ public class SimulationController : MonoBehaviour
 
         if (result)
         {
-
             if (e.Payload["payload_data"]["sender"].Equals(nickname)) simulation.InitSimulationFromPrototype((JSONObject)sim_list_editable[sim_id]);
             else
             {
@@ -915,7 +914,7 @@ public class SimulationController : MonoBehaviour
             if(clientState.Equals(StateEnum.IN_GAME))
             {
                 if (admin) Step();
-                else SceneController.SceneControllerThreadQueue.Enqueue(() => SceneController.ResetSimSpace());
+                if(SceneController.simulationSpace == null) SceneController.SceneControllerThreadQueue.Enqueue(() => SceneController.ResetSimSpace());
             }
 
             UnityEngine.Debug.Log(this.GetType().Name + " | " + System.Reflection.MethodBase.GetCurrentMethod().Name + " | Sim Initialization " + (result ? "confirmed" : "declined") + " by " + e.Sender + ".");

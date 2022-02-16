@@ -210,6 +210,7 @@ public class UIController : MonoBehaviour
                     child.GetComponent<Image>().color = black;
                 }
             }
+            UpdateSimParams(e);
         });
     }
     private void onSimUpdateSuccess(object sender, ReceivedMessageEventArgs e)
@@ -219,7 +220,7 @@ public class UIController : MonoBehaviour
             foreach (KeyValuePair<string, int> d in SimulationController.GetSimulation().Dimensions)
             {
                 SimulationController.GetSimulation().Dimensions[d.Key] = int.Parse(e.Payload["payload_data"]["payload"]["sim_dimensions"][d.Key]);
-                SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"][d.Key.Equals("x") ? 0 : d.Key.Equals("y") ? 1 : 2]["default"] = d.Value;
+                SimulationController.sim_list_editable[SimulationController.sim_id]["dimensions"][d.Key.Equals("x") ? 0 : d.Key.Equals("y") ? 1 : 2]["default"] = int.Parse(e.Payload["payload_data"]["payload"]["sim_dimensions"][d.Key]);
             }
             SceneControllerThreadQueue.Enqueue(() => SceneController.ResetSimSpace());
         }
@@ -584,7 +585,7 @@ public class UIController : MonoBehaviour
                     case "System.Single":
                         param = Instantiate(inspectorParamPrefab);
                         param.GetComponentInChildren<InputField>().contentType = InputField.ContentType.DecimalNumber;
-                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnInspectorParamUpdate(p["name"], float.Parse(value)));
+                        param.GetComponentInChildren<InputField>().onEndEdit.AddListener((value) => OnInspectorParamUpdate(p["name"], float.Parse(value.Replace('.', ','))));
                         if (!admin)
                         {
                             param.GetComponentInChildren<InputField>().interactable = false;
@@ -780,10 +781,6 @@ public class UIController : MonoBehaviour
         SimParamsUpdateEventArgs e = new SimParamsUpdateEventArgs();
         e.parameters = tempSimParams;
 
-        if (lockSimDimensionsButton.GetComponent<Button>().IsInteractable())
-        {
-            SceneControllerThreadQueue.Enqueue(() => SceneController.ResetSimSpace());
-        }
         OnSimInitInGameEventHandler?.BeginInvoke(this, e, null, null);
     }
     public void OnSimParamsDiscard()
