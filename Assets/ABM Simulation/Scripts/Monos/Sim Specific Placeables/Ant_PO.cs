@@ -9,7 +9,7 @@ public class Ant_PO : PO_Discrete2D
     protected override PlaceableObject Init(SimObject simObject, PlaceableObject po, bool isGhost, bool isMovable)
     {
         hasFoodItem = (bool)simObject.Parameters["hasFoodItem"];
-        if (hasFoodItem) transform.Find("Model").gameObject.GetComponent<MeshRenderer>().material = (hasFoodItem) ? simObjectRender.Materials["hasFoodItem"] : simObjectRender.Materials["default"];
+        transform.Find("Model").gameObject.GetComponent<MeshRenderer>().material = (hasFoodItem) ? simObjectRender.Materials["hasFoodItem"] : simObjectRender.Materials["default"];
         return base.Init(simObject, po, isGhost, isMovable);
     }
 
@@ -76,6 +76,15 @@ public class Ant_PO : PO_Discrete2D
     }
 
 
+    public override bool PlaceGhost()
+    {
+        direction = GetFacingDirection((Quaternion)simObject.Parameters["rotation"]);
+        transform.Find("Model").rotation = Quaternion.Euler(GetRotationVector(direction));
+        foreach (Vector2Int cell in (MyList<Vector2Int>)GetCells()) gridSystem.grid.GetGridObject(cell.x, 0, cell.y).SetPlacedObject(this);
+        gridSystem.placedGhostsDict.TryAdd((simObject.Type, simObject.Class_name, simObject.Id), (isGhost, this));
+        isMovable = false;
+        return true;
+    }
     public void ChangeColor(bool hasFoodItem)
     {
         if (!this.hasFoodItem.Equals(hasFoodItem))
