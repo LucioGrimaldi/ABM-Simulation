@@ -156,11 +156,12 @@ public class MenuController : MonoBehaviour
 
     private void onConnectionSuccess(object sender, ReceivedMessageEventArgs e)
     {
-        if (SimulationController.admin)
+        if (SimulationController.admin && !menuState.Equals(MenuState.NEWSIM))
         {
             MenuMainThreadQueue.Enqueue(() => {
                 newSimScreen.SetActive(true);
                 mainMenu.SetActive(false);
+                menuState = MenuState.NEWSIM;
             });
         }
         else
