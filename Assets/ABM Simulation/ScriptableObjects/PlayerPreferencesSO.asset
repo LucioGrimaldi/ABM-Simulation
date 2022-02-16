@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9cac3834395646347ad4df9d54c4eb6f, type: 3}
   m_Name: PlayerPreferencesSO
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInfosSO
-  nickname: ISISLab
+  nickname: vujhvhjv
   showSimSpace: 1
-  showEnvironment: 0
-  musicVolume: 0.3
+  showEnvironment: 1
+  musicVolume: 0
   effectsVolume: 0.5
   Environment: 0
   SimSpace2D: 0

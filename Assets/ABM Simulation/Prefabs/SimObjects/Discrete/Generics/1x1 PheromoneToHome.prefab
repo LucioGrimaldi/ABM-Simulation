@@ -143,6 +143,7 @@ MonoBehaviour:
   simObjectRender: {fileID: 11400000, guid: aceb8b4c7e86f1e42ae306753dbdd397, type: 2}
   isGhost: 0
   isMovable: 0
+  isSelected: 0
   direction: 0
   width: 1
   length: 1
@@ -196,7 +197,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4093945257026198129}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1

@@ -57,15 +57,6 @@ public class PheromoneToHome_PO : PO_Discrete2D
                 transform.position = targetPosition;
             }
         }
-        else
-        {
-            if (isMovable)
-            {
-                Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
-                transform.position = targetPosition;
-                MoveInSimSpace();
-            }
-        }
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
