@@ -2349,7 +2349,7 @@ MonoBehaviour:
   m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 0, y: 0}
+  m_ReferenceResolution: {x: 2560, y: 1440}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3
@@ -8393,6 +8393,8 @@ MonoBehaviour:
   PO_Prefab_Collection:
   - {fileID: 11400000, guid: 86a9e59149c38404b8e8427ced089295, type: 2}
   - {fileID: 11400000, guid: 662c59bb86fd1554f87e427123b6c531, type: 2}
+  simulationSpace: {fileID: 0}
+  visualEnvironment: {fileID: 0}
   SimulationController: {fileID: 0}
   SimSpaceSystem: {fileID: 0}
   SimSpace_prefabs_2D:
