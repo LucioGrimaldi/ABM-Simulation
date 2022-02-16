@@ -164,7 +164,7 @@ public class MenuController : MonoBehaviour
                 ChangeMenuState();
             });
         }
-        else if(!SimulationController.admin)
+        else if(!SimulationController.admin && menuState.Equals(MenuState.MAIN))
         {
             MenuMainThreadQueue.Enqueue(() =>
             {
