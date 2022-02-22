@@ -25,7 +25,6 @@ public class StepAppliedEventArgs : EventArgs
 public class Simulation
 {
     // Events
-    public static event EventHandler<SimObjectDeleteEventArgs> OnSimObjectNotInStepEventHandler;
     public static event EventHandler<StepAppliedEventArgs> OnStepAppliedEventHandler;
 
     // Simulation data
@@ -698,7 +697,6 @@ public class Simulation
         //Debug.Log("ID + numAgents + numObjects: " + stopwatch.ElapsedMilliseconds);
         //stopwatch.Restart();
 
-
         // AGENTI
         // estraggo ogni agente per classe
         for (int i = 0; i < n_agents_classes; i++)                                                                   // i è la classe
@@ -726,19 +724,7 @@ public class Simulation
                     parameters = agent_params_for_each_class;
                 }
 
-                if (so.Is_in_step)
-                {
-                    if (!so.To_keep_if_absent)
-                    {
-                        toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                        temp.Add((so.Type, so.Class_name, so.Id));
-                    }
-                    else
-                    {
-                        toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                        temp2.Add((so.Type, so.Class_name, so.Id));
-                    }
-                }
+                so.present = true;
 
                 // all/object params
                 foreach ((string, string) p in parameters[i])
@@ -841,19 +827,7 @@ public class Simulation
                     AddGeneric(so);
                 }
 
-                if (so.Is_in_step)
-                {
-                    if (!so.To_keep_if_absent)
-                    {
-                        toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                        temp.Add((so.Type, so.Class_name, so.Id));
-                    }
-                    else
-                    {
-                        toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                        temp2.Add((so.Type, so.Class_name, so.Id));
-                    }
-                }
+                so.present = true;
 
                 // all/object params
                 foreach ((string, string) p in parameters[i])
@@ -954,19 +928,7 @@ public class Simulation
                     AddObstacle(so);
                 }
 
-                if (so.Is_in_step)
-                {
-                    if (!so.To_keep_if_absent)
-                    {
-                        toDeleteIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                        temp.Add((so.Type, so.Class_name, so.Id));
-                    }
-                    else
-                    {
-                        toKeepIfAbsent.Remove((so.Type, so.Class_name, so.Id));
-                        temp2.Add((so.Type, so.Class_name, so.Id));
-                    }
-                }
+                so.present = true;
 
                 // all/object params
                 foreach ((string, string) p in parameters[i])
@@ -1045,51 +1007,42 @@ public class Simulation
         //UnityEngine.Debug.Log("Simulation updated from step: " + currentsimstep);
 
         // Elimina SimObject non presenti
-        toDeleteIfAbsent.ForEach((so) => {
-            switch (so.type)
+        Agents.ToList().ForEach((entry) => {
+            if (!entry.Value.present && entry.Value.Is_in_step)
             {
-                case SimObject.SimObjectType.AGENT:
-                    Agents.TryRemove((so.class_name, so.id), out _);
-                    break;
-                case SimObject.SimObjectType.GENERIC:
-                    Generics.TryRemove((so.class_name, so.id), out _);
-                    break;
-                case SimObject.SimObjectType.OBSTACLE:
-                    Obstacles.TryRemove((so.class_name, so.id), out _);
-                    break;
+                if (!entry.Value.To_keep_if_absent) entry.Value.toDelete = true;
+                else
+                {
+                    string param = (string)agent_prototypes.Where((p) => p.Value["class"].Equals(entry.Value.Class_name)).ToArray()[0].Value["state_if_absent"];
+                    entry.Value.Parameters[param] = true;
+                }
             }
-            SimObjectDeleteEventArgs e = new SimObjectDeleteEventArgs();
-            e.type = so.type;
-            e.class_name = so.class_name;
-            e.id = so.id;
-            OnSimObjectNotInStepEventHandler?.Invoke(this, e);
+            entry.Value.present = false;
         });
-        toDeleteIfAbsent.Clear();
-        toDeleteIfAbsent.AddRange(temp);
-        temp.Clear();
-        // Controlla SimObject non presenti
-        toKeepIfAbsent.ForEach((so) => {
-            SimObject x = defaultSimObject.Clone();
-            string param = "";
-            switch (so.type)
+        Generics.ToList().ForEach((entry) => {
+            if (!entry.Value.present && entry.Value.Is_in_step)
             {
-                case SimObject.SimObjectType.AGENT:
-                    Agents.TryGetValue((so.class_name, so.id), out x);
-                    param = (string)agent_prototypes.Where((p) => p.Value["class"].Equals(so.class_name)).ToArray()[0].Value["state_if_absent"];
-                    break;
-                case SimObject.SimObjectType.GENERIC:
-                    Generics.TryGetValue((so.class_name, so.id), out x);
-                    param = (string)generic_prototypes.Where((p) => p.Value["class"].Equals(so.class_name)).ToArray()[0].Value["state_if_absent"];
-                    break;
-                case SimObject.SimObjectType.OBSTACLE:
-                    Obstacles.TryGetValue((so.class_name, so.id), out x);
-                    param = (string)obstacle_prototypes.Where((p) => p.Value["class"].Equals(so.class_name)).ToArray()[0].Value["state_if_absent"];
-                    break;
+                if (!entry.Value.To_keep_if_absent) entry.Value.toDelete = true;
+                else
+                {
+                    string param = (string)generic_prototypes.Where((p) => p.Value["class"].Equals(entry.Value.Class_name)).ToArray()[0].Value["state_if_absent"];
+                    entry.Value.Parameters[param] = true;
+                }
             }
-            x.Parameters[param] = true;
+            entry.Value.present = false;
         });
-        toKeepIfAbsent.AddRange(temp2);
-        temp2.Clear();
+        Obstacles.ToList().ForEach((entry) => {
+            if (!entry.Value.present && entry.Value.Is_in_step)
+            {
+                if (!entry.Value.To_keep_if_absent) entry.Value.toDelete = true;
+                else
+                {
+                    string param = (string)obstacle_prototypes.Where((p) => p.Value["class"].Equals(entry.Value.Class_name)).ToArray()[0].Value["state_if_absent"];
+                    entry.Value.Parameters[param] = true;
+                }
+            }
+            entry.Value.present = false;
+        });
 
         StepAppliedEventArgs e = new StepAppliedEventArgs();
         e.step_id = CurrentSimStep;

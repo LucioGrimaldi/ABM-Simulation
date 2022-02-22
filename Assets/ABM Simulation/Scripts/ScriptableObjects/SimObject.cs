@@ -16,6 +16,9 @@ public class SimObject : ScriptableObject
     [SerializeField] private string layer = "default";
     [SerializeField] private bool shares_position = false;
 
+    public bool present = false;
+    public bool toDelete = false;
+
     //[SerializeField] private StringObjectDictionary parameters;
     private ConcurrentDictionary<String, object> parameters = new ConcurrentDictionary<string, object>();
 

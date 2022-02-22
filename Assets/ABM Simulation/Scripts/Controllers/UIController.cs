@@ -436,7 +436,7 @@ public class UIController : MonoBehaviour
     {
         if (followToggle.GetComponent<Toggle>().isOn && selected != null)
         {
-            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform);
+            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.Find("Model").transform);
             camera.GetComponent<CameraTarget>().follow = true;
             camera.GetComponent<CameraTarget>().zoomingIn = true;
             camera.GetComponent<CameraTarget>().zoomingOut = false;
@@ -458,7 +458,7 @@ public class UIController : MonoBehaviour
         
         if (followToggle.GetComponent<Toggle>().isOn)
         {
-            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform);
+            camera.GetComponent<CameraTarget>().SetNewCameraTarget(selected.transform.Find("Model").transform);
         }
     }
 

@@ -87,7 +87,6 @@ public class SceneController : MonoBehaviour
     private void OnEnable()
     {
         // Register to EventHandlers
-        Simulation.OnSimObjectNotInStepEventHandler += onSimObjectNotInStep;
         UIController.OnSimObjectParamsUpdateEventHandler += onSimObjectModified;
     }
     /// <summary>
@@ -110,9 +109,6 @@ public class SceneController : MonoBehaviour
             }
         }
 
-        //LockUp();                     commmented for no laggy Sim :)
-        if (SimulationController.GetSimState().Equals(Simulation.StateEnum.PLAY)) StepUp();
-        if (SimulationController.GetSimState().Equals(Simulation.StateEnum.STEP)) { StepUp(); if (SimulationController.Steps_to_consume == 0) SimulationController.GetSimState().Equals(Simulation.StateEnum.PAUSE); }
         ShowHideSimEnvironment();      // può essere sostituito con event
         CheckForUserInput();
     }
@@ -129,7 +125,6 @@ public class SceneController : MonoBehaviour
     private void OnDisable()
     {
         // Unregister to EventHandlers
-        Simulation.OnSimObjectNotInStepEventHandler -= onSimObjectNotInStep;
         UIController.OnSimObjectParamsUpdateEventHandler -= onSimObjectModified;
     }
     /// <summary>
@@ -344,6 +339,7 @@ public class SceneController : MonoBehaviour
                     DeselectSimObject();
                     UIController.followToggle.GetComponent<Toggle>().isOn = false;
                     UIController.selected = null;
+                    UIController.camera.GetComponent<CameraTarget>().zoomingOut = false;
                     UIController.OnFollowToggleClicked();
                 }
             }
@@ -355,6 +351,7 @@ public class SceneController : MonoBehaviour
                     DeselectSimObject();
                     UIController.followToggle.GetComponent<Toggle>().isOn = false;
                     UIController.selected = null;
+                    UIController.camera.GetComponent<CameraTarget>().zoomingOut = false;
                     UIController.OnFollowToggleClicked();
                 }
             }
@@ -580,14 +577,8 @@ public class SceneController : MonoBehaviour
     {
         if (toMakeGhost != null)
         {
+            //SimSpaceSystem.MoveToGhostDict(toMakeGhost);
             toMakeGhost.MakeGhost(false);
-            if (toMakeGhost.SimObject.To_keep_if_absent)
-            {
-                toMakeGhost.SimObject.To_keep_if_absent = false;
-                SimulationController.GetSimulation().ToDeleteIfAbsent.Add((toMakeGhost.SimObject.Type, toMakeGhost.SimObject.Class_name, toMakeGhost.SimObject.Id));
-                SimulationController.GetSimulation().ToKeepIfAbsent.Remove((toMakeGhost.SimObject.Type, toMakeGhost.SimObject.Class_name, toMakeGhost.SimObject.Id));
-                SimulationController.GetSimulation().Temp2.Remove((toMakeGhost.SimObject.Type, toMakeGhost.SimObject.Class_name, toMakeGhost.SimObject.Id));
-            }
         }
     }
 
@@ -623,26 +614,24 @@ public class SceneController : MonoBehaviour
     }
 
     // Event Handles
-    public void onSimObjectNotInStep(object sender, SimObjectDeleteEventArgs e)
+    public void onSimObjectNotInStep(SimObject notInStep)
     {
-        if (SimSpaceSystem.GetPlacedObjects().TryRemove((e.type, e.class_name, e.id), out (bool, PlaceableObject) x))
-        {
-            SceneControllerThreadQueue.Enqueue(() => {
-                SimSpaceSystem.DeleteSimObject(x.Item2);
-                x.Item2.Destroy();
-                if ((UIController.selected != null) && UIController.selected.Equals(x.Item2))
-                {
-                    EmptyInspector();
-                    HideInspector();
+        if (SimSpaceSystem.GetPlacedObjects().TryRemove((notInStep.Type, notInStep.Class_name, notInStep.Id), out (bool, PlaceableObject) x))
+        {           
+            SimSpaceSystem.DeleteSimObject(x.Item2);
+            x.Item2.Destroy();
+            if ((UIController.selected != null) && UIController.selected.Equals(x.Item2))
+            {
+                EmptyInspector();
+                HideInspector();
 
-                    if (UIController.followToggle.GetComponent<Toggle>().isOn)
-                    {
-                        UIController.followToggle.GetComponent<Toggle>().isOn = false;
-                        UIController.selected = null;
-                        UIController.OnFollowToggleClicked();
-                    }
-                }                
-            });
+                if (UIController.followToggle.GetComponent<Toggle>().isOn)
+                {
+                    UIController.followToggle.GetComponent<Toggle>().isOn = false;
+                    UIController.selected = null;
+                    UIController.OnFollowToggleClicked();
+                }
+            }          
         }
     }
     public void onSimObjectModified(object sender, SimObjectParamsUpdateEventArgs e)
@@ -651,15 +640,6 @@ public class SceneController : MonoBehaviour
     }
 
     // Step
-    public void StepUp()
-    {
-        UpdatePlacedObjects(SimSpaceSystem.GetPlacedObjects(), true);
-        if (SimSpaceSystem.simSpaceDimensions.Equals(SimSpaceSystem.SimSpaceDimensionsEnum._2D)) UpdatePheromones(SimulationController.GetSimulation().Generics.Values.Where((g) => { if (g.Class_name.Contains("Pheromone")) return true; else return false; }).ToArray());
-    }
-    public void LockUp()
-    {
-        LockPlacedObjects(SimSpaceSystem.GetPlacedObjects());
-    }
     public void UpdatePlacedObjects(ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> placedObjects, bool movable)
     {
         SimObject[] a = SimulationController.GetSimulation().Agents.Values.ToArray();
@@ -668,7 +648,12 @@ public class SceneController : MonoBehaviour
 
         foreach (SimObject so in a)
         {
-            if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) { if (!placedObjects[(so.Type, so.Class_name, so.Id)].po.IsGhost) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable; }
+            if (so.toDelete)
+            {
+                onSimObjectNotInStep(so);
+                SimulationController.GetSimulation().Agents.TryRemove((so.Class_name, so.Id), out _);
+            }
+            else if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) { if (!placedObjects[(so.Type, so.Class_name, so.Id)].po.IsGhost) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable; }
             else
             {
                 PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
@@ -684,9 +669,14 @@ public class SceneController : MonoBehaviour
         }
         foreach (SimObject so in g)
         {
-            if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) { if (!placedObjects[(so.Type, so.Class_name, so.Id)].po.IsGhost) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable; }
-            else
+            if (so.toDelete)
             {
+                onSimObjectNotInStep(so);
+                SimulationController.GetSimulation().Generics.TryRemove((so.Class_name, so.Id), out _);
+            }
+            else if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) { if (!placedObjects[(so.Type, so.Class_name, so.Id)].po.IsGhost) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable; }
+            else
+            {          
                 PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
                 PlaceableObject _old = GetGhostToReplace(so);
                 PlaceableObject _new = CreatePlaceableObject(so, _prefab, movable);
@@ -700,9 +690,14 @@ public class SceneController : MonoBehaviour
         }
         foreach (SimObject so in o)
         {
-            if (!placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
+            if (so.toDelete)
             {
-                PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
+                onSimObjectNotInStep(so);
+                SimulationController.GetSimulation().Obstacles.TryRemove((so.Class_name, so.Id), out _);
+            }
+            else if (!placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
+            {                      
+                PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name); 
                 PlaceableObject _old = GetGhostToReplace(so);
                 PlaceableObject _new = CreatePlaceableObject(so, _prefab, movable);
                 if (_old != null)
@@ -713,7 +708,6 @@ public class SceneController : MonoBehaviour
                     Debug.Log("Deleted old : " + so.Type + " " + so.Class_name + " " + _old.SimObject.Id);
                 }
                 else Debug.Log("Old not found : " + so.Type + " " + so.Class_name + " " + _new.SimObject.Id);
-
             }
         }
     }

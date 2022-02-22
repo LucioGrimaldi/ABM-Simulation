@@ -65,6 +65,11 @@ public class ContinuousSystem : SimSpaceSystem
         placedGhostsDict.Clear();
         placedObjectsDict.Clear();
     }
+    public override void MoveToGhostDict(PlaceableObject toMove)
+    {
+        placedObjectsDict.TryRemove((toMove.SimObject.Type, toMove.SimObject.Class_name, toMove.SimObject.Id), out (bool isGhost, PlaceableObject po) x);
+        placedGhostsDict.TryAdd((toMove.SimObject.Type, toMove.SimObject.Class_name, toMove.SimObject.Id), x);
+    }
     public override PlaceableObject CreateGhost(SimObject simObject, PlaceableObject po, bool isMovable)
     {
         return Create(simObject, po, true, isMovable);

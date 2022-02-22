@@ -811,6 +811,12 @@ public class SimulationController : MonoBehaviour
         {
             simulation.UpdateSimulationFromStep(e.Step, (JSONObject)sim_prototypes_list[sim_id]);
             stepsConsumed++;
+            SimControllerThreadQueue.Enqueue(() =>
+            {
+                SceneController.UpdatePlacedObjects(SceneController.SimSpaceSystem.GetPlacedObjects(), true);
+                if (SceneController.SimSpaceSystem.simSpaceDimensions.Equals(SimSpaceSystem.SimSpaceDimensionsEnum._2D)) SceneController.UpdatePheromones(GetSimulation().Generics.Values.Where((g) => { if (g.Class_name.Contains("Pheromone")) return true; else return false; }).ToArray());
+            });
+
         }
         catch (Exception ex)
         {

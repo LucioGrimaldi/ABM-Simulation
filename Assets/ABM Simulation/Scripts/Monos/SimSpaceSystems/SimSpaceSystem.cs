@@ -22,6 +22,7 @@ public abstract class SimSpaceSystem : MonoBehaviour
     public abstract ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> GetPlacedObjects();
     public abstract ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> GetTemporaryGhosts();
     public abstract void ClearSimSpaceSystem();
+    public abstract void MoveToGhostDict(PlaceableObject po);
     public abstract PlaceableObject CreateGhost(SimObject simObject, PlaceableObject po, bool isMovable);
     public abstract PlaceableObject CreateSimObject(SimObject simObject, PlaceableObject po, bool isMovable);
     public abstract void DeleteSimObject(PlaceableObject toDelete);

@@ -135,6 +135,11 @@ public class GridSystem : SimSpaceSystem
         placedObjectsDict.Clear();
         grid = null;
     }
+    public override void MoveToGhostDict(PlaceableObject toMove)
+    {
+        placedObjectsDict.TryRemove((toMove.SimObject.Type, toMove.SimObject.Class_name, toMove.SimObject.Id), out (bool isGhost, PlaceableObject po) x);
+        placedGhostsDict.TryAdd((toMove.SimObject.Type, toMove.SimObject.Class_name, toMove.SimObject.Id), x);
+    }
     public override PlaceableObject CreateGhost(SimObject simObject, PlaceableObject po, bool isMovable)
     {
         return Create(simObject, po, true, isMovable);
@@ -148,8 +153,8 @@ public class GridSystem : SimSpaceSystem
         if (toDelete != null)
         {
             foreach (Vector2Int cell in (MyList<Vector2Int>)((PO_Discrete)toDelete).GetCells()) grid.GetGridObject(cell.x, 0, cell.y).ClearPlacedObject((PO_Discrete)toDelete);
-            if (toDelete.IsGhost) placedGhostsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
-            else placedObjectsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
+            placedGhostsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
+            placedObjectsDict.TryRemove((toDelete.SimObject.Type, toDelete.SimObject.Class_name, toDelete.SimObject.Id), out _);
         }
     }
     public override void RotatePlacedObject(PlaceableObject toRotate)

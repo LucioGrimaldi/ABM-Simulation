@@ -227,7 +227,7 @@ public class MenuController : MonoBehaviour
     }
     private void onSimInitSuccess(object sender, ReceivedMessageEventArgs e)
     {
-        MenuMainThreadQueue.Enqueue(() => { SceneManager.LoadScene("MainScene"); });
+        JoinSimulation();
     }
     private void onSimInitUnsuccess(object sender, ReceivedMessageEventArgs e)
     {
