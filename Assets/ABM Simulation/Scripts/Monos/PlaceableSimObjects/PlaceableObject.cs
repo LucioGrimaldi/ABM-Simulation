@@ -27,6 +27,8 @@ public class PlaceableObject : MonoBehaviour
     public bool IsSelected { get => isSelected; set => isSelected = value; }
 
 
+    public virtual void _Update() { }
+    public virtual void _Delete() { }
     public virtual void MakeGhost(bool isMovable)
     {
         SetMaterialRecursive(transform.Find("Model").gameObject, SimObjectRender.ghostMaterial);

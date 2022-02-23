@@ -489,7 +489,7 @@ public class SimulationController : MonoBehaviour
                         e.Step = message.Message;
                         StepMessageEventHandler?.Invoke(this, e);
                         ChangeState(Command.STEP);
-                        --steps_to_consume;
+                        steps_to_consume = 0;
                     }
                     else
                     {
@@ -745,7 +745,7 @@ public class SimulationController : MonoBehaviour
     {
         OnDisable();
         OnApplicationQuit();
-        SimControllerThreadQueue.Enqueue(() =>
+        SceneController.SceneControllerThreadQueue.Enqueue(() =>
         {
             Destroy(gameObject);
         });
@@ -811,12 +811,13 @@ public class SimulationController : MonoBehaviour
         {
             simulation.UpdateSimulationFromStep(e.Step, (JSONObject)sim_prototypes_list[sim_id]);
             stepsConsumed++;
-            SimControllerThreadQueue.Enqueue(() =>
+            if (SceneController.UpdatePlacedObjectsThreadQueue.IsEmpty)
             {
-                SceneController.UpdatePlacedObjects(SceneController.SimSpaceSystem.GetPlacedObjects(), true);
-                if (SceneController.SimSpaceSystem.simSpaceDimensions.Equals(SimSpaceSystem.SimSpaceDimensionsEnum._2D)) SceneController.UpdatePheromones(GetSimulation().Generics.Values.Where((g) => { if (g.Class_name.Contains("Pheromone")) return true; else return false; }).ToArray());
-            });
-
+                SceneController.UpdatePlacedObjectsThreadQueue.Enqueue(() =>
+                {
+                    SceneController.UpdatePlacedObjects(SceneController.SimSpaceSystem.GetPlacedObjects(), true);
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -945,7 +946,7 @@ public class SimulationController : MonoBehaviour
                 switch (((JSONObject)e.Payload["payload_data"]["payload"]).Dict.First().Key)
                 {
                     case "agents_create":
-                        SimControllerThreadQueue.Enqueue(() =>
+                        SceneController.SceneControllerThreadQueue.Enqueue(() =>
                         {
                             temp_po = SceneController.GetPlaceableObjectPrefab(SimObjectType.AGENT, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["class"]);
                             temp = SceneController.GetSimObjectPrototype(SimObjectType.AGENT, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_create"])[0]["class"]);
@@ -1018,7 +1019,7 @@ public class SimulationController : MonoBehaviour
                         // EMPTY
                         break;
                     case "agents_delete":
-                        SimControllerThreadQueue.Enqueue(() =>
+                        SceneController.SceneControllerThreadQueue.Enqueue(() =>
                         {
                             SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.AGENT, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["agents_delete"])[0]["id"]), out x);
                             temp_po = x.Item2;
@@ -1026,7 +1027,7 @@ public class SimulationController : MonoBehaviour
                         });
                         break;
                     case "generics_create":
-                        SimControllerThreadQueue.Enqueue(() =>
+                        SceneController.SceneControllerThreadQueue.Enqueue(() =>
                         {
                             temp_po = SceneController.GetPlaceableObjectPrefab(SimObjectType.GENERIC, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["class"]);
                             temp = SceneController.GetSimObjectPrototype(SimObjectType.GENERIC, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_create"])[0]["class"]);
@@ -1099,7 +1100,7 @@ public class SimulationController : MonoBehaviour
                         // EMPTY
                         break;
                     case "generics_delete":
-                        SimControllerThreadQueue.Enqueue(() =>
+                        SceneController.SceneControllerThreadQueue.Enqueue(() =>
                         {
                             SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.GENERIC, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["generics_delete"])[0]["id"]), out x);
                             temp_po = x.Item2;
@@ -1107,7 +1108,7 @@ public class SimulationController : MonoBehaviour
                         });
                         break;
                     case "obstacles_create":
-                        SimControllerThreadQueue.Enqueue(() =>
+                        SceneController.SceneControllerThreadQueue.Enqueue(() =>
                         {
                             temp_po = SceneController.GetPlaceableObjectPrefab(SimObjectType.OBSTACLE, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["class"]);
                             temp = SceneController.GetSimObjectPrototype(SimObjectType.OBSTACLE, (string)((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_create"])[0]["class"]);
@@ -1180,7 +1181,7 @@ public class SimulationController : MonoBehaviour
                         // EMPTY
                         break;
                     case "obstacles_delete":
-                        SimControllerThreadQueue.Enqueue(() =>
+                        SceneController.SceneControllerThreadQueue.Enqueue(() =>
                         {
                             SceneController.SimSpaceSystem.GetPlacedObjects().TryGetValue((SimObjectType.OBSTACLE, ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_delete"])[0]["class"], ((JSONArray)((JSONObject)e.Payload["payload_data"]["payload"])["obstacles_delete"])[0]["id"]), out x);
                             temp_po = x.Item2;

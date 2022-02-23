@@ -29,6 +29,7 @@ public class SceneController : MonoBehaviour
 
     // UI Action Queue
     public static readonly ConcurrentQueue<Action> SceneControllerThreadQueue = new ConcurrentQueue<Action>();
+    public static readonly ConcurrentQueue<Action> UpdatePlacedObjectsThreadQueue = new ConcurrentQueue<Action>();
 
     private static bool showSimSpace, showEnvironment;
     public GameObject simulationSpace, visualEnvironment;
@@ -101,13 +102,20 @@ public class SceneController : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        if (!UpdatePlacedObjectsThreadQueue.IsEmpty)
+        {
+            while (UpdatePlacedObjectsThreadQueue.TryDequeue(out var action))
+            {
+                action?.Invoke();
+            }
+        }
         if (!SceneControllerThreadQueue.IsEmpty)
         {
             while (SceneControllerThreadQueue.TryDequeue(out var action))
             {
                 action?.Invoke();
             }
-        }
+        }        
 
         ShowHideSimEnvironment();      // può essere sostituito con event
         CheckForUserInput();
@@ -220,8 +228,11 @@ public class SceneController : MonoBehaviour
         simulationSpace.GetComponent<Renderer>().material.shader = Shaders2D[simId];
         simulationSpace.AddComponent<ShaderManager>();
         simulationSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_GridSize", Mathf.Max(width, height, lenght));
+        simulationSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_Width", width);
         if (simId == 1)
         {
+            simulationSpace.GetComponent<ShaderManager>().f_cells = new float[width, width];                                                                      // food
+            simulationSpace.GetComponent<ShaderManager>().h_cells = new float[width, width];                                                                      // home
             simulationSpace.GetComponent<ShaderManager>().computeBuffers = new ComputeBuffer[2];
             simulationSpace.GetComponent<ShaderManager>().computeBuffers[0] = new ComputeBuffer(width * width, sizeof(float), ComputeBufferType.Append);          // food
             simulationSpace.GetComponent<ShaderManager>().computeBuffers[1] = new ComputeBuffer(width * width, sizeof(float), ComputeBufferType.Append);          // home
@@ -619,6 +630,7 @@ public class SceneController : MonoBehaviour
         if (SimSpaceSystem.GetPlacedObjects().TryRemove((notInStep.Type, notInStep.Class_name, notInStep.Id), out (bool, PlaceableObject) x))
         {           
             SimSpaceSystem.DeleteSimObject(x.Item2);
+            x.Item2._Delete();
             x.Item2.Destroy();
             if ((UIController.selected != null) && UIController.selected.Equals(x.Item2))
             {
@@ -653,7 +665,10 @@ public class SceneController : MonoBehaviour
                 onSimObjectNotInStep(so);
                 SimulationController.GetSimulation().Agents.TryRemove((so.Class_name, so.Id), out _);
             }
-            else if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) { if (!placedObjects[(so.Type, so.Class_name, so.Id)].po.IsGhost) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable; }
+            else if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
+            {
+                placedObjects[(so.Type, so.Class_name, so.Id)].po._Update();
+            }
             else
             {
                 PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
@@ -674,7 +689,10 @@ public class SceneController : MonoBehaviour
                 onSimObjectNotInStep(so);
                 SimulationController.GetSimulation().Generics.TryRemove((so.Class_name, so.Id), out _);
             }
-            else if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id))) { if (!placedObjects[(so.Type, so.Class_name, so.Id)].po.IsGhost) placedObjects[(so.Type, so.Class_name, so.Id)].po.IsMovable = movable; }
+            else if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
+            {
+                placedObjects[(so.Type, so.Class_name, so.Id)].po._Update();
+            }
             else
             {          
                 PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name);
@@ -695,7 +713,11 @@ public class SceneController : MonoBehaviour
                 onSimObjectNotInStep(so);
                 SimulationController.GetSimulation().Obstacles.TryRemove((so.Class_name, so.Id), out _);
             }
-            else if (!placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
+            else if (placedObjects.ContainsKey((so.Type, so.Class_name, so.Id)))
+            {
+                placedObjects[(so.Type, so.Class_name, so.Id)].po._Update();
+            }
+            else
             {                      
                 PlaceableObject _prefab = GetPlaceableObjectPrefab(so.Type, so.Class_name); 
                 PlaceableObject _old = GetGhostToReplace(so);
@@ -705,60 +727,9 @@ public class SceneController : MonoBehaviour
                     DeleteTempGhost(so.Type, so.Class_name, _old.SimObject.Id);
                     EmptyInspector();
                     SimSpaceSystem.CopyRotation(_old, _new);
-                    Debug.Log("Deleted old : " + so.Type + " " + so.Class_name + " " + _old.SimObject.Id);
-                }
-                else Debug.Log("Old not found : " + so.Type + " " + so.Class_name + " " + _new.SimObject.Id);
-            }
-        }
-    }
-    public void LockPlacedObjects(ConcurrentDictionary<(SimObject.SimObjectType type, string class_name, int id), (bool isGhost, PlaceableObject po)> placedObjects)
-    {
-        foreach ((bool isGhost, PlaceableObject po) entry in placedObjects.Values)
-        {
-            entry.po.IsMovable = false;
-        }
-    }
-    public void UpdatePheromones(ICollection<SimObject> pheromones)
-    {
-        float[,] f_cells = new float[width, width];
-        float[,] h_cells = new float[width, width];
-
-        int fn = 0;
-
-        foreach (SimObject so in pheromones)
-        {
-            so.Parameters.TryGetValue("position", out object coords);
-            while (coords == null) so.Parameters.TryGetValue("position", out coords);
-            so.Parameters.TryGetValue("intensity", out object intensity);
-            while (intensity == null) so.Parameters.TryGetValue("intensity", out intensity);
-            if (isDiscrete)
-            {
-                if (simDimensions.Count == 2)
-                {
-                    if (so.Class_name.Contains("Food"))
-                    {
-                        foreach (Vector2Int c in (MyList<Vector2Int>)coords)
-                        {
-                            f_cells[c.x, c.y] = (float)intensity;
-                            fn++;
-                        }
-                    }
-                    else
-                    {
-                        foreach (Vector2Int c in (MyList<Vector2Int>)coords)
-                        {
-                            h_cells[c.x, c.y] = (float)intensity;
-                        }
-                    }
                 }
             }
         }
-        simulationSpace.GetComponent<Renderer>().sharedMaterial.SetFloat("_Width", width);
-
-        simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetCounterValue(0);
-        simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetCounterValue(0);
-        simulationSpace.GetComponent<ShaderManager>().computeBuffers[0].SetData(f_cells);
-        simulationSpace.GetComponent<ShaderManager>().computeBuffers[1].SetData(h_cells);
     }
 
     // Utils

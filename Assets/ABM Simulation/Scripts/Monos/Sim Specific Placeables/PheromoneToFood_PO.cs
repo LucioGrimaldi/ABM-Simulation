@@ -1,5 +1,4 @@
 using UnityEngine;
-using static SimObjectRender;
 
 public class PheromoneToFood_PO : PO_Discrete2D
 {
@@ -46,7 +45,6 @@ public class PheromoneToFood_PO : PO_Discrete2D
     /// </summary>
     protected override void LateUpdate()
     {
-        // add/remove from Shader Buffers
         if (isGhost)
         {
             if (isMovable)
@@ -69,5 +67,26 @@ public class PheromoneToFood_PO : PO_Discrete2D
     protected override void OnDisable()
     {
 
+    }
+
+    public override void _Update()
+    {
+        // add/remove from Shader Buffers
+        GameObject.Find("SceneController").GetComponent<SceneController>().simulationSpace.GetComponent<ShaderManager>().f_cells[((MyList<Vector2Int>)simObject.Parameters["position"])[0].x, ((MyList<Vector2Int>)simObject.Parameters["position"])[0].y] = (float)simObject.Parameters["intensity"];
+
+        //if(!isGhost)
+        //{
+        //    if (isMovable)
+        //    {
+        //        Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
+        //        transform.position = targetPosition;
+        //        MoveInSimSpace();
+        //    }
+        //}
+    }
+    public override void _Delete()
+    {
+        // remove itself from Shader Buffers
+        GameObject.Find("SceneController").GetComponent<SceneController>().simulationSpace.GetComponent<ShaderManager>().f_cells[((MyList<Vector2Int>)simObject.Parameters["position"])[0].x, ((MyList<Vector2Int>)simObject.Parameters["position"])[0].y] = 0f;
     }
 }

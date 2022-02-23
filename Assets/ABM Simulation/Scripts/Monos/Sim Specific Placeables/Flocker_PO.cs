@@ -34,27 +34,14 @@ public class Flocker_PO : PO_Continuous3D
     /// </summary>
     protected override void LateUpdate()
     {
-        if (simObjectRender.RenderType.Equals(RenderTypeEnum.MESH))         // TODO (TEXTURE,PARTICLE_SYSTEM,OTHER..)
+        if (isGhost)
         {
-            if (isGhost)
+            ChangeMesh((bool)simObject.Parameters["dead"]);
+            if (isMovable)
             {
-                ChangeMesh((bool)simObject.Parameters["dead"]);
-                if (isMovable)
-                {
-                    Vector3 targetPosition = continuousSystem.MouseClickToSpawnPosition(this);
-                    transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 15f);
-                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(Vector3.zero), Time.deltaTime * 15f);
-                }
-            }
-            else
-            {
-                ChangeMesh((bool)simObject.Parameters["dead"]);
-                if (isMovable)
-                {
-                    Vector3 targetPosition = ContinuousSystem.MasonToUnityPosition3D(GetPosition());
-                    if((transform.position - targetPosition).magnitude > 0.001) transform.rotation = Quaternion.Lerp(transform.rotation, GetFacingDirection(transform.position, targetPosition), Time.deltaTime * 15f);
-                    transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 15f);
-                }
+                Vector3 targetPosition = continuousSystem.MouseClickToSpawnPosition(this);
+                transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 15f);
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(Vector3.zero), Time.deltaTime * 15f);
             }
         }
     }
@@ -73,6 +60,19 @@ public class Flocker_PO : PO_Continuous3D
 
     }
 
+    public override void _Update()
+    {
+        if (!isGhost)
+        {
+            ChangeMesh((bool)simObject.Parameters["dead"]);
+            if (isMovable)
+            {
+                Vector3 targetPosition = ContinuousSystem.MasonToUnityPosition3D(GetPosition());
+                if ((transform.position - targetPosition).magnitude > 0.001) transform.rotation = Quaternion.Lerp(transform.rotation, GetFacingDirection(transform.position, targetPosition), Time.deltaTime * 15f);
+                transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 15f);
+            }
+        }
+    }
     private void ChangeMesh(bool dead)
     {
         string model = "";

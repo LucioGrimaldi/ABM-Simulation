@@ -46,19 +46,6 @@ public class Ant_PO : PO_Discrete2D
                 transform.Find("Model").rotation = Quaternion.Euler(GetRotationVector(direction));
             }
         }
-        else
-        {
-            ChangeColor((bool)simObject.Parameters["hasFoodItem"]);
-
-            if (isMovable)
-            {
-                Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
-                direction = GetFacingDirection(transform.position, targetPosition);
-                transform.position = targetPosition;
-                transform.Find("Model").rotation = Quaternion.Euler(GetRotationVector(direction));
-                MoveInSimSpace();
-            }
-        }
     }
     /// <summary>
     /// onApplicationQuit routine (Unity Process)
@@ -76,6 +63,22 @@ public class Ant_PO : PO_Discrete2D
     }
 
 
+    public override void _Update()
+    {
+        if (!isGhost)
+        {
+            ChangeColor((bool)simObject.Parameters["hasFoodItem"]);
+
+            if (isMovable)
+            {
+                Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
+                direction = GetFacingDirection(transform.position, targetPosition);
+                transform.position = targetPosition;
+                transform.Find("Model").rotation = Quaternion.Euler(GetRotationVector(direction));
+                MoveInSimSpace();
+            }
+        }
+    }
     public override bool PlaceGhost()
     {
         direction = GetFacingDirection((Quaternion)simObject.Parameters["rotation"]);

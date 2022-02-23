@@ -53,31 +53,16 @@ public class Obstacle_PO : PO_Discrete2D
     /// </summary>
     protected override void LateUpdate()
     {
-        if (simObjectRender.RenderType.Equals(RenderTypeEnum.MESH))        // TODO (TEXTURE,PARTICLE_SYSTEM,OTHER..)
+        if (isGhost)
         {
-            if (isGhost)
+            if (isMovable)
             {
-                if (isMovable)
-                {
-                    Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
-                    Vector3 targetPosition = gridSystem.MouseClickToSpawnPosition(this);                                                                                                                // offset escluso
-                    gridSystem.grid.GetXYZ(targetPosition, out int x, out _, out int z);
-                    simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, length);
-                    transform.position = Vector3.Lerp(transform.position, targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize, Time.deltaTime * 15f);        // offset incluso
-                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);                                                     // limiti di rotazione gestiti in Rotate()
-                }
-            }
-            else
-            {
-                if (isMovable)
-                {
-                    direction = GetFacingDirection((Quaternion)simObject.Parameters["rotation"]);
-                    Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
-                    Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
-                    transform.position = targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize;                                                                // offset incluso
-                    transform.rotation = Quaternion.Euler(GetRotationVector(direction));
-                    MoveInSimSpace();
-                }
+                Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
+                Vector3 targetPosition = gridSystem.MouseClickToSpawnPosition(this);                                                                                                                // offset escluso
+                gridSystem.grid.GetXYZ(targetPosition, out int x, out _, out int z);
+                simObject.Parameters["position"] = pos = gridSystem.GetNeededCells2D(new Vector2Int(x, z), direction, width, length);
+                transform.position = Vector3.Lerp(transform.position, targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize, Time.deltaTime * 15f);        // offset incluso
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(GetRotationVector(direction)), Time.deltaTime * 15f);                                                     // limiti di rotazione gestiti in Rotate()
             }
         }
     }
@@ -94,5 +79,21 @@ public class Obstacle_PO : PO_Discrete2D
     protected override void OnDisable()
     {
         base.OnDisable();
+    }
+
+    public override void _Update()
+    {
+        if (!isGhost)
+        {
+            if (isMovable)
+            {
+                direction = GetFacingDirection((Quaternion)simObject.Parameters["rotation"]);
+                Vector3Int rotationOffset = GetRotationOffset();                                                                                                                                    // prendo offset rotazione
+                Vector3 targetPosition = GridSystem.MasonToUnityPosition2D((MyList<Vector2Int>)GetCells());
+                transform.position = targetPosition + new Vector3(rotationOffset.x, 0, rotationOffset.z) * gridSystem.grid.CellSize;                                                                // offset incluso
+                transform.rotation = Quaternion.Euler(GetRotationVector(direction));
+                MoveInSimSpace();
+            }
+        }
     }
 }
